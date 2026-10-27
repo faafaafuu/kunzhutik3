@@ -190,8 +190,11 @@ async def order_status_callback(callback: CallbackQuery) -> None:
 
 async def main() -> None:
     if not settings.telegram_bot_token:
-        logging.getLogger(__name__).warning("TELEGRAM_BOT_TOKEN is empty; bot will not start")
-        return
+        # Idle instead of exiting: the container is restart: unless-stopped,
+        # and a bare return would make it restart in a loop.
+        logging.getLogger(__name__).warning("TELEGRAM_BOT_TOKEN is empty; bot is idle")
+        while True:
+            await asyncio.sleep(3600)
     bot = Bot(token=settings.telegram_bot_token)
     dp = Dispatcher()
     dp.include_router(router)
