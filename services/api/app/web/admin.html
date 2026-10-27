@@ -4,22 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Кунжут · Заказы</title>
-    <link rel="stylesheet" href="/static/admin.css?v=20260703-delivery-v1" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/tokens.css?v=20261027-blue" />
+    <link rel="stylesheet" href="/static/admin.css?v=20261027-blue" />
   </head>
   <body>
     <header class="topbar">
       <span class="brand"><span class="brand-dot">К</span> Кунжут · Заказы</span>
+      <span class="spacer"></span>
+      <span class="updated" id="updated"></span>
+      <button class="ghost" type="button" id="refresh-orders">Обновить</button>
       <button class="ghost" type="button" id="logout-button">Выйти</button>
     </header>
 
     <main class="shell">
-      <section id="orders-tab">
-        <div class="card" style="margin-bottom:14px">
-          <button class="btn subtle" type="button" id="refresh-orders">Обновить заказы</button>
-        </div>
-        <div class="orders-list" id="orders"></div>
-      </section>
+      <div class="toolbar">
+        <h1>Заказы</h1>
+        <div class="filters" id="filters" role="tablist" aria-label="Фильтр по статусу"></div>
+      </div>
+      <div class="orders-list" id="orders" aria-live="polite"></div>
     </main>
-    <script src="/static/admin.js?v=20260703-delivery-v1" defer></script>
+    <script src="/static/admin.js?v=20261027-blue" defer></script>
   </body>
 </html>

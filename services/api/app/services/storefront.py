@@ -12,7 +12,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from app.core.config import settings
 from app.models.store_order import StoreOrder
 from app.services.notifications import ORDER_STATUS_LABELS, notify_new_order, notify_order_status_update
-from app.store.catalog import BUSINESS_PROFILE, CATEGORIES, FEATURES, MENU_ITEMS, PROMOS, STORE_CURRENCY
+from app.store.catalog import BUSINESS_PROFILE, CATEGORIES, COOK_MINUTES, FEATURES, MENU_ITEMS, MODIFIER_SETS, PROMOS, STORE_CURRENCY
 
 CATALOG_BY_ID = {item["id"]: item for item in MENU_ITEMS}
 ORDER_STATUS_VALUES = set(ORDER_STATUS_LABELS)
@@ -27,6 +27,8 @@ def get_storefront_payload() -> dict:
         "features": FEATURES,
         "promos": PROMOS,
         "items": MENU_ITEMS,
+        "modifier_sets": MODIFIER_SETS,
+        "cook_minutes": COOK_MINUTES,
     }
 
 

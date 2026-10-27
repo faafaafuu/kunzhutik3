@@ -84,14 +84,15 @@ async def contacts(message: Message) -> None:
 async def menu(message: Message) -> None:
     category_titles = {category["id"]: category["title"] for category in CATEGORIES}
     lines = [f"Меню {BUSINESS_PROFILE['brand_name']}:"]
-    for category in CATEGORIES[:6]:
+    for category in [c for c in CATEGORIES if c["id"] not in ("extras", "modifiers")][:6]:
         items = [item for item in MENU_ITEMS if item["category_id"] == category["id"]][:4]
         if not items:
             continue
         lines.append("")
         lines.append(category_titles[category["id"]])
         for item in items:
-            lines.append(f"- {item['title']} — {item['price']} ₽, {item['weight']}")
+            weight = f", {item['weight']}" if item["weight"] else ""
+            lines.append(f"- {item['title']} — {item['price']} ₽{weight}")
     lines.append("")
     lines.append("Полное меню доступно на сайте.")
     await message.answer("\n".join(lines), reply_markup=storefront_keyboard(message.from_user))

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Системные состояния · Кунжут · макет</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/tokens.css" />
+<link rel="stylesheet" href="../assets/kit.css" />
+<link rel="stylesheet" href="../assets/spec.css" />
+</head>
+<body class="spec-page">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  
+  <symbol id="cart" viewBox="0 0 24 24"><path d="M6.5 8.5h11l-.9 10.1a2 2 0 0 1-2 1.8H9.4a2 2 0 0 1-2-1.8L6.5 8.5Z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></symbol>
+  <symbol id="pin" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="phone" viewBox="0 0 24 24"><path d="M6.6 3.5 9.1 3a1.6 1.6 0 0 1 1.8.9l1.1 2.7a1.6 1.6 0 0 1-.4 1.8L10.2 9.8a12.2 12.2 0 0 0 4 4l1.4-1.4a1.6 1.6 0 0 1 1.8-.4l2.7 1.1a1.6 1.6 0 0 1 .9 1.8l-.5 2.5a2.6 2.6 0 0 1-2.6 2.1A15.9 15.9 0 0 1 4.5 5.9a2.6 2.6 0 0 1 2.1-2.4Z"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></symbol>
+  <symbol id="gift" viewBox="0 0 24 24"><rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5V20h14v-7.5M12 8.5V20M12 8.5S10.5 4 8 4.5 6.5 8.5 12 8.5zM12 8.5S13.5 4 16 4.5s1.5 4-4 4z"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M7 11c0-2 1.5-3 3-3M12 11c.5-2.5 2.5-4 5-3.5"/></symbol>
+  <symbol id="receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></symbol>
+  <symbol id="close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></symbol>
+  <symbol id="bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="wifi-off" viewBox="0 0 24 24"><path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 5-2.7M14 10.3A10 10 0 0 1 19 13M2 9.5a15 15 0 0 1 5-3M11 5a15 15 0 0 1 11 4.5"/><circle cx="12" cy="20" r=".8"/></symbol>
+  <symbol id="alert" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.1"/></symbol>
+  <symbol id="map" viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></symbol>
+  <symbol id="card" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
+  <symbol id="cash" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9v.1M18 15v.1"/></symbol>
+  <symbol id="refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/></symbol>
+  <symbol id="store" viewBox="0 0 24 24"><path d="M4 10l1.5-5h13L20 10M4 10v10h16V10M4 10h16"/><path d="M10 20v-5h4v5"/></symbol>
+  <symbol id="truck" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></symbol>
+  <symbol id="logout" viewBox="0 0 24 24"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/></symbol>
+  <symbol id="star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/></symbol>
+  <symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="send" viewBox="0 0 24 24"><path d="M21 3L3 10.5l7 2.5 2.5 7z"/><path d="M10 13l11-10"/></symbol>
+</svg>
+
+<header class="spec-head"><a href="../index.html">← Все экраны</a><span class="sep">|</span><b>Системные состояния</b> <span class="sep">|</span> общие для всех экранов <span class="sep">|</span> коды ошибок — docs/api.md</header>
+<!-- ======================= SCREEN: system ======================= -->
+<div class="spec-state"><b>Нет сети</b><code>data-state="offline"</code></div><p class="spec-note">Показываем поверх последнего меню из кэша, если оно есть.</p><section class="frame narrow " data-state="offline"><div class="state"><span class="state-icon"><svg class="i" aria-hidden="true"><use href="#wifi-off"/></svg></span><h2>Нет подключения</h2><p>Меню и корзина сохранятся — продолжим, как только появится сеть.</p><button class="button button-primary" type="button">Повторить</button></div></section>
+<div class="spec-state"><b>Ошибка сервера</b><code>data-state="server-error"</code></div><p class="spec-note">5xx без кода ошибки.</p><section class="frame narrow " data-state="server-error"><div class="state"><span class="state-icon"><svg class="i" aria-hidden="true"><use href="#alert"/></svg></span><h2>Что-то пошло не так</h2><p>Мы уже разбираемся. Попробуйте через минуту.</p><button class="button button-primary" type="button">Повторить</button></div></section>
+<div class="spec-state"><b>Страница не найдена</b><code>data-state="not-found"</code></div><p class="spec-note">404, неверная ссылка на заказ или блюдо.</p><section class="frame narrow " data-state="not-found"><div class="state"><span class="state-icon"><svg class="i" aria-hidden="true"><use href="#search"/></svg></span><h2>Здесь ничего нет</h2><p>Возможно, ссылка устарела.</p><a class="button button-primary" href="menu.html">В меню</a></div></section>
+<div class="spec-state"><b>Все точки закрыты</b><code>data-state="all-closed"</code></div><p class="spec-note">all_venues_closed</p><section class="frame narrow " data-state="all-closed"><div class="state"><span class="state-icon"><svg class="i" aria-hidden="true"><use href="#clock"/></svg></span><h2>Сейчас всё закрыто</h2><p>Работаем ежедневно с 10:00 до 22:00. Можно оформить заказ ко времени.</p><a class="button button-primary" href="checkout.html">Заказать ко времени</a></div></section>
+<div class="spec-state"><b>Нужно обновить приложение (Expo)</b><code>data-state="update-required"</code></div><p class="spec-note">app_update_required / min_supported_app_version из GET /config. Экран блокирующий, без «позже».</p><section class="frame narrow " data-state="update-required"><div class="state"><span class="state-icon"><svg class="i" aria-hidden="true"><use href="#refresh"/></svg></span><h2>Обновите приложение</h2><p>Эта версия больше не поддерживается. Обновление займёт минуту.</p><a class="button button-primary" href="#">Обновить в App Store</a></div></section>
+<div class="spec-state"><b>Разрешение на геолокацию (Expo)</b><code>data-state="location"</code></div><p class="spec-note">Перед системным диалогом объясняем зачем.</p><section class="frame narrow " data-state="location"><div class="state"><span class="state-icon"><svg class="i" aria-hidden="true"><use href="#pin"/></svg></span><h2>Найдём ближайшую точку</h2><p>Нужна геолокация, чтобы показать цены и время доставки. Можно ввести адрес вручную.</p><div style="display:grid;gap:8px;width:100%;max-width:320px"><button class="button button-primary" type="button">Разрешить</button><button class="button button-tonal" type="button">Ввести адрес</button></div></div></section>
+<div class="spec-state"><b>Тосты</b><code>data-state="toast"</code></div><p class="spec-note">Короткие подтверждения внизу экрана.</p><section class="frame narrow pad" data-state="toast"><div class="toast"><svg class="i" aria-hidden="true"><use href="#check"/></svg> Добавили в корзину</div><div class="toast" style="background:var(--danger)"><svg class="i" aria-hidden="true"><use href="#alert"/></svg> Не удалось отменить заказ</div></section>
+<script src="../assets/shell.js"></script>
+</body>
+</html>

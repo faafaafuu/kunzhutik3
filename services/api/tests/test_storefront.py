@@ -5,7 +5,7 @@ ORDER_PAYLOAD = {
     "delivery_slot": "сегодня 19:00",
     "payment_method": "card_on_delivery",
     "comment": "без лука",
-    "items": [{"item_id": "doner-bread", "quantity": 2}],
+    "items": [{"item_id": "roll-salmon", "quantity": 2}],
 }
 
 
@@ -32,8 +32,8 @@ def test_create_order_prices_from_catalog(client):
     assert payload["order_number"].startswith("KUN-")
     assert payload["order"]["status"] == "new"
     # The client never sets the price: it comes from the server-side catalog.
-    assert float(payload["order"]["total_amount"]) == 700.0
-    assert payload["order"]["items_json"][0]["line_total"] == 700.0
+    assert float(payload["order"]["total_amount"]) == 800.0
+    assert payload["order"]["items_json"][0]["line_total"] == 800.0
 
 
 def test_create_order_rejects_unknown_item(client):

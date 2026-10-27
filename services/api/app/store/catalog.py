@@ -1,19 +1,9 @@
 STORE_CURRENCY = "RUB"
 
-MENU_IMAGE_BY_CATEGORY = {
-    "doners": "/static/assets/menu/doner.svg",
-    "combos": "/static/assets/menu/combo.svg",
-    "sides": "/static/assets/menu/fries.svg",
-    "hot_drinks": "/static/assets/menu/coffee.svg",
-    "coffee": "/static/assets/menu/coffee.svg",
-    "desserts": "/static/assets/menu/dessert.svg",
-    "cold_drinks": "/static/assets/menu/drink.svg",
-    "middle_east": "/static/assets/menu/baklava.svg",
-    "seasonal": "/static/assets/menu/seasonal.svg",
-    "bubble": "/static/assets/menu/bubble.svg",
-    "soups": "/static/assets/menu/soup.svg",
-    "salads": "/static/assets/menu/salad.svg",
-}
+# Menu as published on Yandex Maps for «Брайт», Солнечногорск (marked there as not updated for a while).
+# Photos are the ones the venue published on Yandex Maps, cropped to 800×800.
+# "extras" are drink add-ons and "modifiers" are dish add-ons: both are EXAMPLE values set while
+# designing the storefront. Replace them with the venue's real list and prices.
 
 BUSINESS_PROFILE = {
     "brand_name": "Кунжут",
@@ -24,265 +14,108 @@ BUSINESS_PROFILE = {
     "map_url": "https://yandex.ru/navi/org/kunzhut/164627838144?si=h642xhuqxfhvq70ru31nkj80c4",
     "instagram_url": "https://www.instagram.com/kunzhut.food?igsh=dXVtODRxOXhrZmow",
     "vk_url": "https://vk.ru/kunzhutfood",
-    "menu_source_url": "https://o-eda-dostavka.ru/goroda/solnechnogorsk/rest/kunzhut_w5d9c/",
-    "menu_source_note": "Цены и позиции сверены по открытой карточке меню, актуальность источника может отличаться от фактической.",
+    "menu_source_url": "https://yandex.ru/maps/org/brayt/56159815629/menu/",
+    "menu_source_note": "Позиции и цены — из карточки «Брайт» на Яндекс Картах.",
 }
 
 CATEGORIES = [
-    {"id": "doners", "title": "Донеры"},
-    {"id": "combos", "title": "Комбо"},
-    {"id": "sides", "title": "Снеки"},
-    {"id": "hot_drinks", "title": "Горячие напитки"},
-    {"id": "coffee", "title": "Чай и кофе"},
-    {"id": "desserts", "title": "Десерты"},
-    {"id": "cold_drinks", "title": "Холодные напитки"},
-    {"id": "middle_east", "title": "Ближний Восток"},
-    {"id": "seasonal", "title": "Сезонное меню"},
-    {"id": "bubble", "title": "Бабл"},
-    {"id": "soups", "title": "Супы"},
-    {"id": "salads", "title": "Салаты"},
+    {
+        "id": "coffee",
+        "title": "Кофе"
+    },
+    {
+        "id": "poke",
+        "title": "Поке"
+    },
+    {
+        "id": "salads",
+        "title": "Салаты"
+    },
+    {
+        "id": "sandwiches",
+        "title": "Окинавские сэндвичи"
+    },
+    {
+        "id": "rolls",
+        "title": "Ролл"
+    },
+    {
+        "id": "scramble",
+        "title": "Скрембл"
+    },
+    {
+        "id": "desserts",
+        "title": "Десерты"
+    },
+    {
+        "id": "extras",
+        "title": "Дополнительно"
+    },
+    {
+        "id": "modifiers",
+        "title": "Добавки к блюдам"
+    }
 ]
+
+ADDON_CATEGORY_ID = "extras"
+MODIFIER_CATEGORY_ID = "modifiers"
 
 MENU_ITEMS = [
-    {
-        "id": "doner-bread",
-        "category_id": "doners",
-        "title": "Донер в хлебе",
-        "tag": "Турецкий донер",
-        "description": "Сытный донер в тёплом хлебе: мясо, свежие овощи и соус.",
-        "price": 350,
-        "weight": "300 г",
-        "badge": "Хит",
-        "accent": "#ff7f32",
-    },
-    {
-        "id": "doner-plate",
-        "category_id": "doners",
-        "title": "Донер на тарелке",
-        "tag": "Сытный обед",
-        "description": "Куриное филе, помидор, красный лук, томатный соус, картофель и лаваш.",
-        "price": 400,
-        "weight": "300 г",
-        "accent": "#f04e30",
-    },
-    {
-        "id": "doner-lavash",
-        "category_id": "doners",
-        "title": "Донер в лаваше",
-        "tag": "С собой",
-        "description": "Мясо, овощи и соус в лаваше. Удобный формат для быстрого перекуса.",
-        "price": 330,
-        "weight": "300 г",
-        "accent": "#f6b347",
-    },
-    {
-        "id": "chicken-pilav",
-        "category_id": "doners",
-        "title": "Пилав с курицей",
-        "tag": "Горячее",
-        "description": "Курица на гриле, рис, фета, кукуруза, красный лук, помидор и капуста.",
-        "price": 450,
-        "weight": "650 г",
-        "accent": "#d95b43",
-    },
-    {
-        "id": "caesar-roll",
-        "category_id": "doners",
-        "title": "Цезарь ролл",
-        "tag": "Ролл",
-        "description": "Сочный ролл с куриным филе, салатом айсберг, помидором и фирменным соусом Цезарь.",
-        "price": 350,
-        "weight": "300 г",
-        "accent": "#6f9f58",
-    },
-    {
-        "id": "schnitzel-pilav",
-        "category_id": "doners",
-        "title": "Пилав с шницелем",
-        "tag": "Горячее",
-        "description": "Куриный шницель, рис, кукуруза, красная капуста, красный лук, помидор, багет и соусы.",
-        "price": 490,
-        "weight": "650 г",
-        "accent": "#d5833c",
-    },
-    {
-        "id": "schnitzel-doner-plate",
-        "category_id": "doners",
-        "title": "Донер на тарелке с шницелем",
-        "tag": "Сытный обед",
-        "description": "Куриный шницель с картофелем фри, красной капустой, луком, помидором и двумя соусами.",
-        "price": 490,
-        "weight": "650 г",
-        "accent": "#d95b43",
-    },
-    {
-        "id": "combo-kunzhut",
-        "category_id": "combos",
-        "title": "Комбо Кунжут",
-        "tag": "Комбо",
-        "description": "Донер и картофель фри.",
-        "price": 450,
-        "weight": "440 г",
-        "badge": "Популярно",
-        "accent": "#ff9f1c",
-    },
-    {
-        "id": "combo-all-inclusive",
-        "category_id": "combos",
-        "title": "Комбо Всё включено",
-        "tag": "Большой обед",
-        "description": "Турецкий донер, картофель фри и Добрый Cola.",
-        "price": 530,
-        "weight": "440 г",
-        "accent": "#ff6f61",
-    },
-    {
-        "id": "fries",
-        "category_id": "sides",
-        "title": "Картофель фри",
-        "tag": "Гарнир",
-        "description": "Классический картофель фри к донеру или комбо.",
-        "price": 180,
-        "weight": "140 г",
-        "accent": "#b56576",
-    },
-    {
-        "id": "latte",
-        "category_id": "hot_drinks",
-        "title": "Латте",
-        "tag": "Кофе",
-        "description": "Мягкий молочный кофе.",
-        "price": 300,
-        "weight": "400 мл",
-        "accent": "#c97b63",
-    },
-    {"id": "black-tea", "category_id": "coffee", "title": "Чай черный", "tag": "Чай", "description": "Горячий черный чай.", "price": 150, "weight": "300 мл", "accent": "#9a6b4f"},
-    {"id": "green-tea", "category_id": "coffee", "title": "Чай зеленый", "tag": "Чай", "description": "Горячий зеленый чай.", "price": 150, "weight": "300 мл", "accent": "#6c9a4f"},
-    {"id": "cappuccino", "category_id": "hot_drinks", "title": "Капучино", "tag": "Кофе", "description": "Классический капучино.", "price": 280, "weight": "300 мл", "accent": "#b4835d"},
-    {"id": "americano", "category_id": "coffee", "title": "Американо", "tag": "Кофе", "description": "Чёрный кофе без молока.", "price": 180, "weight": "200 мл", "accent": "#7b4a2f"},
-    {"id": "raf", "category_id": "coffee", "title": "Раф", "tag": "Кофе", "description": "Сливочный кофейный напиток.", "price": 350, "weight": "400 мл", "accent": "#d3a06a"},
-    {"id": "cocoa-marshmallow", "category_id": "hot_drinks", "title": "Какао с маршмеллоу", "tag": "Какао", "description": "Горячее какао с маршмеллоу.", "price": 250, "weight": "300 мл", "accent": "#a66a4a"},
-    {"id": "salep", "category_id": "coffee", "title": "Турецкий салеп", "tag": "Турецкий напиток", "description": "Тёплый турецкий напиток.", "price": 190, "weight": "300 мл", "accent": "#d8b76f"},
-    {"id": "turkish-coffee", "category_id": "coffee", "title": "Кофе по-турецки", "tag": "Кофе", "description": "Плотный кофе в турецком стиле.", "price": 200, "weight": "200 мл", "accent": "#83543a"},
-    {"id": "chocolate-sausage", "category_id": "desserts", "title": "Шоколадная колбаса", "tag": "Десерт", "description": "Небольшой шоколадный десерт.", "price": 70, "weight": "50 г", "accent": "#7c4a3b"},
-    {"id": "kunzhut-candy", "category_id": "desserts", "title": "Конфета Кунжут", "tag": "Десерт", "description": "Фирменная конфета к кофе или чаю.", "price": 60, "weight": "35 г", "accent": "#d6a75c"},
-    {"id": "shu-pistachio-raspberry", "category_id": "desserts", "title": "Шу Фисташка с малиной", "tag": "Десерт", "description": "Заварной десерт с фисташкой и малиной.", "price": 170, "weight": "55 г", "accent": "#8ab36f"},
-    {"id": "shu-berry", "category_id": "desserts", "title": "Шу Ягодное", "tag": "Десерт", "description": "Лёгкий ягодный десерт.", "price": 170, "weight": "55 г", "accent": "#c45b7a"},
-    {"id": "shu-nut", "category_id": "desserts", "title": "Шу Орех", "tag": "Десерт", "description": "Заварной десерт с ореховым акцентом.", "price": 170, "weight": "55 г", "accent": "#b67a45"},
-    {"id": "waffle-condensed-milk", "category_id": "desserts", "title": "Трубочка вафельная со сгущенкой", "tag": "Десерт", "description": "Вафельная трубочка с варёной сгущёнкой.", "price": 150, "weight": "75 г", "accent": "#d59b5b"},
-    {"id": "nutella-banana-pancakes", "category_id": "desserts", "title": "Блины с нутеллой и бананом", "tag": "Десерт", "description": "Два блина с нутеллой и бананом.", "price": 220, "weight": "120 г", "accent": "#c88b5c"},
-    {"id": "dobry-cola", "category_id": "cold_drinks", "title": "Добрый Cola", "tag": "Напиток", "description": "Газированный напиток.", "price": 120, "weight": "330 мл", "accent": "#5b3a2e"},
-    {"id": "dobry-lime", "category_id": "cold_drinks", "title": "Добрый Лимон-лайм", "tag": "Напиток", "description": "Освежающий лимон-лайм.", "price": 120, "weight": "330 мл", "accent": "#94b95f"},
-    {"id": "dobry-orange", "category_id": "cold_drinks", "title": "Добрый Апельсин", "tag": "Напиток", "description": "Апельсиновый газированный напиток.", "price": 120, "weight": "330 мл", "accent": "#f58b3c"},
-    {"id": "ayran", "category_id": "cold_drinks", "title": "Айран 2%", "tag": "Напиток", "description": "Традиционный холодный кисломолочный напиток.", "price": 100, "weight": "400 г", "accent": "#76a6b8"},
-    {"id": "pomegranate-juice", "category_id": "cold_drinks", "title": "Сок гранатовый", "tag": "Напиток", "description": "Гранатовый сок.", "price": 100, "weight": "300 мл", "accent": "#b0263a"},
-    {"id": "baklava-baku", "category_id": "middle_east", "title": "Пахлава Бакинская", "tag": "Восточная сладость", "description": "Классическая пахлава.", "price": 150, "weight": "100 г", "accent": "#c98734"},
-    {"id": "baklava-walnut", "category_id": "middle_east", "title": "Пахлава с грецким орехом", "tag": "Восточная сладость", "description": "Пахлава с грецким орехом.", "price": 150, "weight": "100 г", "accent": "#a86b32"},
-    {"id": "baklava-pistachio", "category_id": "middle_east", "title": "Пахлава с фисташкой", "tag": "Восточная сладость", "description": "Пахлава с фисташкой.", "price": 150, "weight": "100 г", "accent": "#93a847"},
-    {"id": "rahat-assorted", "category_id": "middle_east", "title": "Рахат ассорти", "tag": "Восточная сладость", "description": "Ассорти рахат-лукума с орехами и фруктовыми нотами.", "price": 700, "weight": "310 г", "accent": "#d9a441"},
-    {"id": "espresso-tonic", "category_id": "seasonal", "title": "Эспрессо-тоник", "tag": "Сезонное", "description": "Холодный кофе с тоником.", "price": 290, "weight": "500 мл", "accent": "#c5cf6a"},
-    {"id": "ice-latte", "category_id": "seasonal", "title": "Айс-латте", "tag": "Сезонное", "description": "Айс-латте из сезонного меню: прохладное молоко, насыщенный эспрессо и лёд для освежающего перекуса.", "price": 280, "weight": "500 мл", "accent": "#cfaa73"},
-    {"id": "bumble-coffee", "category_id": "seasonal", "title": "Бамбл кофе", "tag": "Сезонное", "description": "Освежающий кофейный напиток.", "price": 300, "weight": "500 мл", "accent": "#e38d32"},
-    {"id": "pomegranate-bumble", "category_id": "seasonal", "title": "Гранатовый бамбл", "tag": "Сезонное", "description": "Холодный напиток с гранатовым акцентом.", "price": 300, "weight": "500 мл", "accent": "#b92642"},
-    {"id": "ice-cocoa", "category_id": "seasonal", "title": "Айс какао", "tag": "Сезонное", "description": "Холодное какао.", "price": 250, "weight": "500 мл", "accent": "#8d5c45"},
-    {"id": "bubble-coffee", "category_id": "bubble", "title": "Бабл кофе", "tag": "Бабл", "description": "Эспрессо, молоко, сироп солёная карамель и тапиока.", "price": 410, "weight": "600 мл", "accent": "#b77a55"},
-    {"id": "bubble-matcha", "category_id": "bubble", "title": "Бабл матча", "tag": "Бабл", "description": "Молоко, матча и тапиока.", "price": 410, "weight": "600 мл", "accent": "#83a85a"},
-    {"id": "lentil-soup", "category_id": "soups", "title": "Суп-пюре чечевичный", "tag": "Суп", "description": "Красная чечевица, лук, болгарский перец и морковь.", "price": 150, "weight": "300 г", "accent": "#d88236"},
-    {"id": "caesar-salad", "category_id": "salads", "title": "Салат Цезарь", "tag": "Салат", "description": "Айсберг, помидор черри, куриное филе, сыр и соус.", "price": 320, "weight": "220 г", "accent": "#72a75c"},
-    {"id": "grilled-vegetable-salad", "category_id": "salads", "title": "Салат овощной на мангале", "tag": "Салат", "description": "Овощи на мангале с зеленью и ароматом костра.", "price": 200, "weight": "200 г", "accent": "#d56d42"},
+    {"id": "latte", "category_id": "coffee", "title": "Латте", "tag": "Кофе", "description": "Нежный латте с бархатной пенкой.", "price": 270, "weight": "300 мл", "accent": "#ff6900", "image_url": "/static/assets/photos/latte.jpg"},
+    {"id": "raf", "category_id": "coffee", "title": "Раф", "tag": "Кофе", "description": "Нежный кремовый кофе с ванильной ноткой, взбитый до идеальной консистенции.", "price": 300, "weight": "300 мл", "accent": "#ff6900", "image_url": "/static/assets/photos/raf.jpg"},
+    {"id": "flat-white", "category_id": "coffee", "title": "Флэт Уайт", "tag": "Кофе", "description": "Мягкий флэт уайт с бархатной текстурой!", "price": 270, "weight": "200 мл", "accent": "#ff6900", "image_url": "/static/assets/photos/flat-white.jpg"},
+    {"id": "espresso", "category_id": "coffee", "title": "Эспрессо", "tag": "Кофе", "description": "Интенсивный эспрессо, который подарит вам заряд бодрости на весь день!", "price": 200, "weight": "200 мл", "accent": "#ff6900", "image_url": "/static/assets/photos/espresso.jpg"},
+    {"id": "americano", "category_id": "coffee", "title": "Американо", "tag": "Кофе", "description": "Легкий и крепкий американо для тех, кто предпочитает классический кофе.", "price": 200, "weight": "200 мл", "accent": "#ff6900", "image_url": "/static/assets/photos/americano.jpg"},
+    {"id": "poke-shrimp", "category_id": "poke", "title": "Поке с креветкой", "tag": "Поке", "description": "Освежающий поке с сочными креветками и яркими овощами.", "price": 630, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/poke-shrimp.jpg"},
+    {"id": "poke-salmon", "category_id": "poke", "title": "Поке с лососем", "tag": "Поке", "description": "Нежный лосось, свежие ингредиенты и ароматный соус.", "price": 650, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/poke-salmon.jpg"},
+    {"id": "salad-arugula-shrimp", "category_id": "salads", "title": "Салат с рукколой и креветками", "tag": "Салат", "description": "Свежая руккола, нежные креветки и легкая заправка.", "price": 450, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/salad-arugula-shrimp.jpg"},
+    {"id": "salad-uzbek-tomato-stracciatella", "category_id": "salads", "title": "Салат с узбекскими томатами, страчателлой и креветкой", "tag": "Салат", "description": "Легкий салат с яркими вкусами и морским акцентом.", "price": 650, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/salad-uzbek-tomato-stracciatella.jpg"},
+    {"id": "okinawa-unagi-crab", "category_id": "sandwiches", "title": "Окинавский сэндвич с крабом унаги", "tag": "Сэндвич", "description": "Изысканный сендвич с крабом унаги.", "price": 350, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/okinawa-unagi-crab.jpg"},
+    {"id": "roll-salmon", "category_id": "rolls", "title": "Ролл с лососем", "tag": "Ролл", "description": "Свежий ролл с нежным лососем.", "price": 400, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/roll-salmon.jpg"},
+    {"id": "scramble-shrimp-avocado", "category_id": "scramble", "title": "Скрембл с креветкой и авокадо", "tag": "Завтрак", "description": "Нежный скрембл, дополненный креветками и авокадо.", "price": 400, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/scramble-shrimp-avocado.jpg"},
+    {"id": "cheesecake", "category_id": "desserts", "title": "Чизкейк", "tag": "Десерт", "description": "Нежный чизкейк с хрустящей основой и сливочным вкусом!", "price": 220, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/cheesecake.jpg"},
+    {"id": "eclair", "category_id": "desserts", "title": "Эклер", "tag": "Десерт", "description": "Сладкое удовольствие для настоящих сладкоежек!", "price": 180, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/eclair.jpg"},
+    {"id": "choux", "category_id": "desserts", "title": "Пирожное Шу", "tag": "Десерт", "description": "Хрустящее пирожное Шу, наполненное нежным кремом.", "price": 180, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/choux.jpg"},
+    # Drink add-ons. EXAMPLE.
+    {"id": "syrup", "category_id": "extras", "title": "Сироп", "tag": "Добавка", "description": "Ванильный, карамельный или ореховый.", "price": 50, "weight": "", "accent": "#ff6900", "image_url": None},
+    {"id": "oat-milk", "category_id": "extras", "title": "Альтернативное молоко", "tag": "Добавка", "description": "Овсяное или кокосовое.", "price": 60, "weight": "", "accent": "#ff6900", "image_url": None},
+    {"id": "espresso-shot", "category_id": "extras", "title": "Шот эспрессо", "tag": "Добавка", "description": "Дополнительная порция эспрессо.", "price": 90, "weight": "", "accent": "#ff6900", "image_url": None},
+    # Dish add-ons. EXAMPLE.
+    {"id": "mod-double-protein", "category_id": "modifiers", "title": "Двойная порция", "tag": "Добавка", "description": "Ещё порция креветок или лосося.", "price": 250, "weight": "+70 г", "accent": "#ff6900", "image_url": None},
+    {"id": "mod-avocado", "category_id": "modifiers", "title": "Авокадо", "tag": "Добавка", "description": "Половинка спелого авокадо.", "price": 120, "weight": "+50 г", "accent": "#ff6900", "image_url": None},
+    {"id": "mod-egg", "category_id": "modifiers", "title": "Яйцо пашот", "tag": "Добавка", "description": "", "price": 60, "weight": "1 шт", "accent": "#ff6900", "image_url": None},
+    {"id": "mod-sauce-spicy", "category_id": "modifiers", "title": "Соус спайси", "tag": "Добавка", "description": "", "price": 40, "weight": "30 г", "accent": "#ff6900", "image_url": None},
+    {"id": "mod-sauce-unagi", "category_id": "modifiers", "title": "Соус унаги", "tag": "Добавка", "description": "", "price": 40, "weight": "30 г", "accent": "#ff6900", "image_url": None},
+    {"id": "mod-sesame", "category_id": "modifiers", "title": "Кунжут", "tag": "Добавка", "description": "", "price": 20, "weight": "5 г", "accent": "#ff6900", "image_url": None},
 ]
 
+# Which modifiers each dish offers. EXAMPLE set.
+# "paid" are modifier item ids (priced on the server like any item); "remove" are free
+# removals that travel in the order comment until the API gets real modifiers (roadmap, stage 1).
+_BOWL = {
+    "paid": ["mod-double-protein", "mod-avocado", "mod-egg", "mod-sauce-spicy", "mod-sauce-unagi", "mod-sesame"],
+    "remove": ["Без лука", "Без огурца", "Без соуса", "Без кунжута"],
+}
+MODIFIER_SETS = {
+    "poke-shrimp": _BOWL,
+    "poke-salmon": _BOWL,
+    "salad-arugula-shrimp": {"paid": ["mod-double-protein", "mod-avocado", "mod-egg", "mod-sesame"], "remove": ["Без соуса", "Без пармезана"]},
+    "salad-uzbek-tomato-stracciatella": {"paid": ["mod-double-protein", "mod-avocado"], "remove": ["Без лука", "Без соуса"]},
+    "roll-salmon": {"paid": ["mod-double-protein", "mod-avocado", "mod-sauce-spicy", "mod-sauce-unagi", "mod-sesame"], "remove": ["Без огурца", "Без соуса"]},
+    "okinawa-unagi-crab": {"paid": ["mod-avocado", "mod-egg", "mod-sauce-spicy", "mod-sauce-unagi"], "remove": ["Без соуса", "Без огурца"]},
+    "scramble-shrimp-avocado": {"paid": ["mod-double-protein", "mod-avocado", "mod-egg", "mod-sauce-spicy"], "remove": ["Без лука", "Без зелени"]},
+}
+
+# Shown on the product screen. EXAMPLE cooking times.
+COOK_MINUTES = {"coffee": 4, "poke": 10, "salads": 8, "sandwiches": 7, "rolls": 7, "scramble": 10, "desserts": 1}
+
 FEATURES = [
-    {"title": "Донеры и турецкая кухня", "text": "В меню донеры, пилав, чечевичный суп, пахлава и горячие напитки."},
-    {"title": "Адрес", "text": "Кунжут ждёт гостей на ул. Дзержинского, 18."},
-    {"title": "Заказ и самовывоз", "text": "Оформляйте заказ на сайте или приходите за горячим донером на месте."},
+    {"title": "Поке, роллы и кофе", "text": "Свежие боулы, сэндвичи и кофе — в одном заказе."},
+    {"title": "ул. Дзержинского, 18", "text": "Солнечногорск, ежедневно с 10:00 до 22:00."},
+    {"title": "Без очереди", "text": "Закажите на сайте или в Telegram и заберите, когда будет готово."},
 ]
 
 PROMOS = [
-    {"title": "Комбо Кунжут", "text": "Донер и картофель фри в одном сытном наборе."},
-    {"title": "Восточные сладости", "text": "Пахлава, рахат ассорти и фирменные десерты к кофе."},
+    {"title": "Поке с лососем", "text": "Нежный лосось, свежие ингредиенты и ароматный соус — 650 ₽."},
+    {"title": "Кофе к завтраку", "text": "Скрембл с креветкой и авокадо и латте — 670 ₽."},
 ]
-
-ITEM_SOURCE_OVERRIDES = {
-    "doner-plate": {
-        "description": "Донер на тарелке — сытное блюдо из куриного филе, помидора, красного лука, томатного соуса, картофеля и лаваша.",
-        "price": 450,
-        "weight": "650 г",
-        "image_url": "https://i.kafushka.ru/i/6e/be/6ebe32614f2da6772817b0e5eed23407.jpg",
-    },
-    "doner-lavash": {
-        "description": "Сытный донер в лаваше: мясо, овощи и соус. Удобный формат, который приятно хрустит и легко взять с собой.",
-        "price": 350,
-        "image_url": "https://i.kafushka.ru/i/20/50/2050af4082aaeb70fb091991f0e24336.jpg",
-    },
-    "chicken-pilav": {
-        "description": "Пилав с курицей — кусочки курицы на гриле, рассыпчатый рис, фета, кукуруза, красный лук, помидор и хрустящая капуста.",
-        "image_url": "https://i.kafushka.ru/i/cb/6a/cb6a2edd8019595c6723d498ae497591.jpg",
-    },
-    "caesar-roll": {
-        "description": "Сочный ролл с куриным филе, хрустящим айсбергом, помидором и фирменным соусом Цезарь в лаваше.",
-        "image_url": "https://i.kafushka.ru/i/68/4e/684ee8c8f08aba05c156a7156c403904.jpg",
-    },
-    "schnitzel-pilav": {
-        "description": "Куриный шницель с рассыпчатым рисом, кукурузой, красной капустой, красным луком, помидором, багетом и красным/белым соусами.",
-        "image_url": "https://i.kafushka.ru/i/47/fa/47fa496efa70c9b8a43c0532649f4908.jpg",
-    },
-    "schnitzel-doner-plate": {
-        "description": "Куриный шницель с картофелем фри, красной капустой, красным луком, помидором и двумя соусами.",
-        "image_url": "https://i.kafushka.ru/i/21/8b/218bbdaa5a682097c3795c5c2364b032.jpg",
-    },
-    "combo-kunzhut": {
-        "description": "Донер и картофель фри.",
-        "image_url": "https://i.kafushka.ru/i/8a/48/8a485fd4c52304ecb31d7a62fd4894f9.jpg",
-    },
-    "combo-all-inclusive": {
-        "description": "В большой комбо-обед входят: турецкий донер, картофель фри и Добрый Cola.",
-        "image_url": "https://i.kafushka.ru/i/46/0b/460ba74c6af2434afcc8987d41340852.jpg",
-    },
-    "fries": {"image_url": "https://i.kafushka.ru/i/78/4d/784dbec4217e90842cdb5b6639318384.jpg"},
-    "latte": {"image_url": "https://i.kafushka.ru/i/23/5c/235c0b75f6f05ae9b06929d79684addc.jpg"},
-    "cappuccino": {"image_url": "https://i.kafushka.ru/i/a7/90/a7909d5486a6cede5f38656142a4c57e.jpg"},
-    "cocoa-marshmallow": {"image_url": "https://i.kafushka.ru/i/07/c6/07c6b0da1b44ae2af7d2653888d982ca.jpg"},
-    "black-tea": {"image_url": "https://i.kafushka.ru/i/24/2e/242e75ad6555892418e2e9a15866c791.jpg"},
-    "green-tea": {"image_url": "https://i.kafushka.ru/i/6b/7c/6b7c4425ab0e8dca03bb438ddfdf02f1.jpg"},
-    "americano": {"image_url": "https://i.kafushka.ru/i/2d/9a/2d9a320cc57a56406870e085fcbc807d.jpg"},
-    "raf": {"image_url": "https://i.kafushka.ru/i/b8/b3/b8b3c5d7d7622b9628aeb53fe5ff1ec6.jpg"},
-    "turkish-coffee": {"image_url": "https://i.kafushka.ru/i/45/49/4549ed79f312a6ab47fe83d007d42a0f.jpg"},
-    "chocolate-sausage": {"image_url": "https://i.kafushka.ru/i/6f/8d/6f8d6fd2798dc8947dc0fbf3a4bfe0b9.jpg"},
-    "shu-pistachio-raspberry": {"image_url": "https://i.kafushka.ru/i/be/47/be475f87991fd0ef7110e135c8c3cb89.jpg"},
-    "shu-berry": {"image_url": "https://i.kafushka.ru/i/d0/cb/d0cb4ba66f3a8188c065ff53b2bba515.jpg"},
-    "waffle-condensed-milk": {
-        "description": "Вафельная трубочка из пшеничной муки и сахара с начинкой из цельного варёного сгущённого молока.",
-        "image_url": "https://i.kafushka.ru/i/33/95/33950e69ba006145706c661c1c1e6eb5.jpg",
-    },
-    "dobry-cola": {
-        "description": "Газированный напиток Добрый Cola, 330 мл.",
-        "image_url": "https://i.kafushka.ru/i/46/99/469907f299b7eeb6463470200577d376.jpg",
-    },
-    "baklava-baku": {"image_url": "https://i.kafushka.ru/i/42/d2/42d2f176fbe8940a335c7bc64e855c82.jpg"},
-    "baklava-pistachio": {"image_url": "https://i.kafushka.ru/i/49/fd/49fd40029c716f3b14c0727d5ab5faa2.jpg"},
-    "rahat-assorted": {
-        "description": "Рахат-лукум ассорти: орехи, сахар, цитрусовая цедра, фруктовый сок, кукурузный крахмал и вода.",
-        "image_url": "https://i.kafushka.ru/i/9b/be/9bbec9393fb7e99de1564cd0a3626857.jpg",
-    },
-    "ice-cocoa": {"image_url": "https://i.kafushka.ru/i/f8/be/f8be380c300f9cbeca2e0b7441b8fa47.jpg"},
-    "bubble-coffee": {
-        "description": "Эспрессо, молоко, сироп солёная карамель, тапиока и лёд.",
-    },
-    "bubble-matcha": {
-        "description": "Молоко, матча и тапиока: освежающий бабл-напиток с зелёным чаем.",
-    },
-    "lentil-soup": {
-        "description": "Сытный чечевичный суп-пюре из красной чечевицы, лука, болгарского перца и моркови.",
-        "image_url": "https://i.kafushka.ru/i/1b/00/1b00684a4bdddafe926c1f4b7ea2e036.jpg",
-    },
-    "caesar-salad": {
-        "description": "Салат Цезарь: айсберг, помидор черри, куриное филе, сыр и оригинальный соус.",
-        "price": 340,
-        "image_url": "https://i.kafushka.ru/i/e0/ee/e0ee4eba03b186f828734e84c6414445.jpg",
-    },
-}
-
-for item in MENU_ITEMS:
-    item["image_url"] = MENU_IMAGE_BY_CATEGORY.get(item["category_id"])
-    item.update(ITEM_SOURCE_OVERRIDES.get(item["id"], {}))

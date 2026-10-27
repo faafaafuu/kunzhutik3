@@ -1,0 +1,112 @@
+/* Кунжут — design tokens. Source: the «Кунжут» design system (tokens.json). Shared by the storefront and the operator panel. */
+
+:root {
+  color-scheme: light;
+  --brand: #ff6900;
+  --brand-strong: #e85d00;
+  --on-brand: #ffffff;
+  --brand-soft: #fff1e6;
+  --brand-text: #b84a00;
+  --surface: #f4f4f6;
+  --surface-card: #ffffff;
+  --surface-sunken: #ececef;
+  --ink: #1c1c1e;
+  --ink-soft: #62666f;
+  --line: #e4e4e8;
+  --glass: rgba(255, 255, 255, 0.2);
+  --glass-strong: rgba(255, 255, 255, 0.88);
+  --glass-line: rgba(255, 255, 255, 0.38);
+  --scrim: rgba(20, 16, 14, 0.45);
+  --sesame: #f6c453;
+  --on-tint: #141622;
+  --sesame-soft: #fbf0d3;
+  --sesame-text: #7a5300;
+  --coupon-rose: #f8c6cc;
+  --coupon-olive: #c4cf86;
+  --coupon-peach: #cfc6f5;
+  --success: #157a42;
+  --success-soft: #e6f5ec;
+  --danger: #c2343a;
+  --danger-soft: #fdeaea;
+  --warning: #8f5a0b;
+  --warning-soft: #fcf1de;
+  --info: #245d9e;
+  --info-soft: #e8f0fa;
+  --telegram: #2aabee;
+  --vk: #0077ff;
+  --shadow-card: 0 1px 2px rgba(28, 28, 30, 0.04), 0 6px 20px rgba(28, 28, 30, 0.06);
+  --shadow-float: 0 12px 32px rgba(80, 36, 0, 0.18);
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-22: 22px;
+  --space-26: 26px;
+  --space-34: 34px;
+  --radius-sm: 14px;
+  --radius: 24px;
+  --radius-lg: 32px;
+  --radius-pill: 999px;
+  --font-sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --brand-strong: #ff7f26;
+    --brand-soft: #3a2414;
+    --brand-text: #ffa060;
+    --surface: #141110;
+    --surface-card: #1f1b19;
+    --surface-sunken: #29231f;
+    --ink: #f2efea;
+    --ink-soft: #aba49c;
+    --line: #352e29;
+    --glass: rgba(255, 255, 255, 0.1);
+    --glass-strong: rgba(31, 27, 25, 0.86);
+    --glass-line: rgba(255, 255, 255, 0.16);
+    --scrim: rgba(0, 0, 0, 0.6);
+    --sesame-soft: #33290f;
+    --sesame-text: #f6c453;
+    --success: #5fd08f;
+    --success-soft: #15301f;
+    --danger: #ff7d80;
+    --danger-soft: #3a1a1b;
+    --warning: #f0b55a;
+    --warning-soft: #352610;
+    --info: #79acef;
+    --info-soft: #162638;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --brand-strong: #ff7f26;
+  --brand-soft: #3a2414;
+  --brand-text: #ffa060;
+  --surface: #141110;
+  --surface-card: #1f1b19;
+  --surface-sunken: #29231f;
+  --ink: #f2efea;
+  --ink-soft: #aba49c;
+  --line: #352e29;
+  --glass: rgba(255, 255, 255, 0.1);
+  --glass-strong: rgba(31, 27, 25, 0.86);
+  --glass-line: rgba(255, 255, 255, 0.16);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --sesame-soft: #33290f;
+  --sesame-text: #f6c453;
+  --success: #5fd08f;
+  --success-soft: #15301f;
+  --danger: #ff7d80;
+  --danger-soft: #3a1a1b;
+  --warning: #f0b55a;
+  --warning-soft: #352610;
+  --info: #79acef;
+  --info-soft: #162638;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.6);
+}

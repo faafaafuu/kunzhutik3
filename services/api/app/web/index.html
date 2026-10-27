@@ -2,193 +2,234 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f4f5f7" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ff6900" />
     <title>Кунжут · Турецкая кухня и кофе</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="/static/styles.css?v=20260703-light-v1" />
+    <link rel="stylesheet" href="/static/tokens.css?v=20261027-blue" />
+    <link rel="stylesheet" href="/static/styles.css?v=20261027-blue" />
   </head>
   <body>
-    <div class="site-shell">
-      <header class="topbar">
-        <a class="brand" href="#menu" aria-label="Кунжут">
-          <span class="brand-mark">К</span>
-          <span>
+    <header class="topbar">
+      <div class="topbar-inner shell">
+        <a class="brand" href="#top" aria-label="Кунжут — на главную">
+          <span class="brand-mark" aria-hidden="true">К</span>
+          <span class="brand-copy">
             <strong id="brand-name">Кунжут</strong>
             <small id="brand-address">ул. Дзержинского, 18</small>
           </span>
         </a>
-        <nav class="topnav" id="topnav"></nav>
-        <button class="cart-button" id="cart-pill" type="button" aria-label="Корзина">
-          <svg class="cart-icon" aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M6.5 8.5h11l-.9 10.1a2 2 0 0 1-2 1.8H9.4a2 2 0 0 1-2-1.8L6.5 8.5Z" />
-            <path d="M9 8.5V7a3 3 0 0 1 6 0v1.5" />
-          </svg>
-          <strong id="cart-count">0</strong>
+        <nav class="topnav" aria-label="Разделы">
+          <a href="#menu">Меню</a>
+          <a href="#bonus">Бонусы</a>
+          <a href="#contacts">Контакты</a>
+        </nav>
+        <span class="chip brand topbar-hours" id="topbar-hours">до 22:00</span>
+        <button class="cart-pill" id="cart-pill" type="button" aria-label="Открыть корзину">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M6.5 8.5h11l-.9 10.1a2 2 0 0 1-2 1.8H9.4a2 2 0 0 1-2-1.8L6.5 8.5Z" /><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5" /></svg>
+          <span id="cart-pill-total">Корзина</span>
+          <b class="cart-pill-count" id="cart-count" hidden>0</b>
         </button>
-      </header>
+      </div>
+    </header>
 
-      <main>
-        <section class="hero">
+    <main id="top">
+      <section class="hero shell" aria-labelledby="hero-title">
+        <div class="hero-card">
           <div class="hero-copy">
-            <p class="eyebrow">Солнечногорск · турецкая кухня</p>
-            <h1>Горячий донер и кофе — свежее каждый день.</h1>
-            <p class="hero-text">
-              Соберите заказ в пару касаний: быстрые категории, насыщенные вкусы и подтверждение у оператора в Telegram.
-            </p>
-            <div class="hero-tags" id="hero-tags"></div>
+            <span class="chip brand" id="hero-hours">ежедневно с 10:00 до 22:00</span>
+            <h1 id="hero-title">заказывай поке и&nbsp;<em>кофе</em> по&nbsp;пути</h1>
+            <p>Соберите заказ в пару касаний — заберите без очереди на ул.&nbsp;Дзержинского, 18 или ждите доставку.</p>
             <div class="hero-actions">
               <a class="button button-primary" href="#menu">Выбрать блюда</a>
-              <a class="button button-secondary" id="map-link" href="#" target="_blank" rel="noreferrer">Как добраться</a>
+              <a class="button button-tonal" id="map-link" href="#" target="_blank" rel="noreferrer">Как добраться</a>
             </div>
           </div>
-          <div class="hero-visual" aria-hidden="true">
-            <div class="hero-badge">популярное</div>
-            <div class="visual-card visual-main">
-              <img src="/static/assets/menu/doner.svg" alt="" />
-              <span>Донер</span>
-            </div>
-            <div class="visual-card visual-side">
-              <img src="/static/assets/menu/coffee.svg" alt="" />
-              <span>Кофе</span>
-            </div>
-            <div class="visual-card visual-mini">
-              <img src="/static/assets/menu/baklava.svg" alt="" />
-              <span>Десерты</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="quick-info is-loading" id="features" aria-busy="true">
-          <article class="skeleton-card"></article>
-          <article class="skeleton-card"></article>
-          <article class="skeleton-card"></article>
-        </section>
-
-        <section class="menu-section" id="menu">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Меню</p>
-              <h2 id="active-category-title">Категории</h2>
-            </div>
-            <p class="section-note">Переключайте категории и собирайте заказ как в привычном сервисе доставки.</p>
-          </div>
-          <div class="category-tabs is-loading" id="category-tabs" role="tablist" aria-label="Категории меню" aria-busy="true"></div>
-          <div class="menu-group-grid is-loading" id="menu-grid" aria-busy="true">
-            <article class="menu-card skeleton-menu-card"></article>
-            <article class="menu-card skeleton-menu-card"></article>
-            <article class="menu-card skeleton-menu-card"></article>
-            <article class="menu-card skeleton-menu-card"></article>
-          </div>
-        </section>
-      </main>
-
-      <footer class="footer" id="contacts">
-        <div class="footer-brand">
-          <span class="footer-mark">К</span>
-          <div>
-            <strong>Кунжут</strong>
-            <p>Турецкая кухня и кофе на каждый день.</p>
+          <div class="hero-art" aria-hidden="true">
+            <figure class="float-card float-a"><img src="/static/assets/photos/poke-salmon.jpg" alt="" /><b>Поке с лососем</b><small>650 ₽</small><span class="qty-pill">− 1 +</span></figure>
+            <figure class="float-card float-b"><img src="/static/assets/photos/raf.jpg" alt="" /><b>Раф</b><small>300 ₽</small><span class="qty-pill">− 2 +</span></figure>
+            <figure class="float-card float-c"><img src="/static/assets/photos/roll-salmon.jpg" alt="" /><b>Ролл с лососем</b><small>400 ₽</small><span class="qty-pill">− 1 +</span></figure>
           </div>
         </div>
-        <div class="footer-block">
-          <span>Адрес</span>
-          <strong id="contact-address">ул. Дзержинского, 18</strong>
-          <p id="contact-hours"></p>
-        </div>
-        <div class="footer-block">
-          <span>Связь</span>
-          <strong id="contact-phone"></strong>
-          <p class="footer-links" id="contact-links"></p>
-        </div>
-      </footer>
+        <div class="features" id="features"></div>
+      </section>
 
-      <div class="cart-bar" id="cart-bar" hidden>
-        <div>
-          <strong id="cart-bar-count">0 позиций</strong>
-          <span id="cart-bar-total">0 ₽</span>
+      <nav class="category-bar" aria-label="Категории меню">
+        <div class="shell"><div class="category-tabs" id="category-tabs" role="tablist"></div></div>
+      </nav>
+
+      <section class="menu shell" id="menu" aria-label="Меню">
+        <div class="menu-sections" id="menu-sections" aria-busy="true">
+          <div class="menu-grid">
+            <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+          </div>
         </div>
-        <button class="button button-primary" id="open-cart" type="button">Перейти к заказу</button>
+      </section>
+
+      <section class="bonus-section shell" id="bonus" aria-labelledby="bonus-title">
+        <div class="section-head">
+          <h2 id="bonus-title">Бонусы и друзья</h2>
+          <p>Программа запускается — копите кунжутики с первого заказа после входа по телефону.</p>
+        </div>
+        <div class="bonus-grid">
+          <article class="bonus-card">
+            <svg class="bonus-seeds" viewBox="0 0 150 150" aria-hidden="true">
+              <rect x="20" y="20" width="12" height="22" rx="6" transform="rotate(-30 26 31)" />
+              <rect x="60" y="10" width="12" height="22" rx="6" transform="rotate(20 66 21)" opacity=".7" />
+              <rect x="100" y="30" width="12" height="22" rx="6" transform="rotate(-10 106 41)" />
+              <rect x="40" y="60" width="12" height="22" rx="6" transform="rotate(40 46 71)" opacity=".5" />
+              <rect x="90" y="70" width="12" height="22" rx="6" transform="rotate(-40 96 81)" opacity=".8" />
+              <rect x="120" y="90" width="12" height="22" rx="6" transform="rotate(15 126 101)" opacity=".6" />
+              <rect x="70" y="110" width="12" height="22" rx="6" transform="rotate(-20 76 121)" opacity=".4" />
+            </svg>
+            <span class="label">Кунжутики</span>
+            <div class="bonus-balance"><b>3–7%</b><span>с заказа</span></div>
+            <p>Возвращаем кунжутиками: 1 кунжутик = 1 ₽. Оплачивайте ими до 30% следующего заказа.</p>
+            <button class="button button-tonal button-sm" type="button" disabled>Скоро</button>
+          </article>
+
+          <article class="level-card">
+            <h3>Уровни</h3>
+            <ul class="levels">
+              <li><div><b>Зёрнышко</b><span>с первого заказа</span></div><em class="chip bonus">3%</em></li>
+              <li><div><b>Симит</b><span>от 5 000 ₽ за 90 дней</span></div><em class="chip bonus">5%</em></li>
+              <li><div><b>Султан</b><span>от 15 000 ₽ за 90 дней</span></div><em class="chip bonus">7%</em></li>
+            </ul>
+          </article>
+
+          <article class="stamp-card">
+            <div class="row-head"><h3>Каждый 7-й кофе — в подарок</h3><span class="chip bonus">штамп за чашку</span></div>
+            <div class="stamp-row" aria-hidden="true">
+              <span class="stamp on">✓</span><span class="stamp on">✓</span><span class="stamp on">✓</span><span class="stamp on">✓</span><span class="stamp">5</span><span class="stamp">6</span><span class="stamp gift">7</span>
+            </div>
+          </article>
+
+          <div class="coupons">
+            <h3>лови подарки сразу после первого заказа</h3>
+            <div class="coupon-row">
+              <div class="gift-coupon rose"><p>Любой кофе за&nbsp;1&nbsp;₽</p><img src="/static/assets/photos/flat-white.jpg" alt="" /><span class="button button-white button-sm">После заказа</span></div>
+              <div class="gift-coupon olive"><p>Любой ролл за&nbsp;1&nbsp;₽</p><img src="/static/assets/photos/roll-salmon.jpg" alt="" /><span class="button button-white button-sm">После заказа</span></div>
+              <div class="gift-coupon peach"><p>Любой десерт за&nbsp;1&nbsp;₽</p><img src="/static/assets/photos/eclair.jpg" alt="" /><span class="button button-white button-sm">После заказа</span></div>
+            </div>
+          </div>
+
+          <article class="referral-card">
+            <h3>Любой напиток за 1 ₽</h3>
+            <p>За каждого друга, который потратит первые 300 ₽. Друг тоже получит подарок.</p>
+            <a class="button button-primary button-block" id="invite-link" href="https://t.me/orderbookk_bot?start=invite" target="_blank" rel="noreferrer">Пригласить друга</a>
+            <div class="referral-steps">
+              <div class="referral-step"><span class="icon">1</span><div><b>Поделитесь ссылкой</b><small>из бота или профиля</small></div></div>
+              <div class="referral-step"><span class="icon">2</span><div><b>Друг заказывает от 300 ₽</b><small>и получает подарок</small></div></div>
+              <div class="referral-step"><span class="icon">3</span><div><b>Вам — напиток за 1 ₽</b><small>купон в профиле</small></div></div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer shell" id="contacts">
+      <div class="footer-brand">
+        <span class="brand-mark" aria-hidden="true">К</span>
+        <div><strong>Кунжут</strong><p>Турецкая кухня и кофе на каждый день.</p></div>
       </div>
+      <div><span class="footer-label">Адрес</span><strong id="contact-address">Солнечногорск, ул. Дзержинского, 18</strong><p id="contact-hours"></p></div>
+      <div><span class="footer-label">Связь</span><strong id="contact-phone"></strong><p class="footer-links" id="contact-links"></p></div>
+    </footer>
 
-      <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
-
-      <aside class="cart-drawer" id="cart-drawer" aria-hidden="true" aria-labelledby="cart-title">
-        <div class="cart-header">
-          <div>
-            <p class="eyebrow">Заказ</p>
-            <h2 id="cart-title">Проверьте корзину</h2>
-          </div>
-          <button class="icon-button" id="cart-close" type="button" aria-label="Закрыть">×</button>
-        </div>
-
-        <div class="checkout-steps">
-          <span class="active" id="step-cart">1. Корзина</span>
-          <span id="step-checkout">2. Оформление</span>
-        </div>
-
-        <div class="cart-panel" id="cart-review">
-          <div class="cart-items" id="cart-items"></div>
-          <div class="cart-summary">
-            <div class="summary-row">
-              <span>Итого</span>
-              <strong id="cart-total">0 ₽</strong>
-            </div>
-            <button class="button button-primary button-block" id="checkout-next" type="button">Оформить заказ</button>
-            <p class="form-note">Контакты и адрес появятся только на следующем шаге.</p>
-          </div>
-        </div>
-
-        <form class="checkout-form" id="checkout-form" hidden>
-          <div class="auth-panel">
-            <span>Профиль заказа</span>
-            <div class="auth-grid">
-              <button class="auth-button" type="button" data-auth="telegram" aria-label="Telegram">
-                <svg class="auth-icon auth-telegram" aria-hidden="true" viewBox="0 0 24 24">
-                  <path d="M21.7 4.2 18.5 19c-.2 1-.8 1.2-1.7.7l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-5 9.1-8.3c.4-.4-.1-.6-.6-.2L6.3 12.5 1.5 11c-1-.3-1-1 .2-1.5L20.4 2.3c.9-.3 1.7.2 1.3 1.9Z" />
-                </svg>
-              </button>
-              <button class="auth-button" type="button" data-auth="phone" aria-label="Телефон">
-                <svg class="auth-icon auth-phone" aria-hidden="true" viewBox="0 0 24 24">
-                  <path d="M6.6 3.5 9.1 3a1.6 1.6 0 0 1 1.8.9l1.1 2.7a1.6 1.6 0 0 1-.4 1.8L10.2 9.8a12.2 12.2 0 0 0 4 4l1.4-1.4a1.6 1.6 0 0 1 1.8-.4l2.7 1.1a1.6 1.6 0 0 1 .9 1.8l-.5 2.5a2.6 2.6 0 0 1-2.6 2.1A15.9 15.9 0 0 1 4.5 5.9a2.6 2.6 0 0 1 2.1-2.4Z" />
-                </svg>
-              </button>
-              <button class="auth-button" type="button" data-auth="vk" aria-label="VK" title="Нужно подключить VK OAuth на сервере">
-                <svg class="auth-icon auth-vk" aria-hidden="true" viewBox="0 0 24 24">
-                  <path d="M3.4 7.2c.1 6.3 3.3 10.1 9 10.1h.3v-3.6c2 .2 3.5 1.7 4.1 3.6h3c-.8-2.8-2.8-4.4-4.1-5 1.3-.8 3-2.6 3.4-5.1h-2.8c-.6 2-2.2 3.8-3.6 4V7.2H9.9v7c-1.6-.4-3.7-2.4-3.8-7H3.4Z" />
-                </svg>
-              </button>
-              <button class="auth-button" type="button" data-auth="google" aria-label="Google" title="Нужно подключить Google OAuth на сервере">
-                <svg class="auth-icon auth-google" aria-hidden="true" viewBox="0 0 24 24">
-                  <path class="g-blue" d="M21.6 12.2c0-.8-.1-1.4-.2-2.1H12v3.9h5.4a4.7 4.7 0 0 1-2 3.1v2.5h3.2c1.9-1.7 3-4.2 3-7.4Z" />
-                  <path class="g-green" d="M12 22c2.7 0 5-0.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1a5.9 5.9 0 0 1-5.5-4.1H3.2v2.6A10 10 0 0 0 12 22Z" />
-                  <path class="g-yellow" d="M6.5 14A6 6 0 0 1 6.2 12c0-.7.1-1.3.3-2V7.4H3.2A10 10 0 0 0 2.1 12c0 1.6.4 3.2 1.1 4.6L6.5 14Z" />
-                  <path class="g-red" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A9.8 9.8 0 0 0 12 2 10 10 0 0 0 3.2 7.4L6.5 10A5.9 5.9 0 0 1 12 5.9Z" />
-                </svg>
-              </button>
-            </div>
-            <p class="auth-status" id="auth-status">Telegram подтянет имя, если открыть сайт кнопкой из бота. VK и Google подключаются после выдачи OAuth-ключей.</p>
-          </div>
-          <input name="customer_name" placeholder="Имя" required />
-          <input name="customer_phone" placeholder="Телефон" required />
-          <input name="delivery_address" placeholder="Адрес доставки или самовывоз" required />
-          <input name="delivery_slot" placeholder="Когда приготовить" />
-          <select name="payment_method">
-            <option value="card_on_delivery">Картой при получении</option>
-            <option value="cash">Наличными</option>
-            <option value="online">Онлайн</option>
-          </select>
-          <textarea name="comment" placeholder="Комментарий к заказу"></textarea>
-          <button class="button button-primary button-block" id="checkout-submit" type="submit">Подтвердить заказ</button>
-          <button class="button button-secondary button-block" id="checkout-back" type="button">Назад в корзину</button>
-          <p class="form-note" id="checkout-status">После подтверждения заказ уйдет оператору в Telegram.</p>
-        </form>
-      </aside>
+    <div class="cart-bar" id="cart-bar" hidden>
+      <button class="cart-bar-inner" id="open-cart" type="button">
+        <span class="cart-bar-count" id="cart-bar-count">0 позиций</span>
+        <span class="cart-bar-total" id="cart-bar-total">0 ₽</span>
+        <span class="cart-bar-cta">Корзина</span>
+      </button>
     </div>
 
-    <script src="/static/app.js?v=20260703-light-v1" defer></script>
+    <div class="scrim" id="scrim" hidden></div>
+
+    <dialog class="product-dialog" id="product-dialog" aria-labelledby="product-title">
+      <div class="pd-bg" id="pd-bg" aria-hidden="true"></div>
+      <div class="pd-veil" aria-hidden="true"></div>
+      <div class="pd-layer">
+        <header class="pd-top">
+          <button class="pd-round glass" id="product-close" type="button" aria-label="Закрыть">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+          </button>
+          <div class="pd-head">
+            <h2 id="product-title"></h2>
+            <dl class="pd-stats" id="product-stats"></dl>
+            <button class="pd-more glass" id="product-more" type="button" aria-expanded="false" aria-controls="product-desc">Подробнее <span aria-hidden="true">⌄</span></button>
+            <p class="pd-desc glass" id="product-desc" hidden></p>
+          </div>
+          <span class="pd-round-spacer" aria-hidden="true"></span>
+        </header>
+
+        <section class="pd-mods" id="product-mods" aria-label="Настроить блюдо">
+          <div class="pd-removes" id="product-removes" role="group" aria-label="Убрать из блюда"></div>
+          <div class="pd-tiles" id="product-tiles" role="group" aria-label="Добавить"></div>
+        </section>
+
+        <footer class="pd-bar">
+          <div class="size-switch glass" id="product-sizes" role="group" aria-label="Объём" hidden></div>
+          <div class="qty-control glassy" id="product-qty-wrap" role="group" aria-label="Количество">
+            <button type="button" id="product-minus" aria-label="Меньше">−</button>
+            <span id="product-qty">1</span>
+            <button type="button" id="product-plus" aria-label="Больше">+</button>
+          </div>
+          <button class="price-button" id="product-add" type="button"><span class="plus" aria-hidden="true">+</span><span id="product-price">0 ₽</span></button>
+        </footer>
+      </div>
+    </dialog>
+
+    <aside class="cart-drawer" id="cart-drawer" aria-hidden="true" aria-labelledby="cart-title">
+      <div class="drawer-head">
+        <h2 id="cart-title">Корзина</h2>
+        <button class="icon-button" id="cart-close" type="button" aria-label="Закрыть">×</button>
+      </div>
+
+      <div class="drawer-panel" id="cart-review">
+        <div class="cart-lines" id="cart-items"></div>
+        <div class="upsell" id="cart-upsell"></div>
+        <div class="drawer-foot">
+          <div class="summary-row"><span>Итого</span><strong id="cart-total">0 ₽</strong></div>
+          <button class="button button-primary button-block" id="checkout-next" type="button">Оформить заказ</button>
+        </div>
+      </div>
+
+      <form class="drawer-panel checkout-form" id="checkout-form" hidden novalidate>
+        <button class="back-link" id="checkout-back" type="button">← Корзина</button>
+        <div class="tg-panel" id="tg-panel">
+          <div><b>Войти через Telegram</b><small id="auth-status">Имя подставится само, если открыть сайт из бота.</small></div>
+          <button class="button button-tonal button-sm" type="button" id="tg-auth">Telegram</button>
+        </div>
+        <label class="field-label">Имя<input class="field" name="customer_name" autocomplete="name" required minlength="2" /></label>
+        <label class="field-label">Телефон<input class="field" name="customer_phone" type="tel" autocomplete="tel" inputmode="tel" required minlength="5" placeholder="+7" /></label>
+        <label class="field-label">Адрес<input class="field" name="delivery_address" autocomplete="street-address" required minlength="5" placeholder="Улица, дом, квартира — или «самовывоз»" /></label>
+        <label class="field-label">Когда приготовить<input class="field" name="delivery_slot" placeholder="Как можно скорее" /></label>
+        <fieldset class="segmented" aria-label="Оплата">
+          <legend class="field-label">Оплата</legend>
+          <label><input type="radio" name="payment_method" value="card_on_delivery" checked /><span>Картой при получении</span></label>
+          <label><input type="radio" name="payment_method" value="cash" /><span>Наличными</span></label>
+        </fieldset>
+        <label class="field-label">Комментарий<textarea class="field" name="comment" rows="2" placeholder="Например, без лука"></textarea></label>
+        <p class="form-status" id="checkout-status" role="status"></p>
+        <div class="drawer-foot">
+          <div class="summary-row"><span>К оплате</span><strong id="checkout-total">0 ₽</strong></div>
+          <button class="button button-primary button-block" id="checkout-submit" type="submit">Подтвердить заказ</button>
+        </div>
+      </form>
+
+      <div class="drawer-panel order-done" id="order-done" hidden>
+        <div class="ready-photo" id="done-photo"></div>
+        <h3>Заказ принят</h3>
+        <p class="chip brand" id="done-number"></p>
+        <p class="muted">Оператор подтвердит его в Telegram или по телефону. Как будет готово — сообщим.</p>
+        <button class="button button-tonal button-block" id="done-close" type="button">Вернуться в меню</button>
+      </div>
+    </aside>
+
+    <script src="/static/app.js?v=20261027-blue" defer></script>
   </body>
 </html>

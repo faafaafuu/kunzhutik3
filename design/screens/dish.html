@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Карточка блюда · Кунжут · макет</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/tokens.css" />
+<link rel="stylesheet" href="../assets/kit.css" />
+<link rel="stylesheet" href="../assets/spec.css" />
+</head>
+<body class="spec-page">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  
+  <symbol id="cart" viewBox="0 0 24 24"><path d="M6.5 8.5h11l-.9 10.1a2 2 0 0 1-2 1.8H9.4a2 2 0 0 1-2-1.8L6.5 8.5Z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></symbol>
+  <symbol id="pin" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="phone" viewBox="0 0 24 24"><path d="M6.6 3.5 9.1 3a1.6 1.6 0 0 1 1.8.9l1.1 2.7a1.6 1.6 0 0 1-.4 1.8L10.2 9.8a12.2 12.2 0 0 0 4 4l1.4-1.4a1.6 1.6 0 0 1 1.8-.4l2.7 1.1a1.6 1.6 0 0 1 .9 1.8l-.5 2.5a2.6 2.6 0 0 1-2.6 2.1A15.9 15.9 0 0 1 4.5 5.9a2.6 2.6 0 0 1 2.1-2.4Z"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></symbol>
+  <symbol id="gift" viewBox="0 0 24 24"><rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5V20h14v-7.5M12 8.5V20M12 8.5S10.5 4 8 4.5 6.5 8.5 12 8.5zM12 8.5S13.5 4 16 4.5s1.5 4-4 4z"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M7 11c0-2 1.5-3 3-3M12 11c.5-2.5 2.5-4 5-3.5"/></symbol>
+  <symbol id="receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></symbol>
+  <symbol id="close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></symbol>
+  <symbol id="bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="wifi-off" viewBox="0 0 24 24"><path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 5-2.7M14 10.3A10 10 0 0 1 19 13M2 9.5a15 15 0 0 1 5-3M11 5a15 15 0 0 1 11 4.5"/><circle cx="12" cy="20" r=".8"/></symbol>
+  <symbol id="alert" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.1"/></symbol>
+  <symbol id="map" viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></symbol>
+  <symbol id="card" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
+  <symbol id="cash" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9v.1M18 15v.1"/></symbol>
+  <symbol id="refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/></symbol>
+  <symbol id="store" viewBox="0 0 24 24"><path d="M4 10l1.5-5h13L20 10M4 10v10h16V10M4 10h16"/><path d="M10 20v-5h4v5"/></symbol>
+  <symbol id="truck" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></symbol>
+  <symbol id="logout" viewBox="0 0 24 24"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/></symbol>
+  <symbol id="star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/></symbol>
+  <symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="send" viewBox="0 0 24 24"><path d="M21 3L3 10.5l7 2.5 2.5 7z"/><path d="M10 13l11-10"/></symbol>
+</svg>
+
+<header class="spec-head"><a href="../index.html">← Все экраны</a><span class="sep">|</span><b>Карточка блюда</b> <span class="sep">|</span> web: модалка поверх меню, mobile: полноэкранный экран <span class="sep">|</span> Expo <code>DishScreen</code> <span class="sep">|</span> API <code>GET /menu/items/{slug}</code>, модификаторы — <code>modifier_groups</code></header>
+<!-- ======================= SCREEN: dish ======================= -->
+<div class="spec-state"><b>Обязательный модификатор не выбран</b><code>data-state="required-missing"</code></div><p class="spec-note">Группа «Соус» обязательна: пока не выбрана — кнопка цены неактивна и бейдж «Выберите» красный (invalid_modifiers). Цена пересчитывается сразу при выборе.</p><section class="frame  overlay" data-state="required-missing"><dialog class="product-dialog" open aria-labelledby="t-poke-salmon">
+  <div class="pd-bg"><img src="../../services/api/app/web/assets/photos/poke-salmon.jpg" alt="" /></div>
+  <div class="pd-veil"></div>
+  <div class="pd-layer">
+    <header class="pd-top">
+      <button class="pd-round glass" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></button>
+      <div class="pd-head"><h2 id="t-poke-salmon">Поке с лососем</h2><dl class="pd-stats"><div><dt>готовим</dt><dd>~10 мин</dd></div><div><dt>кунжутиков</dt><dd>+19</dd></div></dl><button class="pd-more glass" type="button" aria-expanded="false">Подробнее <span aria-hidden="true">⌄</span></button></div>
+    </header>
+    <section class="pd-mods"><div class="mod-group" role="radiogroup" aria-label="Соус"><div class="mod-group-head"><b>Соус <small>один на выбор</small></b><span class="req missing">Выберите</span></div><div class="choice-row"><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="false">Унаги</button><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="false">Спайси</button><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="false">Кунжутный</button></div></div><div class="pd-removes" role="group" aria-label="Убрать"><button class="remove-pill" type="button" data-toggle aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Без лука</button><button class="remove-pill" type="button" data-toggle aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Без огурца</button><button class="remove-pill" type="button" data-toggle aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Без соуса</button><button class="remove-pill" type="button" data-toggle aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Без кунжута</button></div><div class="pd-tiles" role="group" aria-label="Добавить"><div class="mod-tile glass "><span class="mod-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13c3-6 11-8 16-3-3 1-4 3-4 5-4 2-9 2-12-2z"/></svg></span><b>Двойная порция</b><small>+250 ₽</small><button class="mod-add" type="button" aria-label="Добавить Двойная порция">+</button></div><div class="mod-tile glass "><span class="mod-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c-3 0-5 5-6 9a6 6 0 0 0 12 0c-1-4-3-9-6-9z"/></svg></span><b>Авокадо</b><small>+120 ₽</small><button class="mod-add" type="button" aria-label="Добавить Авокадо">+</button></div><div class="mod-tile glass "><span class="mod-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c-4 0-7 6-7 10a7 7 0 0 0 14 0c0-4-3-10-7-10z"/></svg></span><b>Яйцо пашот</b><small>+60 ₽</small><button class="mod-add" type="button" aria-label="Добавить Яйцо пашот">+</button></div><div class="mod-tile glass "><span class="mod-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5a1.6 2.6 0 1 0 .1 0zM15 5.5a1.6 2.6 0 1 0 .1 0zM11 12.5a1.6 2.6 0 1 0 .1 0z"/></svg></span><b>Кунжут</b><small>+20 ₽</small><button class="mod-add" type="button" aria-label="Добавить Кунжут">+</button></div></div></section>
+    <footer class="pd-bar"><div class="qty-control glassy" role="group" aria-label="Количество"><button type="button" aria-label="Меньше">−</button><span>1</span><button type="button" aria-label="Больше">+</button></div><button class="price-button" type="button" disabled>Выберите соус</button></footer>
+  </div>
+</dialog></section>
+<div class="spec-state"><b>Настроено: соус, добавки, «без лука»</b><code>data-state="configured"</code></div><p class="spec-note">Добавки — плитки с количеством (до 3), «без …» — бесплатные переключатели.</p><section class="frame  overlay" data-state="configured"><dialog class="product-dialog" open aria-labelledby="t-poke-salmon">
+  <div class="pd-bg"><img src="../../services/api/app/web/assets/photos/poke-salmon.jpg" alt="" /></div>
+  <div class="pd-veil"></div>
+  <div class="pd-layer">
+    <header class="pd-top">
+      <button class="pd-round glass" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></button>
+      <div class="pd-head"><h2 id="t-poke-salmon">Поке с лососем</h2><dl class="pd-stats"><div><dt>готовим</dt><dd>~10 мин</dd></div><div><dt>кунжутиков</dt><dd>+31</dd></div></dl><button class="pd-more glass" type="button" aria-expanded="false">Подробнее <span aria-hidden="true">⌄</span></button></div>
+    </header>
+    <section class="pd-mods"><div class="mod-group" role="radiogroup" aria-label="Соус"><div class="mod-group-head"><b>Соус <small>один на выбор</small></b><span class="req">Обязательно</span></div><div class="choice-row"><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="true">Унаги</button><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="false">Спайси</button><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="false">Кунжутный</button></div></div><div class="pd-removes" role="group" aria-label="Убрать"><button class="remove-pill" type="button" data-toggle aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Без лука</button><button class="remove-pill" type="button" data-toggle aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Без огурца</button><button class="remove-pill" type="button" data-toggle aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Без соуса</button><button class="remove-pill" type="button" data-toggle aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Без кунжута</button></div><div class="pd-tiles" role="group" aria-label="Добавить"><div class="mod-tile glass selected"><span class="mod-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13c3-6 11-8 16-3-3 1-4 3-4 5-4 2-9 2-12-2z"/></svg></span><b>Двойная порция</b><small>+250 ₽</small><div class="qty-control" role="group" aria-label="Двойная порция"><button type="button" aria-label="Меньше">−</button><span>1</span><button type="button" aria-label="Больше">+</button></div></div><div class="mod-tile glass selected"><span class="mod-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c-3 0-5 5-6 9a6 6 0 0 0 12 0c-1-4-3-9-6-9z"/></svg></span><b>Авокадо</b><small>+120 ₽</small><div class="qty-control" role="group" aria-label="Авокадо"><button type="button" aria-label="Меньше">−</button><span>1</span><button type="button" aria-label="Больше">+</button></div></div><div class="mod-tile glass "><span class="mod-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c-4 0-7 6-7 10a7 7 0 0 0 14 0c0-4-3-10-7-10z"/></svg></span><b>Яйцо пашот</b><small>+60 ₽</small><button class="mod-add" type="button" aria-label="Добавить Яйцо пашот">+</button></div><div class="mod-tile glass "><span class="mod-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5a1.6 2.6 0 1 0 .1 0zM15 5.5a1.6 2.6 0 1 0 .1 0zM11 12.5a1.6 2.6 0 1 0 .1 0z"/></svg></span><b>Кунжут</b><small>+20 ₽</small><button class="mod-add" type="button" aria-label="Добавить Кунжут">+</button></div></div></section>
+    <footer class="pd-bar"><div class="qty-control glassy" role="group" aria-label="Количество"><button type="button" aria-label="Меньше">−</button><span>1</span><button type="button" aria-label="Больше">+</button></div><button class="price-button" type="button" ><span class="plus" aria-hidden="true">+</span>1 020 ₽</button></footer>
+  </div>
+</dialog></section>
+<div class="spec-state"><b>«Подробнее» открыто: описание, состав, вес</b><code>data-state="details"</code></div><section class="frame  overlay" data-state="details"><dialog class="product-dialog" open aria-labelledby="t-poke-salmon">
+  <div class="pd-bg"><img src="../../services/api/app/web/assets/photos/poke-salmon.jpg" alt="" /></div>
+  <div class="pd-veil"></div>
+  <div class="pd-layer">
+    <header class="pd-top">
+      <button class="pd-round glass" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></button>
+      <div class="pd-head"><h2 id="t-poke-salmon">Поке с лососем</h2><dl class="pd-stats"><div><dt>вес</dt><dd>350 г</dd></div><div><dt>готовим</dt><dd>~10 мин</dd></div><div><dt>кунжутиков</dt><dd>+19</dd></div></dl><button class="pd-more glass" type="button" aria-expanded="true">Подробнее <span aria-hidden="true">⌄</span></button><div class="pd-desc glass"><p style="margin:0 0 10px">Нежный лосось, свежие ингредиенты и ароматный соус.</p><dl class="composition"><div><dt>Состав</dt><dd>рис, лосось, огурец, эдамаме, редис, водоросли чука, соус унаги, кунжут</dd></div><div><dt>Вес</dt><dd>350 г</dd></div></dl></div></div>
+    </header>
+    <section class="pd-mods"><div class="mod-group" role="radiogroup" aria-label="Соус"><div class="mod-group-head"><b>Соус <small>один на выбор</small></b><span class="req">Обязательно</span></div><div class="choice-row"><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="true">Унаги</button><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="false">Спайси</button><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="false">Кунжутный</button></div></div></section>
+    <footer class="pd-bar"><div class="qty-control glassy" role="group" aria-label="Количество"><button type="button" aria-label="Меньше">−</button><span>1</span><button type="button" aria-label="Больше">+</button></div><button class="price-button" type="button" ><span class="plus" aria-hidden="true">+</span>650 ₽</button></footer>
+  </div>
+</dialog></section>
+<div class="spec-state"><b>Напиток: размер и добавки</b><code>data-state="drink"</code></div><p class="spec-note">С переключателем размера количество меняется в корзине.</p><section class="frame  overlay" data-state="drink"><dialog class="product-dialog" open aria-labelledby="t-raf">
+  <div class="pd-bg"><img src="../../services/api/app/web/assets/photos/raf.jpg" alt="" /></div>
+  <div class="pd-veil"></div>
+  <div class="pd-layer">
+    <header class="pd-top">
+      <button class="pd-round glass" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></button>
+      <div class="pd-head"><h2 id="t-raf">Раф</h2><dl class="pd-stats"><div><dt>объём</dt><dd>300 мл</dd></div><div><dt>готовим</dt><dd>~4 мин</dd></div><div><dt>кунжутиков</dt><dd>+11</dd></div></dl><button class="pd-more glass" type="button" aria-expanded="false">Подробнее <span aria-hidden="true">⌄</span></button></div>
+    </header>
+    <section class="pd-mods"><div class="mod-group" role="radiogroup" aria-label="Сироп"><div class="mod-group-head"><b>Сироп <small>вкус</small></b><small>по желанию</small></div><div class="choice-row"><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="true">Ваниль</button><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="false">Карамель</button><button class="choice" type="button" role="radio" data-toggle="one" aria-checked="false">Орех</button></div></div><div class="pd-tiles" role="group" aria-label="Добавить"><div class="mod-tile glass selected"><span class="mod-icon"><svg class="i" aria-hidden="true"><use href="#plus"/></svg></span><b>Сироп</b><small>+50&nbsp;₽</small><div class="qty-control"><button type="button">−</button><span>1</span><button type="button">+</button></div></div><div class="mod-tile glass"><span class="mod-icon"><svg class="i" aria-hidden="true"><use href="#plus"/></svg></span><b>Альтернативное молоко</b><small>+60&nbsp;₽</small><button class="mod-add" type="button">+</button></div><div class="mod-tile glass"><span class="mod-icon"><svg class="i" aria-hidden="true"><use href="#plus"/></svg></span><b>Шот эспрессо</b><small>+90&nbsp;₽</small><button class="mod-add" type="button">+</button></div></div></section>
+    <footer class="pd-bar"><div class="size-switch glass" role="group" aria-label="Объём"><button type="button" data-toggle="one" aria-pressed="true">M<small>300 мл</small></button><button type="button" data-toggle="one" aria-pressed="false">L<small>400 мл</small></button></div><button class="price-button" type="button" ><span class="plus" aria-hidden="true">+</span>350 ₽</button></footer>
+  </div>
+</dialog></section>
+<div class="spec-state"><b>Блюдо закончилось</b><code>data-state="soldout"</code></div><p class="spec-note">Открывается из поиска или по ссылке. Кнопка выключена, предлагаем похожее.</p><section class="frame  overlay" data-state="soldout"><dialog class="product-dialog" open aria-labelledby="t-eclair">
+  <div class="pd-bg"><img src="../../services/api/app/web/assets/photos/eclair.jpg" alt="" style="filter:grayscale(1)"/></div>
+  <div class="pd-veil"></div>
+  <div class="pd-layer">
+    <header class="pd-top">
+      <button class="pd-round glass" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></button>
+      <div class="pd-head"><h2 id="t-eclair">Эклер</h2><dl class="pd-stats"><div><dt>готовим</dt><dd>~1 мин</dd></div></dl><button class="pd-more glass" type="button" aria-expanded="false">Подробнее <span aria-hidden="true">⌄</span></button></div>
+    </header>
+    <section class="pd-mods"></section>
+    <footer class="pd-bar"><button class="price-button" type="button" disabled>Закончилось</button></footer>
+  </div>
+</dialog></section>
+<script src="../assets/shell.js"></script>
+</body>
+</html>

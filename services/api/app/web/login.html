@@ -4,31 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Кунжут · Вход</title>
-    <link rel="stylesheet" href="/static/admin.css?v=20260703-delivery-v1" />
-    <style>
-      body { display: grid; place-items: center; min-height: 100vh; padding: 24px; }
-      .login-card { width: min(100%, 400px); }
-      .login-form { display: grid; gap: 12px; margin-top: 16px; }
-      .login-form input {
-        width: 100%;
-        border: 1px solid var(--line);
-        border-radius: var(--radius-sm);
-        padding: 12px 14px;
-        font: inherit;
-        background: #fafbfc;
-      }
-      .login-form input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
-      .login-error { min-height: 22px; color: var(--red); font-size: 0.9rem; margin: 0; }
-      .login-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/tokens.css?v=20261027-blue" />
+    <link rel="stylesheet" href="/static/admin.css?v=20261027-blue" />
   </head>
-  <body>
+  <body class="login-page">
     <main class="card login-card">
-      <p class="login-brand"><span class="brand-dot">К</span> Кунжут · Заказы</p>
-      <h1 style="margin-top:12px">Вход для оператора</h1>
+      <p class="brand"><span class="brand-dot">К</span> Кунжут · Заказы</p>
+      <h1>Вход для оператора</h1>
       <form class="login-form" id="login-form">
-        <input name="username" autocomplete="username" placeholder="Логин" required />
-        <input name="password" type="password" autocomplete="current-password" placeholder="Пароль" required />
+        <input class="field" name="username" autocomplete="username" placeholder="Логин" required />
+        <input class="field" name="password" type="password" autocomplete="current-password" placeholder="Пароль" required />
         <button class="btn primary block" type="submit">Войти</button>
         <p class="login-error" id="login-error"></p>
       </form>

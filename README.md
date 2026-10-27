@@ -23,7 +23,7 @@
 
 | Часть | Где | Состояние |
 | --- | --- | --- |
-| Витрина меню и корзина | `services/api/app/web/` (`index.html`, `app.js`, `styles.css`) | Работает, светлая тема, адаптив, режим Telegram WebApp |
+| Витрина меню и корзина | `services/api/app/web/` (`index.html`, `app.js`, `styles.css`, `tokens.css`) | Работает: оранжевый стиль дизайн-системы, светлая и тёмная тема, десктоп и мобильный, экран товара с размерами и добавками, режим Telegram WebApp |
 | API меню и заказов | `services/api/app/api/routes/storefront.py` | Работает |
 | Панель заказов для оператора | `/admin/orders`, `services/api/app/web/admin.*` | Работает, список заказов и смена статуса |
 | Авторизация операторов | `services/api/app/services/auth.py` | Cookie-сессия, роли `operator` / `admin` |
@@ -31,7 +31,7 @@
 
 Статусы заказа: `new` → `confirmed` → `preparing` → `delivering` → `completed`, плюс `cancelled`. Каждая смена пишется в `source_json.status_history`.
 
-Меню сейчас лежит в коде (`services/api/app/store/catalog.py`), не в базе. 12 категорий, 45 позиций, одно заведение.
+Меню сейчас лежит в коде (`services/api/app/store/catalog.py`), не в базе: 15 позиций и их фото из карточки «Брайт» на Яндекс Картах. Добавки к еде (`MODIFIER_SETS`) и время приготовления — пример, их надо заменить реальными. Платные добавки уходят в заказ отдельными позициями, «без лука» и т. п. — в комментарий, пока в API нет модификаторов (этап 1).
 
 ## Чего ещё нет
 

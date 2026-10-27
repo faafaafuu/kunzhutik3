@@ -26,6 +26,8 @@ class StoreMenuResponse(BaseModel):
     features: list[dict]
     promos: list[dict]
     items: list[StoreMenuItemRead]
+    modifier_sets: dict[str, dict[str, list[str]]] = {}
+    cook_minutes: dict[str, int] = {}
 
 
 class StoreOrderItemRequest(BaseModel):
