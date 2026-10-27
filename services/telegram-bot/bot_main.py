@@ -1,229 +1,203 @@
+"""Telegram bot: the storefront button for customers, the order feed for staff.
+
+Staff are the Telegram ids in TELEGRAM_ALLOWED_USER_IDS. They get every new order with buttons
+for the next status and can list active orders with /orders. An empty list means no staff:
+nobody changes orders from Telegram.
+
+Couriers are not here yet: when they are, the order goes to them on "Готов" (docs/roadmap.md).
+"""
+
 import asyncio
-import hashlib
-import hmac
-import json
 import logging
-from urllib.parse import urlencode
 from uuid import UUID
 
 from aiogram import Bot, Dispatcher, F, Router
-from aiogram.filters import CommandStart
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from aiogram.filters import Command, CommandStart
+from aiogram.types import BotCommand, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.errors import ApiError
 from app.db.session import SessionLocal
-from app.models.store_order import StoreOrder
-from app.services.notifications import ORDER_STATUS_LABELS, build_order_status_keyboard
-from app.services.storefront import build_order_number, update_store_order_status
-from app.store.catalog import BUSINESS_PROFILE, CATEGORIES, MENU_ITEMS
+from app.models.order import Order
+from app.models.venue import Venue
+from app.services.menu import menu_payload
+from app.services.notifications import STATUS_LABELS, notify_status_change, order_text, staff_actions_keyboard
+from app.services.orders import ACTIVE_STATUSES, load_order, transition
+from app.services.venues import default_venue, hours_text, is_open
+from app.store.catalog import BRAND_NAME
 
 logging.basicConfig(level=settings.log_level)
+logger = logging.getLogger(__name__)
 router = Router()
+
+# Reasons a staff member can pick in one tap when declining or cancelling.
+REASONS = ["Закончились продукты", "Не успеваем", "Клиент не отвечает"]
 
 
 def storefront_url() -> str:
     return f"{(settings.telegram_webapp_base_url or settings.app_base_url).rstrip('/')}/tg"
 
 
-def storefront_keyboard(user=None) -> InlineKeyboardMarkup:
+def storefront_keyboard() -> InlineKeyboardMarkup:
     url = storefront_url()
-    if user:
-        url = _with_signed_telegram_profile(url, user)
+    # Telegram opens a WebApp only over HTTPS; locally the button is a plain link.
     if url.startswith("https://"):
-        button = InlineKeyboardButton(text="Открыть заказ в Telegram", web_app=WebAppInfo(url=url))
+        button = InlineKeyboardButton(text="Открыть меню и заказать", web_app=WebAppInfo(url=url))
     else:
-        button = InlineKeyboardButton(text="Открыть заказ", url=url)
+        button = InlineKeyboardButton(text="Открыть меню", url=url)
     return InlineKeyboardMarkup(inline_keyboard=[[button]])
 
 
-def is_allowed_user(user_id: int) -> bool:
-    allowed_user_ids = settings.telegram_allowed_user_ids
-    if not allowed_user_ids:
-        return True
-    return str(user_id) in allowed_user_ids
-
-
-async def reject_if_forbidden(message: Message | None = None, callback: CallbackQuery | None = None) -> bool:
-    user_id = callback.from_user.id if callback else message.from_user.id
-    if is_allowed_user(user_id):
-        return False
-
-    text = "Доступ к управлению заказами ограничен списком сотрудников."
-    if callback:
-        await callback.answer(text, show_alert=True)
-    if message:
-        await message.answer(text)
-    return True
+def is_staff(user_id: int) -> bool:
+    return str(user_id) in settings.telegram_allowed_user_ids
 
 
 @router.message(CommandStart())
 async def start(message: Message) -> None:
-    await message.answer(
-        f"{BUSINESS_PROFILE['brand_name']}: доставка еды.\n"
-        "Команды: /menu, /contacts.\n"
-        "Нажмите кнопку ниже, чтобы открыть меню и оформить заказ.",
-        reply_markup=storefront_keyboard(message.from_user),
-    )
+    text = f"{BRAND_NAME}: поке, роллы и кофе с доставкой.\nНажмите кнопку, чтобы открыть меню и оформить заказ."
+    if is_staff(message.from_user.id):
+        text += "\n\nВы сотрудник: новые заказы будут приходить сюда. Активные — /orders."
+    await message.answer(text, reply_markup=storefront_keyboard())
 
 
-@router.message(F.text == "/contacts")
+@router.message(Command("contacts"))
 async def contacts(message: Message) -> None:
-    await message.answer(
-        f"{BUSINESS_PROFILE['brand_name']}\n"
-        f"{BUSINESS_PROFILE['city']}, {BUSINESS_PROFILE['address']}\n"
-        f"Телефон: {BUSINESS_PROFILE['phone']}\n"
-        f"График: {BUSINESS_PROFILE['hours']}\n\n"
-        f"Яндекс.Карты: {BUSINESS_PROFILE['map_url']}\n"
-        f"Instagram: {BUSINESS_PROFILE['instagram_url']}\n"
-        f"VK: {BUSINESS_PROFILE['vk_url']}"
-    )
-
-
-@router.message(F.text == "/menu")
-async def menu(message: Message) -> None:
-    category_titles = {category["id"]: category["title"] for category in CATEGORIES}
-    lines = [f"Меню {BUSINESS_PROFILE['brand_name']}:"]
-    for category in [c for c in CATEGORIES if c["id"] not in ("extras", "modifiers")][:6]:
-        items = [item for item in MENU_ITEMS if item["category_id"] == category["id"]][:4]
-        if not items:
-            continue
-        lines.append("")
-        lines.append(category_titles[category["id"]])
-        for item in items:
-            weight = f", {item['weight']}" if item["weight"] else ""
-            lines.append(f"- {item['title']} — {item['price']} ₽{weight}")
-    lines.append("")
-    lines.append("Полное меню доступно на сайте.")
-    await message.answer("\n".join(lines), reply_markup=storefront_keyboard(message.from_user))
-
-
-@router.message(F.text == "/orders")
-async def orders(message: Message) -> None:
-    if await reject_if_forbidden(message=message):
-        return
-
     db: Session = SessionLocal()
     try:
-        active_orders = (
-            db.query(StoreOrder)
-            .filter(StoreOrder.status.in_(["new", "confirmed", "preparing", "delivering"]))
-            .order_by(StoreOrder.created_at.desc())
-            .limit(8)
-            .all()
-        )
-        if not active_orders:
-            await message.answer("Активных заказов нет.")
+        venue = default_venue(db)
+        if not venue:
+            await message.answer("Скоро откроемся.")
             return
-
-        for order in active_orders:
-            await message.answer(
-                _format_store_order_message(order),
-                reply_markup=build_order_status_keyboard(str(order.id)),
-            )
+        state = "сейчас открыто" if is_open(venue) else "сейчас закрыто"
+        await message.answer(
+            f"{BRAND_NAME}\n{venue.city}, {venue.address}\nТелефон: {venue.phone}\nГрафик: {hours_text(venue)} ({state})\n"
+            f"Маршрут: https://yandex.ru/maps/?rtext=~{venue.latitude},{venue.longitude}"
+        )
     finally:
         db.close()
 
 
-@router.message(F.web_app_data)
-async def web_app_data(message: Message) -> None:
+@router.message(Command("menu"))
+async def menu(message: Message) -> None:
+    db: Session = SessionLocal()
     try:
-        payload = json.loads(message.web_app_data.data)
-    except (TypeError, json.JSONDecodeError):
+        payload = menu_payload(db, default_venue(db))
+    finally:
+        db.close()
+    titles = {category["id"]: category["title"] for category in payload["categories"]}
+    lines = [f"Меню {BRAND_NAME}:"]
+    current = None
+    for item in payload["items"]:
+        if item["category_id"] != current:
+            current = item["category_id"]
+            lines += ["", titles[current]]
+        sold_out = " — закончилось" if not item["is_available"] else ""
+        lines.append(f"• {item['title']} — {int(float(item['price']))} ₽{sold_out}")
+    await message.answer("\n".join(lines), reply_markup=storefront_keyboard())
+
+
+@router.message(Command("orders"))
+async def orders(message: Message) -> None:
+    if not is_staff(message.from_user.id):
+        await message.answer("Эта команда для сотрудников.")
         return
-    if payload.get("type") == "store_order_created" and payload.get("order_number"):
-        await message.answer(f"Заказ {payload['order_number']} принят и передан в работу.")
+    db: Session = SessionLocal()
+    try:
+        active = db.query(Order).filter(Order.status.in_(ACTIVE_STATUSES)).order_by(Order.created_at).limit(20).all()
+        if not active:
+            await message.answer("Активных заказов нет.")
+            return
+        venues = {venue.id: venue.title for venue in db.query(Venue).all()}
+        for order in active:
+            await message.answer(order_text(order, venues.get(order.venue_id, "")), reply_markup=staff_actions_keyboard(order))
+    finally:
+        db.close()
 
 
-def _with_signed_telegram_profile(url: str, user) -> str:
-    if not settings.telegram_bot_token:
-        return url
-    payload = {
-        "tg_id": str(user.id),
-        "tg_username": user.username or "",
-        "tg_first_name": user.first_name or "",
-        "tg_last_name": user.last_name or "",
-    }
-    payload["tg_sig"] = _sign_telegram_profile(payload)
-    separator = "&" if "?" in url else "?"
-    return f"{url}{separator}{urlencode(payload)}"
-
-
-def _sign_telegram_profile(payload: dict[str, str]) -> str:
-    message = "\n".join(
-        [
-            payload.get("tg_id", ""),
-            payload.get("tg_username", ""),
-            payload.get("tg_first_name", ""),
-            payload.get("tg_last_name", ""),
-        ]
-    )
-    return hmac.new(settings.telegram_bot_token.encode(), message.encode(), hashlib.sha256).hexdigest()
-
-
-@router.callback_query(F.data.startswith("order_status:"))
-async def order_status_callback(callback: CallbackQuery) -> None:
-    if await reject_if_forbidden(callback=callback):
+@router.callback_query(F.data.startswith("order:"))
+async def order_action(callback: CallbackQuery) -> None:
+    if not is_staff(callback.from_user.id):
+        await callback.answer("Заказами управляют только сотрудники.", show_alert=True)
         return
-
     try:
         _, order_id, status = callback.data.split(":", maxsplit=2)
+        order_uuid = UUID(order_id)
     except ValueError:
         await callback.answer("Некорректная команда", show_alert=True)
         return
 
-    if status not in ORDER_STATUS_LABELS:
-        await callback.answer("Неподдерживаемый статус", show_alert=True)
+    if status in ("rejected", "cancelled"):
+        # Ask for a reason first: the customer sees it.
+        buttons = [[InlineKeyboardButton(text=reason, callback_data=f"why:{order_id}:{status}:{index}")] for index, reason in enumerate(REASONS)]
+        buttons.append([InlineKeyboardButton(text="← Назад", callback_data=f"back:{order_id}")])
+        await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+        await callback.answer("Выберите причину")
         return
+    await _apply(callback, order_uuid, status, "")
 
+
+@router.callback_query(F.data.startswith("why:"))
+async def reason_chosen(callback: CallbackQuery) -> None:
+    if not is_staff(callback.from_user.id):
+        await callback.answer("Заказами управляют только сотрудники.", show_alert=True)
+        return
+    _, order_id, status, index = callback.data.split(":", maxsplit=3)
+    await _apply(callback, UUID(order_id), status, REASONS[int(index)])
+
+
+@router.callback_query(F.data.startswith("back:"))
+async def back(callback: CallbackQuery) -> None:
     db: Session = SessionLocal()
     try:
-        order = update_store_order_status(db, UUID(order_id), status, actor=_format_actor(callback))
-        await callback.answer(f"Статус: {ORDER_STATUS_LABELS[status]}")
-        if callback.message:
-            await callback.message.edit_text(
-                _format_store_order_message(order),
-                reply_markup=build_order_status_keyboard(str(order.id)),
-            )
+        order = load_order(db, UUID(callback.data.split(":", 1)[1]))
+        await callback.message.edit_reply_markup(reply_markup=staff_actions_keyboard(order))
+        await callback.answer()
     finally:
         db.close()
+
+
+async def _apply(callback: CallbackQuery, order_id: UUID, status: str, reason: str) -> None:
+    user = callback.from_user
+    actor = f"telegram:{user.id}:{user.username or user.first_name}"
+    db: Session = SessionLocal()
+    try:
+        order = load_order(db, order_id)
+        try:
+            order = transition(db, order, status, actor=actor, comment=reason)
+        except ApiError as error:
+            await callback.answer(error.message, show_alert=True)
+            return
+        venue = db.get(Venue, order.venue_id)
+        await callback.answer(f"Заказ № {order.number}: {STATUS_LABELS[status].lower()}")
+        if callback.message:
+            await callback.message.edit_text(order_text(order, venue.title if venue else ""), reply_markup=staff_actions_keyboard(order))
+    finally:
+        db.close()
+    await asyncio.to_thread(notify_status_change, order_id, status)
 
 
 async def main() -> None:
     if not settings.telegram_bot_token:
         # Idle instead of exiting: the container is restart: unless-stopped,
         # and a bare return would make it restart in a loop.
-        logging.getLogger(__name__).warning("TELEGRAM_BOT_TOKEN is empty; bot is idle")
+        logger.warning("TELEGRAM_BOT_TOKEN is empty; bot is idle")
         while True:
             await asyncio.sleep(3600)
+    if not settings.telegram_allowed_user_ids:
+        logger.warning("TELEGRAM_ALLOWED_USER_IDS is empty: nobody will get orders in Telegram")
     bot = Bot(token=settings.telegram_bot_token)
+    await bot.set_my_commands(
+        [
+            BotCommand(command="start", description="Открыть меню"),
+            BotCommand(command="menu", description="Меню и цены"),
+            BotCommand(command="contacts", description="Адрес и телефон"),
+            BotCommand(command="orders", description="Активные заказы (для сотрудников)"),
+        ]
+    )
     dp = Dispatcher()
     dp.include_router(router)
     await dp.start_polling(bot)
-
-
-def _format_actor(callback: CallbackQuery) -> str:
-    user = callback.from_user
-    username = f"@{user.username}" if user.username else "no-username"
-    return f"telegram:{user.id}:{username}"
-
-
-def _format_store_order_message(order: StoreOrder) -> str:
-    item_lines = "\n".join(f"- {item['title']} × {item['quantity']}" for item in order.items_json)
-    status_label = ORDER_STATUS_LABELS.get(order.status, order.status)
-    comment_line = f"\n\nКомментарий: {order.comment}" if order.comment else ""
-    return (
-        f"Заказ {build_order_number(order)}\n"
-        f"Статус: {status_label}\n"
-        f"Клиент: {order.customer_name}\n"
-        f"Телефон: {order.customer_phone}\n"
-        f"Адрес: {order.delivery_address}\n"
-        f"Время: {order.delivery_slot or 'как можно скорее'}\n"
-        f"Оплата: {order.payment_method}\n"
-        f"Сумма: {order.total_amount} {order.currency}\n\n"
-        f"{item_lines}"
-        f"{comment_line}"
-    )
 
 
 if __name__ == "__main__":

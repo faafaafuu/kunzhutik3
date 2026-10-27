@@ -106,15 +106,16 @@ class PhotonGeocoder(Geocoder):
     URL = "https://photon.komoot.io"
 
     def suggest(self, query: str, near: tuple[float, float] | None) -> list[GeoResult]:
-        params: dict = {"q": query, "limit": 8}
+        params: dict = {"q": query, "limit": 10}
         if near:
-            params.update({"lat": near[0], "lon": near[1], "location_bias_scale": 0.5})
+            # Delivery is local: search a box of roughly 35 km around the venue, nearest first.
+            lat, lon = near
+            params.update({"lat": lat, "lon": lon, "bbox": f"{lon - 0.5},{lat - 0.3},{lon + 0.5},{lat + 0.3}"})
         payload = _get_json(f"{self.URL}/api/", params)
         results = [self._parse(feature) for feature in payload.get("features", [])]
         results = [item for item in results if item]
-        if near:
-            # Photon also returns namesakes from other regions; delivery is local.
-            results = [item for item in results if distance_km(near[0], near[1], item.latitude, item.longitude) < 60]
+        # A house number beats a street or a district.
+        results.sort(key=lambda item: not item.precise)
         return _dedupe(results)[:5]
 
     def reverse(self, lat: float, lon: float) -> GeoResult | None:

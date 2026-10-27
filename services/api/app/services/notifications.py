@@ -86,7 +86,7 @@ def order_text(order: Order, venue_title: str = "") -> str:
     if order.bonus_spent:
         lines.append(f"Бонусами: −{int(order.bonus_spent)} ₽")
     if order.fulfillment == "delivery":
-        lines.append(f"Доставка: {int(order.delivery_fee)} ₽")
+        lines.append(f"Стоимость доставки: {int(order.delivery_fee)} ₽")
     lines.append(f"Итого: {int(order.total_amount)} ₽ · {PAYMENT_LABELS.get(order.payment_method, order.payment_method)}")
     lines.append("")
     lines.append(f"{order.customer_name}, {order.customer_phone}")
@@ -97,7 +97,7 @@ def order_text(order: Order, venue_title: str = "") -> str:
             for key, label in (("entrance", "подъезд"), ("floor", "этаж"), ("apartment", "кв."), ("intercom", "домофон"))
             if details.get(key)
         )
-        lines.append(f"Доставка: {order.address_text}" + (f" ({extra})" if extra else ""))
+        lines.append(f"Адрес: {order.address_text}" + (f" ({extra})" if extra else ""))
     else:
         lines.append("Самовывоз")
     if order.scheduled_for:

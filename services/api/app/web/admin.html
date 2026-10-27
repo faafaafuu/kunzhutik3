@@ -3,27 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Кунжут · Заказы</title>
+    <title>Брайт · Панель</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/static/tokens.css?v=20261027-blue" />
-    <link rel="stylesheet" href="/static/admin.css?v=20261027-blue" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css" />
+    <link rel="stylesheet" href="/static/tokens.css?v=20261027-panel" />
+    <link rel="stylesheet" href="/static/admin.css?v=20261027-panel" />
   </head>
   <body>
     <header class="topbar">
-      <span class="brand"><span class="brand-dot">К</span> Кунжут · Заказы</span>
+      <a class="brand" href="/admin/orders"><span class="brand-dot">Б</span> Брайт</a>
+      <nav class="sections" id="sections" aria-label="Разделы панели">
+        <a href="/admin/orders" data-section="orders">Заказы <b id="active-count" hidden></b></a>
+        <a href="/admin/zones" data-section="zones">Зоны доставки</a>
+        <a href="/admin/menu" data-section="menu">Меню</a>
+        <a href="/admin/customers" data-section="customers" data-role="manager">Клиенты</a>
+        <a href="/admin/promos" data-section="promos" data-role="manager">Промокоды</a>
+        <a href="/admin/users" data-section="users" data-role="admin">Сотрудники</a>
+      </nav>
       <span class="spacer"></span>
-      <span class="updated" id="updated"></span>
-      <button class="ghost" type="button" id="refresh-orders">Обновить</button>
+      <span class="who muted small" id="who"></span>
       <button class="ghost" type="button" id="logout-button">Выйти</button>
     </header>
 
-    <main class="shell">
-      <div class="toolbar">
-        <h1>Заказы</h1>
-        <div class="filters" id="filters" role="tablist" aria-label="Фильтр по статусу"></div>
-      </div>
-      <div class="orders-list" id="orders" aria-live="polite"></div>
-    </main>
-    <script src="/static/admin.js?v=20261027-blue" defer></script>
+    <main class="shell" id="view" aria-live="polite"></main>
+    <div class="toast" id="toast" role="status" hidden></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>
+    <script type="module" src="/static/admin/main.js?v=20261027-panel"></script>
   </body>
 </html>
