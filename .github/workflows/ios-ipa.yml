@@ -1,0 +1,63 @@
+name: iOS IPA (unsigned)
+
+# Unsigned build: install via Sideloadly / AltStore, which re-sign it with your Apple ID.
+# A signed build for TestFlight needs an Apple Developer certificate and profile in secrets.
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "API address baked into the app (EXPO_PUBLIC_API_URL)"
+        default: "https://braitsgk.ru"
+  push:
+    branches: [main]
+    paths:
+      - "apps/client/**"
+      - ".github/workflows/ios-ipa.yml"
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: apps/client
+    env:
+      EXPO_PUBLIC_API_URL: ${{ inputs.api_url || 'https://braitsgk.ru' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/client/package-lock.json
+
+      - run: npm ci
+
+      - name: Generate native iOS project
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Install pods
+        run: cd ios && pod install
+
+      - name: Build archive without signing
+        run: |
+          WS=$(ls -d ios/*.xcworkspace | head -1)
+          SCHEME=$(basename "$WS" .xcworkspace)
+          xcodebuild -workspace "$WS" -scheme "$SCHEME" \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -archivePath build/app.xcarchive archive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+
+      - name: Package IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/app.xcarchive/Products/Applications/*.app build/Payload/
+          cd build && zip -qry Bright-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bright-ios-unsigned
+          path: apps/client/build/Bright-unsigned.ipa
+          retention-days: 14
