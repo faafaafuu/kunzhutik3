@@ -25,9 +25,16 @@ jobs:
     env:
       EXPO_PUBLIC_API_URL: ${{ inputs.api_url || 'https://braitsgk.ru' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      # Expo SDK 58 needs Swift 6.2 (Xcode 26); the runner defaults to Xcode 16.
+      - name: Select Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
