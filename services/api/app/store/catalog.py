@@ -1,121 +1,138 @@
-STORE_CURRENCY = "RUB"
+"""Seed data: the first venue, its delivery zone and the menu.
 
-# Menu as published on Yandex Maps for «Брайт», Солнечногорск (marked there as not updated for a while).
-# Photos are the ones the venue published on Yandex Maps, cropped to 800×800.
-# "extras" are drink add-ons and "modifiers" are dish add-ons: both are EXAMPLE values set while
-# designing the storefront. Replace them with the venue's real list and prices.
+Loaded into an empty database on first start (app/services/seed.py). After that everything is
+edited in the operator panel, and this file is not read again.
 
-BUSINESS_PROFILE = {
-    "brand_name": "Кунжут",
+Menu, prices and photos — from the «Брайт» card on Yandex Maps (Солнечногорск), photos cropped
+to 800×800. Modifiers, cooking times, the zone and its prices are EXAMPLE values set while
+designing the app: replace them with the real ones in the panel.
+"""
+
+BRAND_NAME = "Брайт"
+
+VENUE = {
+    "code": "BR",
+    "title": "Брайт на Дзержинского",
     "address": "ул. Дзержинского, 18",
     "city": "Солнечногорск",
     "phone": "+7 (916) 498-39-09",
-    "hours": "ежедневно с 10:00 до 22:00",
-    "map_url": "https://yandex.ru/navi/org/kunzhut/164627838144?si=h642xhuqxfhvq70ru31nkj80c4",
-    "instagram_url": "https://www.instagram.com/kunzhut.food?igsh=dXVtODRxOXhrZmow",
-    "vk_url": "https://vk.ru/kunzhutfood",
-    "menu_source_url": "https://yandex.ru/maps/org/brayt/56159815629/menu/",
-    "menu_source_note": "Позиции и цены — из карточки «Брайт» на Яндекс Картах.",
+    "latitude": 56.188580,
+    "longitude": 36.982054,
+    "timezone": "Europe/Moscow",
+    "working_hours": {day: [["10:00", "22:00"]] for day in ("mon", "tue", "wed", "thu", "fri", "sat", "sun")},
+    "cook_minutes": 15,
+}
+
+# EXAMPLE zone: a 3 km circle around the venue. Redraw it on the map in the panel.
+ZONE = {
+    "title": "Солнечногорск",
+    "radius_km": 3.0,
+    "delivery_fee": 150,
+    "free_delivery_from": 1500,
+    "min_order_amount": 700,
+    "eta_minutes": 35,
 }
 
 CATEGORIES = [
-    {
-        "id": "coffee",
-        "title": "Кофе"
-    },
-    {
-        "id": "poke",
-        "title": "Поке"
-    },
-    {
-        "id": "salads",
-        "title": "Салаты"
-    },
-    {
-        "id": "sandwiches",
-        "title": "Окинавские сэндвичи"
-    },
-    {
-        "id": "rolls",
-        "title": "Ролл"
-    },
-    {
-        "id": "scramble",
-        "title": "Скрембл"
-    },
-    {
-        "id": "desserts",
-        "title": "Десерты"
-    },
-    {
-        "id": "extras",
-        "title": "Дополнительно"
-    },
-    {
-        "id": "modifiers",
-        "title": "Добавки к блюдам"
-    }
+    ("coffee", "Кофе"),
+    ("poke", "Поке"),
+    ("salads", "Салаты"),
+    ("sandwiches", "Окинавские сэндвичи"),
+    ("rolls", "Ролл"),
+    ("scramble", "Скрембл"),
+    ("desserts", "Десерты"),
 ]
 
-ADDON_CATEGORY_ID = "extras"
-MODIFIER_CATEGORY_ID = "modifiers"
-
-MENU_ITEMS = [
-    {"id": "latte", "category_id": "coffee", "title": "Латте", "tag": "Кофе", "description": "Нежный латте с бархатной пенкой.", "price": 270, "weight": "300 мл", "accent": "#ff6900", "image_url": "/static/assets/photos/latte.jpg"},
-    {"id": "raf", "category_id": "coffee", "title": "Раф", "tag": "Кофе", "description": "Нежный кремовый кофе с ванильной ноткой, взбитый до идеальной консистенции.", "price": 300, "weight": "300 мл", "accent": "#ff6900", "image_url": "/static/assets/photos/raf.jpg"},
-    {"id": "flat-white", "category_id": "coffee", "title": "Флэт Уайт", "tag": "Кофе", "description": "Мягкий флэт уайт с бархатной текстурой!", "price": 270, "weight": "200 мл", "accent": "#ff6900", "image_url": "/static/assets/photos/flat-white.jpg"},
-    {"id": "espresso", "category_id": "coffee", "title": "Эспрессо", "tag": "Кофе", "description": "Интенсивный эспрессо, который подарит вам заряд бодрости на весь день!", "price": 200, "weight": "200 мл", "accent": "#ff6900", "image_url": "/static/assets/photos/espresso.jpg"},
-    {"id": "americano", "category_id": "coffee", "title": "Американо", "tag": "Кофе", "description": "Легкий и крепкий американо для тех, кто предпочитает классический кофе.", "price": 200, "weight": "200 мл", "accent": "#ff6900", "image_url": "/static/assets/photos/americano.jpg"},
-    {"id": "poke-shrimp", "category_id": "poke", "title": "Поке с креветкой", "tag": "Поке", "description": "Освежающий поке с сочными креветками и яркими овощами.", "price": 630, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/poke-shrimp.jpg"},
-    {"id": "poke-salmon", "category_id": "poke", "title": "Поке с лососем", "tag": "Поке", "description": "Нежный лосось, свежие ингредиенты и ароматный соус.", "price": 650, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/poke-salmon.jpg"},
-    {"id": "salad-arugula-shrimp", "category_id": "salads", "title": "Салат с рукколой и креветками", "tag": "Салат", "description": "Свежая руккола, нежные креветки и легкая заправка.", "price": 450, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/salad-arugula-shrimp.jpg"},
-    {"id": "salad-uzbek-tomato-stracciatella", "category_id": "salads", "title": "Салат с узбекскими томатами, страчателлой и креветкой", "tag": "Салат", "description": "Легкий салат с яркими вкусами и морским акцентом.", "price": 650, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/salad-uzbek-tomato-stracciatella.jpg"},
-    {"id": "okinawa-unagi-crab", "category_id": "sandwiches", "title": "Окинавский сэндвич с крабом унаги", "tag": "Сэндвич", "description": "Изысканный сендвич с крабом унаги.", "price": 350, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/okinawa-unagi-crab.jpg"},
-    {"id": "roll-salmon", "category_id": "rolls", "title": "Ролл с лососем", "tag": "Ролл", "description": "Свежий ролл с нежным лососем.", "price": 400, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/roll-salmon.jpg"},
-    {"id": "scramble-shrimp-avocado", "category_id": "scramble", "title": "Скрембл с креветкой и авокадо", "tag": "Завтрак", "description": "Нежный скрембл, дополненный креветками и авокадо.", "price": 400, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/scramble-shrimp-avocado.jpg"},
-    {"id": "cheesecake", "category_id": "desserts", "title": "Чизкейк", "tag": "Десерт", "description": "Нежный чизкейк с хрустящей основой и сливочным вкусом!", "price": 220, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/cheesecake.jpg"},
-    {"id": "eclair", "category_id": "desserts", "title": "Эклер", "tag": "Десерт", "description": "Сладкое удовольствие для настоящих сладкоежек!", "price": 180, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/eclair.jpg"},
-    {"id": "choux", "category_id": "desserts", "title": "Пирожное Шу", "tag": "Десерт", "description": "Хрустящее пирожное Шу, наполненное нежным кремом.", "price": 180, "weight": "", "accent": "#ff6900", "image_url": "/static/assets/photos/choux.jpg"},
-    # Drink add-ons. EXAMPLE.
-    {"id": "syrup", "category_id": "extras", "title": "Сироп", "tag": "Добавка", "description": "Ванильный, карамельный или ореховый.", "price": 50, "weight": "", "accent": "#ff6900", "image_url": None},
-    {"id": "oat-milk", "category_id": "extras", "title": "Альтернативное молоко", "tag": "Добавка", "description": "Овсяное или кокосовое.", "price": 60, "weight": "", "accent": "#ff6900", "image_url": None},
-    {"id": "espresso-shot", "category_id": "extras", "title": "Шот эспрессо", "tag": "Добавка", "description": "Дополнительная порция эспрессо.", "price": 90, "weight": "", "accent": "#ff6900", "image_url": None},
-    # Dish add-ons. EXAMPLE.
-    {"id": "mod-double-protein", "category_id": "modifiers", "title": "Двойная порция", "tag": "Добавка", "description": "Ещё порция креветок или лосося.", "price": 250, "weight": "+70 г", "accent": "#ff6900", "image_url": None},
-    {"id": "mod-avocado", "category_id": "modifiers", "title": "Авокадо", "tag": "Добавка", "description": "Половинка спелого авокадо.", "price": 120, "weight": "+50 г", "accent": "#ff6900", "image_url": None},
-    {"id": "mod-egg", "category_id": "modifiers", "title": "Яйцо пашот", "tag": "Добавка", "description": "", "price": 60, "weight": "1 шт", "accent": "#ff6900", "image_url": None},
-    {"id": "mod-sauce-spicy", "category_id": "modifiers", "title": "Соус спайси", "tag": "Добавка", "description": "", "price": 40, "weight": "30 г", "accent": "#ff6900", "image_url": None},
-    {"id": "mod-sauce-unagi", "category_id": "modifiers", "title": "Соус унаги", "tag": "Добавка", "description": "", "price": 40, "weight": "30 г", "accent": "#ff6900", "image_url": None},
-    {"id": "mod-sesame", "category_id": "modifiers", "title": "Кунжут", "tag": "Добавка", "description": "", "price": 20, "weight": "5 г", "accent": "#ff6900", "image_url": None},
-]
-
-# Which modifiers each dish offers. EXAMPLE set.
-# "paid" are modifier item ids (priced on the server like any item); "remove" are free
-# removals that travel in the order comment until the API gets real modifiers (roadmap, stage 1).
-_BOWL = {
-    "paid": ["mod-double-protein", "mod-avocado", "mod-egg", "mod-sauce-spicy", "mod-sauce-unagi", "mod-sesame"],
-    "remove": ["Без лука", "Без огурца", "Без соуса", "Без кунжута"],
-}
-MODIFIER_SETS = {
-    "poke-shrimp": _BOWL,
-    "poke-salmon": _BOWL,
-    "salad-arugula-shrimp": {"paid": ["mod-double-protein", "mod-avocado", "mod-egg", "mod-sesame"], "remove": ["Без соуса", "Без пармезана"]},
-    "salad-uzbek-tomato-stracciatella": {"paid": ["mod-double-protein", "mod-avocado"], "remove": ["Без лука", "Без соуса"]},
-    "roll-salmon": {"paid": ["mod-double-protein", "mod-avocado", "mod-sauce-spicy", "mod-sauce-unagi", "mod-sesame"], "remove": ["Без огурца", "Без соуса"]},
-    "okinawa-unagi-crab": {"paid": ["mod-avocado", "mod-egg", "mod-sauce-spicy", "mod-sauce-unagi"], "remove": ["Без соуса", "Без огурца"]},
-    "scramble-shrimp-avocado": {"paid": ["mod-double-protein", "mod-avocado", "mod-egg", "mod-sauce-spicy"], "remove": ["Без лука", "Без зелени"]},
-}
-
-# Shown on the product screen. EXAMPLE cooking times.
+# EXAMPLE cooking times per category, minutes.
 COOK_MINUTES = {"coffee": 4, "poke": 10, "salads": 8, "sandwiches": 7, "rolls": 7, "scramble": 10, "desserts": 1}
 
-FEATURES = [
-    {"title": "Поке, роллы и кофе", "text": "Свежие боулы, сэндвичи и кофе — в одном заказе."},
-    {"title": "ул. Дзержинского, 18", "text": "Солнечногорск, ежедневно с 10:00 до 22:00."},
-    {"title": "Без очереди", "text": "Закажите на сайте или в Telegram и заберите, когда будет готово."},
+PHOTO = "/static/assets/photos/{}.jpg"
+
+# slug, category, title, description, price, weight, badges, composition
+ITEMS = [
+    ("latte", "coffee", "Латте", "Нежный латте с бархатной пенкой.", 270, "300 мл", [], ""),
+    ("raf", "coffee", "Раф", "Нежный кремовый кофе с ванильной ноткой, взбитый до идеальной консистенции.", 300, "300 мл", ["hit"], ""),
+    ("flat-white", "coffee", "Флэт Уайт", "Мягкий флэт уайт с бархатной текстурой!", 270, "200 мл", [], ""),
+    ("espresso", "coffee", "Эспрессо", "Интенсивный эспрессо, который подарит вам заряд бодрости на весь день!", 200, "200 мл", [], ""),
+    ("americano", "coffee", "Американо", "Легкий и крепкий американо для тех, кто предпочитает классический кофе.", 200, "200 мл", [], ""),
+    ("poke-shrimp", "poke", "Поке с креветкой", "Освежающий поке с сочными креветками и яркими овощами.", 630, "", [], ""),
+    (
+        "poke-salmon",
+        "poke",
+        "Поке с лососем",
+        "Нежный лосось, свежие ингредиенты и ароматный соус.",
+        650,
+        "350 г",
+        ["hit"],
+        "рис, лосось, огурец, эдамаме, редис, водоросли чука, соус унаги, кунжут",
+    ),
+    ("salad-arugula-shrimp", "salads", "Салат с рукколой и креветками", "Свежая руккола, нежные креветки и легкая заправка.", 450, "", [], ""),
+    (
+        "salad-uzbek-tomato-stracciatella",
+        "salads",
+        "Салат с узбекскими томатами, страчателлой и креветкой",
+        "Легкий салат с яркими вкусами и морским акцентом.",
+        650,
+        "",
+        [],
+        "",
+    ),
+    ("okinawa-unagi-crab", "sandwiches", "Окинавский сэндвич с крабом унаги", "Изысканный сендвич с крабом унаги.", 350, "", ["new"], ""),
+    ("roll-salmon", "rolls", "Ролл с лососем", "Свежий ролл с нежным лососем.", 400, "", [], ""),
+    ("scramble-shrimp-avocado", "scramble", "Скрембл с креветкой и авокадо", "Нежный скрембл, дополненный креветками и авокадо.", 400, "", [], ""),
+    ("cheesecake", "desserts", "Чизкейк", "Нежный чизкейк с хрустящей основой и сливочным вкусом!", 220, "", [], ""),
+    ("eclair", "desserts", "Эклер", "Сладкое удовольствие для настоящих сладкоежек!", 180, "", [], ""),
+    ("choux", "desserts", "Пирожное Шу", "Хрустящее пирожное Шу, наполненное нежным кремом.", 180, "", [], ""),
 ]
 
-PROMOS = [
-    {"title": "Поке с лососем", "text": "Нежный лосось, свежие ингредиенты и ароматный соус — 650 ₽."},
-    {"title": "Кофе к завтраку", "text": "Скрембл с креветкой и авокадо и латте — 670 ₽."},
+# EXAMPLE modifiers. Options: (code, title, price, weight).
+ADDONS = {
+    "double": ("Двойная порция", 250, "+70 г"),
+    "avocado": ("Авокадо", 120, "+50 г"),
+    "egg": ("Яйцо пашот", 60, "1 шт"),
+    "sauce-spicy": ("Соус спайси", 40, "30 г"),
+    "sauce-unagi": ("Соус унаги", 40, "30 г"),
+    "sesame": ("Кунжут", 20, "5 г"),
+    "syrup": ("Сироп", 50, ""),
+    "oat-milk": ("Альтернативное молоко", 60, ""),
+    "espresso-shot": ("Шот эспрессо", 90, ""),
+}
+
+# Group code → (title, subtitle, kind, required, max_quantity, options).
+# For choice/remove groups the options are plain titles, for addon groups — keys of ADDONS.
+GROUPS = {
+    "poke-sauce": ("Соус", "один на выбор", "choice", True, 1, ["Унаги", "Спайси", "Кунжутный"]),
+    "syrup-flavour": ("Сироп", "вкус", "choice", False, 1, ["Ваниль", "Карамель", "Орех"]),
+    "coffee-addons": ("Добавить", "", "addon", False, 3, ["syrup", "oat-milk", "espresso-shot"]),
+    "poke-addons": ("Добавить", "", "addon", False, 3, ["double", "avocado", "egg", "sauce-spicy", "sauce-unagi", "sesame"]),
+    "poke-remove": ("Убрать", "", "remove", False, 1, ["Без лука", "Без огурца", "Без соуса", "Без кунжута"]),
+    "salad-addons": ("Добавить", "", "addon", False, 3, ["double", "avocado", "egg", "sesame"]),
+    "salad-remove": ("Убрать", "", "remove", False, 1, ["Без соуса", "Без пармезана"]),
+    "tomato-salad-addons": ("Добавить", "", "addon", False, 3, ["double", "avocado"]),
+    "tomato-salad-remove": ("Убрать", "", "remove", False, 1, ["Без лука", "Без соуса"]),
+    "roll-addons": ("Добавить", "", "addon", False, 3, ["double", "avocado", "sauce-spicy", "sauce-unagi", "sesame"]),
+    "roll-remove": ("Убрать", "", "remove", False, 1, ["Без огурца", "Без соуса"]),
+    "sandwich-addons": ("Добавить", "", "addon", False, 3, ["avocado", "egg", "sauce-spicy", "sauce-unagi"]),
+    "sandwich-remove": ("Убрать", "", "remove", False, 1, ["Без соуса", "Без огурца"]),
+    "scramble-addons": ("Добавить", "", "addon", False, 3, ["double", "avocado", "egg", "sauce-spicy"]),
+    "scramble-remove": ("Убрать", "", "remove", False, 1, ["Без лука", "Без зелени"]),
+}
+
+ITEM_GROUPS = {
+    "latte": ["syrup-flavour", "coffee-addons"],
+    "raf": ["syrup-flavour", "coffee-addons"],
+    "flat-white": ["coffee-addons"],
+    "americano": ["coffee-addons"],
+    "poke-shrimp": ["poke-sauce", "poke-remove", "poke-addons"],
+    "poke-salmon": ["poke-sauce", "poke-remove", "poke-addons"],
+    "salad-arugula-shrimp": ["salad-remove", "salad-addons"],
+    "salad-uzbek-tomato-stracciatella": ["tomato-salad-remove", "tomato-salad-addons"],
+    "roll-salmon": ["roll-remove", "roll-addons"],
+    "okinawa-unagi-crab": ["sandwich-remove", "sandwich-addons"],
+    "scramble-shrimp-avocado": ["scramble-remove", "scramble-addons"],
+}
+
+# EXAMPLE promo code from the cart mockup.
+PROMO_CODES = [
+    {"code": "BRIGHT10", "kind": "percent", "value": 10, "min_order_amount": 500, "note": "Пример: −10% от 500 ₽"},
 ]

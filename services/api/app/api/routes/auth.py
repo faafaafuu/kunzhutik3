@@ -7,11 +7,12 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db, require_operator
 from app.models.operator_user import OperatorUser
 from app.schemas.auth import LoginRequest, LoginResponse, OperatorMe
-from app.services.auth import authenticate_operator, clear_session_cookie, set_session_cookie
+from app.services.auth import authenticate_operator, clear_session_cookie, get_current_operator, set_session_cookie
 
-router = APIRouter(tags=["auth"])
+router = APIRouter(tags=["operator-auth"])
 
 STATIC_DIR = Path(__file__).resolve().parents[2] / "web"
+PANEL_SECTIONS = ("orders", "zones", "menu", "customers", "promos", "users")
 
 
 @router.get("/admin/login", include_in_schema=False)
@@ -23,7 +24,19 @@ def admin_login_page(request: Request, db: Session = Depends(get_db)):
         return FileResponse(STATIC_DIR / "login.html")
 
 
-@router.post("/api/v1/auth/login", response_model=LoginResponse)
+@router.get("/admin", include_in_schema=False)
+@router.get("/admin/{section}", include_in_schema=False)
+def admin_panel(request: Request, section: str = "orders", db: Session = Depends(get_db)):
+    if section not in PANEL_SECTIONS:
+        return RedirectResponse("/admin/orders", status_code=status.HTTP_303_SEE_OTHER)
+    try:
+        get_current_operator(db, request)
+    except HTTPException:
+        return RedirectResponse("/admin/login", status_code=status.HTTP_303_SEE_OTHER)
+    return FileResponse(STATIC_DIR / "admin.html", headers={"Cache-Control": "no-store"})
+
+
+@router.post("/api/v1/admin/auth/login", response_model=LoginResponse)
 def login(payload: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
     user = authenticate_operator(db, payload.username, payload.password)
     if not user:
@@ -32,13 +45,13 @@ def login(payload: LoginRequest, request: Request, response: Response, db: Sessi
     return LoginResponse(user=_to_me(user))
 
 
-@router.post("/api/v1/auth/logout")
+@router.post("/api/v1/admin/auth/logout")
 def logout(response: Response) -> dict:
     clear_session_cookie(response)
     return {"status": "ok"}
 
 
-@router.get("/api/v1/auth/me", response_model=OperatorMe)
+@router.get("/api/v1/admin/auth/me", response_model=OperatorMe)
 def me(user: OperatorUser = Depends(require_operator)) -> OperatorMe:
     return _to_me(user)
 

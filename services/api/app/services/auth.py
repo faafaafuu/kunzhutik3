@@ -16,7 +16,7 @@ from app.models.operator_user import OperatorUser
 
 SESSION_TTL_SECONDS = 60 * 60 * 24 * 7
 PASSWORD_ITERATIONS = 260_000
-ALLOWED_ROLES = {"operator", "admin"}
+ALLOWED_ROLES = {"operator", "manager", "admin"}
 
 
 def hash_password(password: str) -> str:
