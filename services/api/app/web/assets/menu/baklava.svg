@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#25180f"/>
+  <path d="M158 285 321 128l160 157z" fill="#d99a35"/>
+  <path d="M210 285 321 178l110 107z" fill="#f0c15f"/>
+  <path d="M158 285h323v48H158z" fill="#b87527"/>
+  <circle cx="321" cy="242" r="18" fill="#6b8f38"/><circle cx="278" cy="262" r="10" fill="#6b8f38"/><circle cx="365" cy="262" r="10" fill="#6b8f38"/>
+  <text x="48" y="72" fill="#fff4dd" font-family="Arial, sans-serif" font-size="36" font-weight="700">Пахлава</text>
+</svg>

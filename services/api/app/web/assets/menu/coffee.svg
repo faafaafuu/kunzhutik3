@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#2b1a13"/>
+  <path d="M184 150h238v92c0 73-53 118-119 118s-119-45-119-118z" fill="#f3dfc0"/>
+  <path d="M422 181h37c43 0 43 77 0 77h-37" fill="none" stroke="#f3dfc0" stroke-width="28"/>
+  <path d="M207 150h192v43H207z" fill="#6a3b24"/>
+  <path d="M250 112c-22-26 26-42 4-70M320 112c-22-26 26-42 4-70M390 112c-22-26 26-42 4-70" stroke="#f7c97f" stroke-width="13" stroke-linecap="round" fill="none"/>
+  <text x="48" y="72" fill="#fff4dd" font-family="Arial, sans-serif" font-size="36" font-weight="700">Чай и кофе</text>
+</svg>

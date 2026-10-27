@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#14251a"/>
+  <ellipse cx="320" cy="302" rx="214" ry="64" fill="#f3e1c4"/>
+  <path d="M154 268c42 55 103 84 166 84s124-29 166-84z" fill="#d8b17a"/>
+  <circle cx="250" cy="225" r="45" fill="#67aa52"/><circle cx="320" cy="210" r="52" fill="#82bd5f"/><circle cx="392" cy="231" r="43" fill="#5f9f48"/>
+  <circle cx="282" cy="254" r="16" fill="#d93632"/><circle cx="361" cy="249" r="16" fill="#d93632"/>
+  <text x="48" y="72" fill="#fff4dd" font-family="Arial, sans-serif" font-size="36" font-weight="700">Салат</text>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+  <defs><linearGradient id="b" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#ff9f43"/><stop offset="1" stop-color="#3b1f16"/></linearGradient></defs>
+  <rect width="640" height="420" fill="url(#b)"/>
+  <ellipse cx="320" cy="328" rx="230" ry="42" fill="#1b1110" opacity=".35"/>
+  <path d="M184 96c120-54 240-52 286 28 38 66 9 151-59 195-69 45-172 46-235-7-60-51-60-151 8-216Z" fill="#f3c16f"/>
+  <path d="M235 119c73-22 158-14 194 38 30 43 13 101-35 135-49 35-124 36-168-4-42-38-37-127 9-169Z" fill="#73351e"/>
+  <path d="M205 224c72 36 173 47 253 8" stroke="#fff3bf" stroke-width="26" stroke-linecap="round"/>
+  <circle cx="264" cy="181" r="23" fill="#e33b2f"/><circle cx="369" cy="202" r="20" fill="#e33b2f"/>
+  <path d="M238 256c76 34 147 29 211-11" stroke="#4ca154" stroke-width="18" stroke-linecap="round"/>
+  <text x="48" y="72" fill="#fff7df" font-family="Arial, sans-serif" font-size="36" font-weight="700">Донер</text>
+</svg>

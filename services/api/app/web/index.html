@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f5f7" />
+    <title>Кунжут · Турецкая кухня и кофе</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/static/styles.css?v=20260703-light-v1" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="topbar">
+        <a class="brand" href="#menu" aria-label="Кунжут">
+          <span class="brand-mark">К</span>
+          <span>
+            <strong id="brand-name">Кунжут</strong>
+            <small id="brand-address">ул. Дзержинского, 18</small>
+          </span>
+        </a>
+        <nav class="topnav" id="topnav"></nav>
+        <button class="cart-button" id="cart-pill" type="button" aria-label="Корзина">
+          <svg class="cart-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M6.5 8.5h11l-.9 10.1a2 2 0 0 1-2 1.8H9.4a2 2 0 0 1-2-1.8L6.5 8.5Z" />
+            <path d="M9 8.5V7a3 3 0 0 1 6 0v1.5" />
+          </svg>
+          <strong id="cart-count">0</strong>
+        </button>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">Солнечногорск · турецкая кухня</p>
+            <h1>Горячий донер и кофе — свежее каждый день.</h1>
+            <p class="hero-text">
+              Соберите заказ в пару касаний: быстрые категории, насыщенные вкусы и подтверждение у оператора в Telegram.
+            </p>
+            <div class="hero-tags" id="hero-tags"></div>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#menu">Выбрать блюда</a>
+              <a class="button button-secondary" id="map-link" href="#" target="_blank" rel="noreferrer">Как добраться</a>
+            </div>
+          </div>
+          <div class="hero-visual" aria-hidden="true">
+            <div class="hero-badge">популярное</div>
+            <div class="visual-card visual-main">
+              <img src="/static/assets/menu/doner.svg" alt="" />
+              <span>Донер</span>
+            </div>
+            <div class="visual-card visual-side">
+              <img src="/static/assets/menu/coffee.svg" alt="" />
+              <span>Кофе</span>
+            </div>
+            <div class="visual-card visual-mini">
+              <img src="/static/assets/menu/baklava.svg" alt="" />
+              <span>Десерты</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="quick-info is-loading" id="features" aria-busy="true">
+          <article class="skeleton-card"></article>
+          <article class="skeleton-card"></article>
+          <article class="skeleton-card"></article>
+        </section>
+
+        <section class="menu-section" id="menu">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Меню</p>
+              <h2 id="active-category-title">Категории</h2>
+            </div>
+            <p class="section-note">Переключайте категории и собирайте заказ как в привычном сервисе доставки.</p>
+          </div>
+          <div class="category-tabs is-loading" id="category-tabs" role="tablist" aria-label="Категории меню" aria-busy="true"></div>
+          <div class="menu-group-grid is-loading" id="menu-grid" aria-busy="true">
+            <article class="menu-card skeleton-menu-card"></article>
+            <article class="menu-card skeleton-menu-card"></article>
+            <article class="menu-card skeleton-menu-card"></article>
+            <article class="menu-card skeleton-menu-card"></article>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer" id="contacts">
+        <div class="footer-brand">
+          <span class="footer-mark">К</span>
+          <div>
+            <strong>Кунжут</strong>
+            <p>Турецкая кухня и кофе на каждый день.</p>
+          </div>
+        </div>
+        <div class="footer-block">
+          <span>Адрес</span>
+          <strong id="contact-address">ул. Дзержинского, 18</strong>
+          <p id="contact-hours"></p>
+        </div>
+        <div class="footer-block">
+          <span>Связь</span>
+          <strong id="contact-phone"></strong>
+          <p class="footer-links" id="contact-links"></p>
+        </div>
+      </footer>
+
+      <div class="cart-bar" id="cart-bar" hidden>
+        <div>
+          <strong id="cart-bar-count">0 позиций</strong>
+          <span id="cart-bar-total">0 ₽</span>
+        </div>
+        <button class="button button-primary" id="open-cart" type="button">Перейти к заказу</button>
+      </div>
+
+      <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+
+      <aside class="cart-drawer" id="cart-drawer" aria-hidden="true" aria-labelledby="cart-title">
+        <div class="cart-header">
+          <div>
+            <p class="eyebrow">Заказ</p>
+            <h2 id="cart-title">Проверьте корзину</h2>
+          </div>
+          <button class="icon-button" id="cart-close" type="button" aria-label="Закрыть">×</button>
+        </div>
+
+        <div class="checkout-steps">
+          <span class="active" id="step-cart">1. Корзина</span>
+          <span id="step-checkout">2. Оформление</span>
+        </div>
+
+        <div class="cart-panel" id="cart-review">
+          <div class="cart-items" id="cart-items"></div>
+          <div class="cart-summary">
+            <div class="summary-row">
+              <span>Итого</span>
+              <strong id="cart-total">0 ₽</strong>
+            </div>
+            <button class="button button-primary button-block" id="checkout-next" type="button">Оформить заказ</button>
+            <p class="form-note">Контакты и адрес появятся только на следующем шаге.</p>
+          </div>
+        </div>
+
+        <form class="checkout-form" id="checkout-form" hidden>
+          <div class="auth-panel">
+            <span>Профиль заказа</span>
+            <div class="auth-grid">
+              <button class="auth-button" type="button" data-auth="telegram" aria-label="Telegram">
+                <svg class="auth-icon auth-telegram" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M21.7 4.2 18.5 19c-.2 1-.8 1.2-1.7.7l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-5 9.1-8.3c.4-.4-.1-.6-.6-.2L6.3 12.5 1.5 11c-1-.3-1-1 .2-1.5L20.4 2.3c.9-.3 1.7.2 1.3 1.9Z" />
+                </svg>
+              </button>
+              <button class="auth-button" type="button" data-auth="phone" aria-label="Телефон">
+                <svg class="auth-icon auth-phone" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M6.6 3.5 9.1 3a1.6 1.6 0 0 1 1.8.9l1.1 2.7a1.6 1.6 0 0 1-.4 1.8L10.2 9.8a12.2 12.2 0 0 0 4 4l1.4-1.4a1.6 1.6 0 0 1 1.8-.4l2.7 1.1a1.6 1.6 0 0 1 .9 1.8l-.5 2.5a2.6 2.6 0 0 1-2.6 2.1A15.9 15.9 0 0 1 4.5 5.9a2.6 2.6 0 0 1 2.1-2.4Z" />
+                </svg>
+              </button>
+              <button class="auth-button" type="button" data-auth="vk" aria-label="VK" title="Нужно подключить VK OAuth на сервере">
+                <svg class="auth-icon auth-vk" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M3.4 7.2c.1 6.3 3.3 10.1 9 10.1h.3v-3.6c2 .2 3.5 1.7 4.1 3.6h3c-.8-2.8-2.8-4.4-4.1-5 1.3-.8 3-2.6 3.4-5.1h-2.8c-.6 2-2.2 3.8-3.6 4V7.2H9.9v7c-1.6-.4-3.7-2.4-3.8-7H3.4Z" />
+                </svg>
+              </button>
+              <button class="auth-button" type="button" data-auth="google" aria-label="Google" title="Нужно подключить Google OAuth на сервере">
+                <svg class="auth-icon auth-google" aria-hidden="true" viewBox="0 0 24 24">
+                  <path class="g-blue" d="M21.6 12.2c0-.8-.1-1.4-.2-2.1H12v3.9h5.4a4.7 4.7 0 0 1-2 3.1v2.5h3.2c1.9-1.7 3-4.2 3-7.4Z" />
+                  <path class="g-green" d="M12 22c2.7 0 5-0.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1a5.9 5.9 0 0 1-5.5-4.1H3.2v2.6A10 10 0 0 0 12 22Z" />
+                  <path class="g-yellow" d="M6.5 14A6 6 0 0 1 6.2 12c0-.7.1-1.3.3-2V7.4H3.2A10 10 0 0 0 2.1 12c0 1.6.4 3.2 1.1 4.6L6.5 14Z" />
+                  <path class="g-red" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A9.8 9.8 0 0 0 12 2 10 10 0 0 0 3.2 7.4L6.5 10A5.9 5.9 0 0 1 12 5.9Z" />
+                </svg>
+              </button>
+            </div>
+            <p class="auth-status" id="auth-status">Telegram подтянет имя, если открыть сайт кнопкой из бота. VK и Google подключаются после выдачи OAuth-ключей.</p>
+          </div>
+          <input name="customer_name" placeholder="Имя" required />
+          <input name="customer_phone" placeholder="Телефон" required />
+          <input name="delivery_address" placeholder="Адрес доставки или самовывоз" required />
+          <input name="delivery_slot" placeholder="Когда приготовить" />
+          <select name="payment_method">
+            <option value="card_on_delivery">Картой при получении</option>
+            <option value="cash">Наличными</option>
+            <option value="online">Онлайн</option>
+          </select>
+          <textarea name="comment" placeholder="Комментарий к заказу"></textarea>
+          <button class="button button-primary button-block" id="checkout-submit" type="submit">Подтвердить заказ</button>
+          <button class="button button-secondary button-block" id="checkout-back" type="button">Назад в корзину</button>
+          <p class="form-note" id="checkout-status">После подтверждения заказ уйдет оператору в Telegram.</p>
+        </form>
+      </aside>
+    </div>
+
+    <script src="/static/app.js?v=20260703-light-v1" defer></script>
+  </body>
+</html>

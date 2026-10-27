@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#13252d"/>
+  <path d="M244 86h154l-24 278H268z" fill="#91d8e8"/>
+  <path d="M262 176h118l-15 158h-88z" fill="#f15b2a"/>
+  <path d="M318 86 350 36" stroke="#fff3cd" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="292" cy="221" r="17" fill="#fff3cd"/><circle cx="340" cy="252" r="13" fill="#fff3cd"/>
+  <text x="48" y="72" fill="#fff4dd" font-family="Arial, sans-serif" font-size="36" font-weight="700">Напитки</text>
+</svg>

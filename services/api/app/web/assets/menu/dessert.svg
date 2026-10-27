@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#2a1620"/>
+  <path d="M174 258c30-76 74-119 143-119 74 0 124 43 150 119z" fill="#f1c0ce"/>
+  <path d="M177 258h290v50c0 31-25 56-56 56H233c-31 0-56-25-56-56z" fill="#9b4d6a"/>
+  <circle cx="318" cy="137" r="26" fill="#d42343"/>
+  <path d="M226 231c58 23 121 23 190 0" stroke="#fff2d8" stroke-width="18" stroke-linecap="round"/>
+  <text x="48" y="72" fill="#fff4dd" font-family="Arial, sans-serif" font-size="36" font-weight="700">Десерт</text>
+</svg>

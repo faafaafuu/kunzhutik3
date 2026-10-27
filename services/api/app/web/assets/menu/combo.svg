@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#241a15"/>
+  <circle cx="488" cy="126" r="72" fill="#d94132"/><rect x="452" y="78" width="72" height="172" rx="18" fill="#e44d3e"/><path d="M452 105h72" stroke="#fff" stroke-width="14"/>
+  <path d="M108 154h214l-23 160H131z" fill="#d9552e"/><path d="M139 116h23l21 158h-31zM190 111h25l14 166h-34zM246 122h25l-8 152h-31z" fill="#f7c65b"/>
+  <path d="M286 132c76-34 150-11 171 42 21 52-16 106-87 119-76 14-152-21-159-79-5-37 24-64 75-82Z" fill="#f1b75a"/>
+  <path d="M318 159c46-10 91 7 105 39 13 31-9 64-52 76-45 12-96-6-111-39-14-32 12-64 58-76Z" fill="#78351f"/>
+  <text x="48" y="70" fill="#fff4dd" font-family="Arial, sans-serif" font-size="36" font-weight="700">Комбо</text>
+</svg>

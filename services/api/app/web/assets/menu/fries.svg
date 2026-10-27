@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#1e2325"/>
+  <path d="M194 122h33l28 184h-44zM257 86h34l16 220h-45zM323 110h35l-12 196h-45zM385 93h34l-35 213h-45z" fill="#ffd063"/>
+  <path d="M168 190h304l-38 148H206z" fill="#e84b35"/>
+  <path d="M198 222h244" stroke="#ffb14f" stroke-width="15"/>
+  <text x="54" y="72" fill="#fff4dd" font-family="Arial, sans-serif" font-size="36" font-weight="700">Фри</text>
+</svg>
