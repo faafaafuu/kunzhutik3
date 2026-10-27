@@ -204,3 +204,11 @@
 ## Генерация клиента
 
 FastAPI отдаёт OpenAPI на `/openapi.json`. Из неё `openapi-typescript` собирает типы в `packages/api-client`, которые использует и сайт, и мобильное приложение. Руками типы не пишутся — иначе они разойдутся с сервером, и узнаем мы об этом от пользователя.
+
+## Как реализовано (27.10.2026)
+
+- `POST /orders/quote` не отвечает ошибкой на проблемы корзины: возвращает итог, `problems` (те же коды, что в таблице выше) и `can_order`. Так корзина показывает «закончилось» или «не хватает 320 ₽» рядом с настоящими суммами. `POST /orders` при любой проблеме отвечает ошибкой с этим кодом.
+- Вход в панель — `/api/v1/admin/auth/login|logout|me`, чтобы не путать с входом клиента.
+- Гостевой заказ открывается по его `id` (случайный UUID работает как ключ доступа).
+- Дополнительно: `GET /zones`, `GET /geo/suggest?q=`, `GET /geo/reverse?lat=&lon=`, `GET /loyalty/me`, `GET /admin/dashboard`, `GET /admin/customers`, `GET /admin/customers.csv`, `PATCH /admin/customers/{id}`, `POST /admin/customers/{id}/bonus`, `GET /admin/zones/check`.
+- Полный актуальный контракт — `/docs` (Swagger) работающего API.

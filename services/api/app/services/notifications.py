@@ -43,7 +43,7 @@ CUSTOMER_MESSAGES = {
     "rejected": "Кафе не сможет выполнить заказ № {number}",
 }
 
-PAYMENT_LABELS = {"cash": "Наличными", "card_on_delivery": "Картой курьеру", "online": "Онлайн"}
+PAYMENT_LABELS = {"cash": "Наличными", "card_on_delivery": "Картой при получении", "online": "Онлайн"}
 
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 

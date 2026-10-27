@@ -1,103 +1,90 @@
-# Кунжут · Доставка еды
+# Брайт · доставка еды
 
-Площадка заказа еды из кафе: витрина меню, корзина, оформление заказа, панель оператора и Telegram-бот.
+Площадка заказа еды из кафе «Брайт»: приложение для iPhone и Android, сайт, Telegram WebApp, панель для кафе со встроенной CRM и Telegram-бот для сотрудников.
 
-Код выделен из проекта `kunzhutik-content-factory` — взяты только заказы, меню, авторизация операторов и инфраструктура. Пайплайн AI-видео и публикаций в соцсети не переносился.
+## Что есть
 
-## Проект
+| Часть | Где | Что умеет |
+| --- | --- | --- |
+| Приложение и сайт | `apps/client` (Expo) | Один код для iOS, Android, сайта и Telegram WebApp. Меню с поиском и стоп-листом, блюдо с модификаторами, корзина с промокодом, оформление с адресом, временем и оплатой, статус заказа, история и повтор, бонусы, профиль и адреса, вход по SMS-коду или через Telegram, пуши. Светлая и тёмная тема |
+| API | `services/api` (FastAPI) | Точки и график, зоны доставки, меню в базе, расчёт заказа на сервере, заказы с номером дня, статусы с правами, клиенты, бонусы, промокоды |
+| Панель кафе | `/admin` | Лента заказов со звуком, **карта зон доставки** (нарисовать, тянуть границы, цены, проверка адреса), меню и стоп-лист, **CRM**: база клиентов, сегменты, карточка, заметки, метки, бонусы вручную, выгрузка CSV, выручка по дням; промокоды; сотрудники и роли |
+| Telegram-бот | `services/telegram-bot` | Кнопка открытия сайта в Telegram; сотрудникам — каждый новый заказ с кнопками статусов и причинами отказа, `/orders` |
+| Макеты | `design/` | Вёрстка всех экранов и состояний — эталон для приложения |
 
-Площадка проектируется целиком до написания кода. Что решено:
+Проект и решения — в `docs/`:
 
 | Документ | О чём |
 | --- | --- |
-| [docs/architecture.md](docs/architecture.md) | Компоненты, стек, развёртывание, принятые решения и почему |
+| [docs/architecture.md](docs/architecture.md) | Компоненты, стек, развёртывание, принятые решения |
 | [docs/domain-model.md](docs/domain-model.md) | Сущности и схема базы |
-| [docs/order-lifecycle.md](docs/order-lifecycle.md) | Статусы заказа, права на переходы, оплата, расчёт доставки, вход клиента |
+| [docs/order-lifecycle.md](docs/order-lifecycle.md) | Статусы заказа, переходы, расчёт, вход клиента |
 | [docs/functional-spec.md](docs/functional-spec.md) | Функционал по ролям и экранам |
 | [docs/api.md](docs/api.md) | Контракт API и коды ошибок |
-| [docs/roadmap.md](docs/roadmap.md) | Этапы работ и что нужно от заказчика |
-
-Коротко: своя сеть кафе с несколькими точками, общее ядро меню и цены со стоп-листом на точку; свои курьеры работают через Telegram-бота; оплата при получении и онлайн через ЮKassa; клиенты заказывают через мобильное приложение на Expo, сайт и Telegram WebApp.
-
-## Что работает сейчас
-
-| Часть | Где | Состояние |
-| --- | --- | --- |
-| Витрина меню и корзина | `services/api/app/web/` (`index.html`, `app.js`, `styles.css`, `tokens.css`) | Работает: оранжевый стиль дизайн-системы, светлая и тёмная тема, десктоп и мобильный, экран товара с размерами и добавками, режим Telegram WebApp |
-| API меню и заказов | `services/api/app/api/routes/storefront.py` | Работает |
-| Панель заказов для оператора | `/admin/orders`, `services/api/app/web/admin.*` | Работает, список заказов и смена статуса |
-| Авторизация операторов | `services/api/app/services/auth.py` | Cookie-сессия, роли `operator` / `admin` |
-| Telegram-бот | `services/telegram-bot/bot_main.py` | Меню, контакты, кнопка WebApp, статусы заказов для сотрудников |
-
-Статусы заказа: `new` → `confirmed` → `preparing` → `delivering` → `completed`, плюс `cancelled`. Каждая смена пишется в `source_json.status_history`.
-
-Меню сейчас лежит в коде (`services/api/app/store/catalog.py`), не в базе: 15 позиций и их фото из карточки «Брайт» на Яндекс Картах. Добавки к еде (`MODIFIER_SETS`) и время приготовления — пример, их надо заменить реальными. Платные добавки уходят в заказ отдельными позициями, «без лука» и т. п. — в комментарий, пока в API нет модификаторов (этап 1).
-
-## Чего ещё нет
-
-Несколько кафе и подбор точки по адресу, зоны и стоимость доставки, модификаторы блюд, курьеры, онлайн-оплата, аккаунты покупателей, меню в базе, мобильное приложение. Всё это спроектировано и разложено по этапам в [docs/roadmap.md](docs/roadmap.md).
-
-## Структура
-
-```text
-kunzhut-delivery/
-├── docker-compose.yml          # postgres, api, telegram-bot
-├── docker-compose.https.yml    # override: Caddy + Let's Encrypt
-├── Makefile
-├── docs/
-│   └── https-telegram-webapp.md
-├── infra/caddy/Caddyfile
-└── services/
-    ├── api/                    # FastAPI: витрина, заказы, авторизация
-    │   ├── alembic/            # миграции
-    │   ├── app/
-    │   │   ├── api/routes/     # storefront, auth, health
-    │   │   ├── models/         # StoreOrder, OperatorUser
-    │   │   ├── services/       # заказы, авторизация, уведомления
-    │   │   ├── store/catalog.py
-    │   │   └── web/            # витрина и панель оператора
-    │   └── tests/
-    └── telegram-bot/           # aiogram
-```
+| [docs/roadmap.md](docs/roadmap.md) | Что сделано, что дальше, что нужно от вас |
 
 ## Запуск
 
 ```bash
 cp .env.example .env
+```
+
+```bash
 docker compose up -d --build
 ```
 
-Контейнер `api` сам применяет миграции при старте. Адреса:
+Контейнер `api` сам собирает сайт, применяет миграции и при первом старте наполняет базу: точка на Дзержинского, 18, зона доставки кругом 3 км, меню «Брайт» с фото и примерами модификаторов, промокод `BRIGHT10`. Всё это меняется в панели.
 
-- витрина — http://localhost:8000/
+- сайт — http://localhost:8000/
 - Telegram WebApp — http://localhost:8000/tg
-- панель оператора — http://localhost:8000/admin/orders
+- панель — http://localhost:8000/admin (логин и пароль — `DASHBOARD_BOOTSTRAP_USERNAME` и `DASHBOARD_BOOTSTRAP_PASSWORD`)
+- документация API — http://localhost:8000/docs
 
-Логин и пароль первого оператора задаются через `DASHBOARD_BOOTSTRAP_USERNAME` и `DASHBOARD_BOOTSTRAP_PASSWORD`. Пользователь создаётся при первом старте, пароль из `.env` после этого не перечитывается.
+Приложение для телефонов: [apps/client/README.md](apps/client/README.md) — разработка через Expo Go, сборка в сторы через EAS.
 
-Полезное:
+## Структура
 
-```bash
-make ps
-make logs
-make migrate
+```text
+├── apps/client/                # Expo: iOS, Android, сайт, Telegram WebApp
+├── design/                     # макеты экранов и токены дизайн-системы
+├── docs/                       # проект
+├── infra/caddy/Caddyfile       # HTTPS
+├── docker-compose.yml          # postgres, api (+ собранный сайт), telegram-bot
+├── docker-compose.https.yml    # Caddy + Let's Encrypt
+└── services/
+    ├── api/
+    │   ├── alembic/            # миграции
+    │   ├── app/
+    │   │   ├── api/routes/     # public, account, admin, auth, client_app
+    │   │   ├── models/         # venue, menu, customer, order
+    │   │   ├── services/       # pricing, orders, venues, geo, loyalty, crm, customers, notifications
+    │   │   ├── store/catalog.py   # данные первого запуска
+    │   │   └── web/            # панель: admin.html, admin/*.js
+    │   └── tests/
+    └── telegram-bot/
 ```
 
 ## Тесты
 
-Тестам нужен настоящий PostgreSQL: модели используют `JSONB` и UUID из диалекта PostgreSQL.
+Бэкенду нужен настоящий PostgreSQL:
 
 ```bash
-docker run -d --name pg-test -e POSTGRES_DB=delivery -e POSTGRES_USER=delivery \
-  -e POSTGRES_PASSWORD=delivery -p 55432:5432 postgres:16-alpine
+docker run -d --name pg-test -e POSTGRES_DB=delivery -e POSTGRES_USER=delivery -e POSTGRES_PASSWORD=delivery -p 55432:5432 postgres:16-alpine
 ```
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r services/api/requirements-dev.txt
+```
+
+```bash
 cd services/api && ../../.venv/bin/python -m pytest -q
 ```
 
-Адрес базы переопределяется через `TEST_DATABASE_URL`. Если база недоступна, тесты пропускаются.
+Клиент:
+
+```bash
+cd apps/client && npx tsc --noEmit
+```
 
 ## HTTPS и Telegram
 
@@ -105,13 +92,12 @@ Telegram открывает WebApp только по HTTPS. Как поднят�
 
 ## Переменные окружения
 
-Полный список — в `.env.example`. Главные:
+Полный список с пояснениями — в `.env.example`. Перед запуском для людей обязательно:
 
 | Переменная | Зачем |
 | --- | --- |
-| `DATABASE_URL` | Подключение к PostgreSQL |
-| `APP_BASE_URL` | Внешний адрес, используется ботом |
-| `TELEGRAM_BOT_TOKEN` | Токен бота; без него бот не стартует, а уведомления молча не отправляются |
-| `TELEGRAM_WEBAPP_BASE_URL` | HTTPS-адрес для кнопки WebApp, если отличается от `APP_BASE_URL` |
-| `TELEGRAM_ALLOWED_USER_IDS` | Telegram-id сотрудников, которые получают заказы и меняют статусы. Пустое значение открывает доступ всем |
-| `DASHBOARD_SECRET_KEY` | Подпись cookie-сессии. В production обязательно сменить |
+| `DASHBOARD_SECRET_KEY`, `DASHBOARD_BOOTSTRAP_PASSWORD` | Сменить: подпись сессий и пароль первого администратора |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS` | Бот и id сотрудников, которым приходят заказы. Пустой список — заказы в Telegram не приходят никому |
+| `SMS_PROVIDER=smsru`, `SMSRU_API_ID` | Отправка кодов входа. Без этого код пишется только в лог |
+| `YANDEX_GEOCODER_API_KEY` | Точный поиск адресов. Без ключа работает OpenStreetMap, он хуже знает дома |
+| `APP_ENV=production` | Отключает выдачу кода входа в ответе API |

@@ -1,0 +1,383 @@
+// Checkout: contacts, where, when, payment, bonuses — and the server total with the promised time.
+
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ScrollView, View } from "react-native";
+
+import { api, ApiError } from "@/api/client";
+import type { Order, PaymentMethod, Quote, SavedAddress } from "@/api/types";
+import { CartLines, quoteRows } from "@/components/CartLines";
+import { ScreenHeader } from "@/components/Chrome";
+import { Icon } from "@/components/Icon";
+import { toast } from "@/components/Toast";
+import { Button, Columns, Field, LinkButton, Muted, Notice, OptionRow, Panel, Segmented, Shell, StateView, T, Title, Toggle, Totals } from "@/components/ui";
+import { buildQuoteBody, useFetch, useQuote, useShared } from "@/hooks/data";
+import { maskPhone, money, phoneComplete, slotLabel, time } from "@/lib/format";
+import { orderSource } from "@/lib/telegram";
+import { useCart } from "@/store/cart";
+import { usePlace } from "@/store/place";
+import { useSession } from "@/store/session";
+import { radius, useTheme } from "@/theme";
+
+const PAYMENT: { value: PaymentMethod; title: string; icon: "card" | "cash" }[] = [
+  { value: "card_on_delivery", title: "Картой при получении", icon: "card" },
+  { value: "cash", title: "Наличными", icon: "cash" },
+  { value: "online", title: "Онлайн — картой или СБП", icon: "card" },
+];
+
+export default function CheckoutScreen() {
+  const router = useRouter();
+  const { c } = useTheme();
+  const config = useShared((state) => state.config);
+  const lines = useCart((state) => state.lines);
+  const useBonus = useCart((state) => state.useBonus);
+  const setUseBonus = useCart((state) => state.setUseBonus);
+  const place = usePlace();
+  const session = useSession();
+  const signedIn = Boolean(session.tokens);
+  const [scheduledFor, setScheduledFor] = useState<string | null>(null);
+  const { quote, quoting, error } = useQuote({ scheduledFor });
+  const [name, setName] = useState(session.customer?.name || session.guest.name);
+  const [phone, setPhone] = useState(session.customer?.phone ? maskPhone(session.customer.phone) : session.guest.phone);
+  const [payment, setPayment] = useState<PaymentMethod>("card_on_delivery");
+  const [comment, setComment] = useState("");
+  const [privateHouse, setPrivateHouse] = useState(false);
+  const [saveAddress, setSaveAddress] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const [changed, setChanged] = useState<{ before: string; quote: Quote } | null>(null);
+  const saved = useFetch<{ addresses: SavedAddress[] }>(signedIn ? "/me/addresses" : null);
+
+  useEffect(() => {
+    if (!scheduledFor || !quote) return;
+    if (!quote.slots.includes(scheduledFor)) setScheduledFor(null);
+  }, [quote, scheduledFor]);
+
+  if (!lines.length) {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.surface }}>
+        <ScreenHeader title="Оформление" />
+        <StateView icon="cart" title="В корзине пусто" text="Добавьте что-нибудь из меню." action={<Button title="В меню" onPress={() => router.replace("/")} />} />
+      </View>
+    );
+  }
+
+  const delivery = place.fulfillment === "delivery";
+  const details = place.address?.details ?? { entrance: "", floor: "", apartment: "", intercom: "" };
+  const detailsMissing = delivery && place.address && !privateHouse && !details.apartment.trim();
+  const nameError = touched && !name.trim() ? "Как к вам обращаться?" : null;
+  const phoneError = touched && !phoneComplete(phone) ? "Введите номер в формате +7 900 000-00-00" : null;
+  const methods = PAYMENT.filter((method) => (config?.payment_methods ?? ["card_on_delivery", "cash"]).includes(method.value));
+  const problems = quote?.problems ?? [];
+  const outOfZone = problems.some((problem) => problem.code === "out_of_delivery_zone");
+  const closed = problems.find((problem) => problem.code === "venue_closed");
+  const otherProblems = problems.filter((problem) => !["out_of_delivery_zone", "address_required", "venue_closed"].includes(problem.code));
+  const balance = Number(quote?.bonus_available ?? 0);
+  const blocked = !quote || quoting || !quote.can_order || Boolean(detailsMissing);
+
+  const submit = async (expected?: string) => {
+    setTouched(true);
+    if (!name.trim() || !phoneComplete(phone) || !quote || detailsMissing) return;
+    setSubmitting(true);
+    try {
+      const body = {
+        ...buildQuoteBody({
+          lines,
+          promo: useCart.getState().promo,
+          useBonus: useBonus && signedIn,
+          fulfillment: place.fulfillment,
+          address: place.address,
+          venueId: quote.venue.id,
+          scheduledFor,
+        }),
+        customer_name: name.trim(),
+        customer_phone: phone,
+        address_details: details,
+        payment_method: payment,
+        comment: comment.trim(),
+        expected_total: expected ?? quote.total_amount,
+        save_address: signedIn && delivery && saveAddress && !place.address?.savedId,
+        address_label: "",
+        source: orderSource(),
+      };
+      const { order } = await api<{ order: Order }>("/orders", { method: "POST", body });
+      if (!signedIn) session.rememberGuest(name.trim(), phone);
+      session.rememberOrder(order.id);
+      useCart.getState().clear();
+      router.replace({ pathname: "/order/[id]", params: { id: order.id } });
+    } catch (caught) {
+      const apiError = caught as ApiError;
+      if (apiError.code === "price_changed" && apiError.details.quote) {
+        setChanged({ before: quote.total_amount, quote: apiError.details.quote as Quote });
+      } else {
+        toast(apiError.message, "bad");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (changed) {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.surface }}>
+        <ScreenHeader title="Оформление" onBack={() => setChanged(null)} />
+        <Shell style={{ maxWidth: 520 }}>
+          <Panel>
+            <Title size={22}>Цена изменилась</Title>
+            <Muted>Пока вы оформляли, точка обновила меню.</Muted>
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <T color={c.inkSoft}>Итого</T>
+              <T>
+                <T color={c.inkSoft} style={{ textDecorationLine: "line-through" }}>
+                  {money(changed.before)}
+                </T>{" "}
+                <T weight="bold">{money(changed.quote.total_amount)}</T>
+              </T>
+            </View>
+            <Button block title={`Оформить за ${money(changed.quote.total_amount)}`} loading={submitting} onPress={() => submit(changed.quote.total_amount).then(() => setChanged(null))} />
+            <Button block tone="tonal" title="Вернуться в корзину" onPress={() => router.replace("/cart")} />
+          </Panel>
+        </Shell>
+      </View>
+    );
+  }
+
+  const main = (
+    <>
+      {!signedIn ? (
+        <Panel>
+          <Title size={22}>Контакты</Title>
+          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+            <Field label="Имя" value={name} onChangeText={setName} error={nameError} autoComplete="name" style={{ flex: 1, minWidth: 160 }} />
+            <Field label="Телефон" value={phone} onChangeText={(value) => setPhone(maskPhone(value))} error={phoneError} keyboardType="phone-pad" autoComplete="tel" placeholder="+7 900 000-00-00" style={{ flex: 1, minWidth: 180 }} />
+          </View>
+          <T size={13} color={c.inkSoft}>
+            Заказ без регистрации.{" "}
+            <T size={13} weight="semibold" color={c.brandText} onPress={() => router.push("/login")}>
+              Войти
+            </T>{" "}
+            — чтобы копить бонусы и сохранить адрес.
+          </T>
+        </Panel>
+      ) : null}
+
+      <Segmented
+        value={place.fulfillment}
+        onChange={place.setFulfillment}
+        options={[
+          { value: "delivery", label: "Доставка" },
+          { value: "pickup", label: "Самовывоз" },
+        ]}
+      />
+
+      {delivery ? (
+        <Panel>
+          <Title size={22}>Куда</Title>
+          {outOfZone ? (
+            <Notice tone="bad" icon="map">
+              <T weight="bold" size={14} color={c.danger}>
+                Сюда пока не доставляем.
+              </T>{" "}
+              Можно забрать заказ самим{quote ? ` на ${quote.venue.address}` : ""}.
+            </Notice>
+          ) : null}
+          {saved.data?.addresses.length ? (
+            <View style={{ gap: 8 }}>
+              {saved.data.addresses.map((address) => (
+                <OptionRow
+                  key={address.id}
+                  selected={place.address?.savedId === address.id}
+                  onPress={() =>
+                    place.setAddress({
+                      text: address.text,
+                      latitude: address.latitude,
+                      longitude: address.longitude,
+                      details: { entrance: address.entrance, floor: address.floor, apartment: address.apartment, intercom: address.intercom },
+                      savedId: address.id,
+                      label: address.label,
+                    })
+                  }
+                  title={address.label || address.text}
+                  subtitle={[address.label ? address.text : "", address.apartment ? `кв. ${address.apartment}` : "", address.entrance ? `подъезд ${address.entrance}` : ""].filter(Boolean).join(" · ")}
+                />
+              ))}
+            </View>
+          ) : null}
+          {place.address && !place.address.savedId ? <OptionRow selected onPress={() => router.push("/address")} icon="pin" title={place.address.text} right={<LinkButton title="Изменить" onPress={() => router.push("/address")} />} /> : null}
+          <Button tone="tonal" size="sm" icon="plus" title={place.address ? "Другой адрес" : "Указать адрес"} onPress={() => router.push("/address")} />
+          {place.address ? (
+            <>
+              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                {(["entrance", "floor", "apartment", "intercom"] as const).map((key) => (
+                  <Field
+                    key={key}
+                    label={{ entrance: "Подъезд", floor: "Этаж", apartment: "Квартира", intercom: "Домофон" }[key]}
+                    value={details[key]}
+                    onChangeText={(value) => place.setDetails({ [key]: value })}
+                    error={detailsMissing && key === "apartment" && touched ? " " : null}
+                    style={{ flex: 1, minWidth: 110 }}
+                  />
+                ))}
+              </View>
+              {detailsMissing && touched ? <T size={13} color={c.danger}>Укажите квартиру — без неё курьер не найдёт вас. Частный дом — отметьте ниже.</T> : null}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Toggle value={privateHouse} onChange={setPrivateHouse} label="Частный дом" />
+                <T>Частный дом, квартиры нет</T>
+              </View>
+              {signedIn && !place.address.savedId ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <Toggle value={saveAddress} onChange={setSaveAddress} label="Сохранить адрес" />
+                  <T>Сохранить адрес в профиле</T>
+                </View>
+              ) : null}
+            </>
+          ) : null}
+        </Panel>
+      ) : (
+        <Panel>
+          <Title size={22}>Где забрать</Title>
+          {quote ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: radius.md, backgroundColor: c.surfaceSunken }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.brandSoft, alignItems: "center", justifyContent: "center" }}>
+                <Icon name="store" size={22} color={c.brandText} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <T weight="semibold">{quote.venue.address}</T>
+                <Muted size={13}>
+                  {quote.venue.is_open ? `Открыто до ${time(quote.venue.closes_at)}` : "Сейчас закрыто"} · готовим ~{quote.venue.cook_minutes} мин
+                </Muted>
+              </View>
+            </View>
+          ) : null}
+        </Panel>
+      )}
+
+      <Panel>
+        <Title size={22}>Когда</Title>
+        {closed ? <Notice tone="bad" icon="clock">Сейчас закрыто — выберите время.</Notice> : null}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          {!closed ? <Slot active={!scheduledFor} title={`Как можно скорее${quote?.promised_at ? ` · к ${time(quote.promised_at)}` : ""}`} onPress={() => setScheduledFor(null)} /> : null}
+          {(quote?.slots ?? []).slice(0, 12).map((slot) => (
+            <Slot key={slot} active={scheduledFor === slot} title={slotLabel(slot)} onPress={() => setScheduledFor(slot)} />
+          ))}
+        </View>
+      </Panel>
+
+      <Panel>
+        <Title size={22}>Оплата</Title>
+        <View style={{ gap: 8 }}>
+          {methods.map((method) => (
+            <OptionRow key={method.value} selected={payment === method.value} onPress={() => setPayment(method.value)} icon={method.icon} title={method.title} />
+          ))}
+        </View>
+      </Panel>
+
+      <Panel>
+        <Title size={22}>Ещё</Title>
+        <Field label="Комментарий" value={comment} onChangeText={setComment} placeholder="Например, не звонить в домофон" multiline numberOfLines={2} maxLength={500} />
+      </Panel>
+    </>
+  );
+
+  const side = (
+    <Panel>
+      <T weight="semibold" size={16}>
+        Ваш заказ
+      </T>
+      <CartLines quote={quote} />
+      {signedIn && balance > 0 ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <T weight="semibold">Списать бонусы</T>
+            <Muted size={13}>
+              до {config?.bonus.max_redeem_percent ?? 30}% суммы · баланс {Math.floor(balance)}
+            </Muted>
+          </View>
+          <Toggle value={useBonus} onChange={setUseBonus} label="Списать бонусы" />
+        </View>
+      ) : null}
+      {quote ? (
+        <View style={{ opacity: quoting ? 0.45 : 1, gap: 12 }}>
+          <Totals rows={quoteRows(quote, place.fulfillment)} grand={{ label: "Итого", value: money(quote.total_amount) }} />
+          {Number(quote.bonus_accrual) > 0 ? (
+            <View style={{ alignSelf: "flex-start", paddingVertical: 5, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: c.sesameSoft }}>
+              <T weight="semibold" size={13} color={c.sesameText}>
+                +{Math.floor(Number(quote.bonus_accrual))} бонусов за этот заказ{signedIn ? "" : " — после входа"}
+              </T>
+            </View>
+          ) : null}
+          {quote.promised_at ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: radius.sm, backgroundColor: c.brandSoft }}>
+              <Icon name="clock" size={20} color={c.brandText} />
+              <T weight="semibold" color={c.brandText}>
+                {delivery ? "Привезём" : "Заберёте готово"} к {time(quote.promised_at)}
+              </T>
+            </View>
+          ) : null}
+          {quote.warnings.map((warning) => (
+            <Notice key={warning} icon="clock">
+              {warning}
+            </Notice>
+          ))}
+          {otherProblems.map((problem) => (
+            <Notice key={problem.code + problem.message} tone="bad">
+              {problem.message}
+            </Notice>
+          ))}
+        </View>
+      ) : null}
+      {error ? <Notice tone="bad">{error.message}</Notice> : null}
+      <Button
+        block
+        loading={submitting}
+        disabled={blocked}
+        title={
+          quoting || !quote
+            ? "Считаем…"
+            : outOfZone
+              ? "Укажите другой адрес"
+              : delivery && !place.address
+                ? "Укажите адрес"
+                : `Подтвердить${delivery ? " заказ" : ""} · ${money(quote.total_amount)}`
+        }
+        onPress={() => submit()}
+      />
+      <Muted size={12}>Нажимая кнопку, вы соглашаетесь с условиями доставки и обработкой персональных данных.</Muted>
+    </Panel>
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: c.surface }}>
+      <ScreenHeader title="Оформление" />
+      <ScrollView contentContainerStyle={{ paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+        <Shell>
+          <Columns main={main} side={side} />
+        </Shell>
+      </ScrollView>
+    </View>
+  );
+}
+
+function Slot({ active, title, onPress }: { active: boolean; title: string; onPress: () => void }) {
+  const { c } = useTheme();
+  return (
+    <T
+      accessibilityRole="button"
+      onPress={onPress}
+      weight="semibold"
+      size={14}
+      color={active ? c.brandText : c.ink}
+      style={{
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderRadius: radius.sm,
+        borderWidth: 1,
+        borderColor: active ? c.brand : "transparent",
+        backgroundColor: active ? c.surfaceCard : c.surfaceSunken,
+        overflow: "hidden",
+      }}
+    >
+      {title}
+    </T>
+  );
+}
