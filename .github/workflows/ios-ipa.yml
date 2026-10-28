@@ -15,6 +15,11 @@ on:
       - "apps/client/**"
       - ".github/workflows/ios-ipa.yml"
 
+# A newer push replaces a build that is still running: only the latest one is worth waiting for.
+concurrency:
+  group: ios-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-15

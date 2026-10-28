@@ -1,0 +1,66 @@
+name: Android APK
+
+# A release APK signed with Expo's debug key: it installs on any phone from the file (allow "unknown sources").
+# Google Play needs an upload key of your own in secrets and an .aab instead — add it when the app goes to the store.
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "API address baked into the app (EXPO_PUBLIC_API_URL)"
+        default: "https://braitsgk.ru"
+  push:
+    branches: [main]
+    paths:
+      - "apps/client/**"
+      - ".github/workflows/android-apk.yml"
+
+# A newer push replaces a build that is still running: only the latest one is worth waiting for.
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: apps/client
+    env:
+      EXPO_PUBLIC_API_URL: ${{ inputs.api_url || 'https://braitsgk.ru' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/client/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - run: npm ci
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build release APK
+        working-directory: apps/client/android
+        # arm64 and 32-bit ARM cover every phone made in the last ten years; x86 is only for emulators.
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
+
+      - name: Name the file
+        run: |
+          mkdir -p build
+          cp android/app/build/outputs/apk/release/app-release.apk build/Bright.apk
+          ls -la build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bright-android-apk
+          path: apps/client/build/Bright.apk
+          retention-days: 14
