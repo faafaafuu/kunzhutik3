@@ -206,36 +206,29 @@ export function MobileHeader() {
   );
 }
 
-/** "Войти" for a guest; the initial in a circle, leading to the profile, for a signed-in customer. */
+/** Round personal-account button: a person icon for a guest (leads to sign-in), the initial for a signed-in customer (leads to the profile). */
 export function AccountButton() {
   const { c } = useTheme();
   const router = useRouter();
   const customer = useSession((state) => (state.tokens ? state.customer : null));
-  if (!customer) {
-    return (
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push("/login")}
-        style={({ pressed }) => ({ height: 40, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: pressed ? c.line : c.surfaceSunken })}
-      >
-        <Icon name="user" size={18} color={c.ink} />
-        <T weight="semibold" size={14}>
-          Войти
-        </T>
-      </Pressable>
-    );
-  }
-  const initial = (customer.name || customer.email || "Б").trim().charAt(0).toUpperCase();
+  const initial = customer ? (customer.name || customer.email || "Б").trim().charAt(0).toUpperCase() : null;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Профиль"
-      onPress={() => router.push("/profile")}
-      style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: c.brandSoft, opacity: pressed ? 0.7 : 1 })}
+      accessibilityLabel={customer ? "Личный кабинет" : "Войти в личный кабинет"}
+      onPress={() => router.push(customer ? "/profile" : "/login")}
+      style={({ pressed }) => [
+        { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", backgroundColor: customer ? c.brandSoft : c.surfaceCard, opacity: pressed ? 0.7 : 1 },
+        customer ? null : cardShadow(c),
+      ]}
     >
-      <T weight="bold" size={16} color={c.brandText}>
-        {initial}
-      </T>
+      {initial ? (
+        <T weight="bold" size={17} color={c.brandText}>
+          {initial}
+        </T>
+      ) : (
+        <Icon name="user" size={22} color={c.ink} />
+      )}
     </Pressable>
   );
 }
