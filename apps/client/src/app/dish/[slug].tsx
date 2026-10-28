@@ -2,7 +2,7 @@
 
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -68,6 +68,9 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
   const config = useShared((state) => state.config);
   const [picked, setPicked] = useState<Picked>({});
   const [quantity, setQuantity] = useState(1);
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  // Set when "Убрать ингредиенты" unfolds: the tiles appear below the fold, so scroll down to them once laid out.
+  const followEnd = useRef(false);
 
   const groups = item.modifier_groups;
   const options = useMemo(() => new Map(groups.flatMap((group) => group.options.map((option) => [option.id, { option, group }] as const))), [groups]);
@@ -105,7 +108,17 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scroll}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => {
+          if (!followEnd.current) return;
+          followEnd.current = false;
+          scroll.current?.scrollToEnd({ animated: true });
+        }}
+      >
         <View style={{ width: "100%", aspectRatio: 1, maxHeight: 520, backgroundColor: c.surfaceSunken }}>
           {item.image_url ? <Image source={{ uri: assetUrl(item.image_url) }} style={{ width: "100%", height: "100%", opacity: soldOut ? 0.6 : 1 }} contentFit="cover" transition={200} /> : null}
           <Pressable
@@ -134,7 +147,8 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
               <T weight="semibold">Закончилось — загляните позже</T>
             </View>
           ) : (
-            groups.map((group) => (
+            // "Убрать" goes last and folded: a stray tap must not take an ingredient out.
+            [...groups].sort((a, b) => Number(a.kind === "remove") - Number(b.kind === "remove")).map((group) => (
               <GroupBlock
                 key={group.id}
                 group={group}
@@ -143,6 +157,7 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
                 onChoice={(option) => toggleChoice(group, option)}
                 onRemove={toggleRemove}
                 onAddon={setAddon}
+                onUnfold={() => (followEnd.current = true)}
               />
             ))
           )}
@@ -173,6 +188,7 @@ function GroupBlock({
   onChoice,
   onRemove,
   onAddon,
+  onUnfold,
 }: {
   group: ModifierGroup;
   picked: Picked;
@@ -180,14 +196,48 @@ function GroupBlock({
   onChoice: (option: ModifierOption) => void;
   onRemove: (option: ModifierOption) => void;
   onAddon: (option: ModifierOption, qty: number) => void;
+  onUnfold: () => void;
 }) {
   const { c } = useTheme();
   const [width, setWidth] = useState(0);
+  const [open, setOpen] = useState(false);
   // Equal tiles: as many columns as options up to three, four go 2×2, and a short last row is centred.
   const count = group.options.length;
   const columns = count <= 3 ? count : count === 4 ? 2 : 3;
   const tile = width ? Math.floor((width - TILE_GAP * (columns - 1)) / columns) : 0;
-  const hint = group.kind === "choice" ? (group.required ? (missing ? "выберите один" : "обязательно") : "по желанию") : group.kind === "remove" ? "нажмите, чтобы убрать" : "можно несколько";
+  const hint = group.kind === "choice" ? (group.required ? (missing ? "выберите один" : "обязательно") : "по желанию") : "можно несколько";
+
+  if (group.kind === "remove") {
+    const removed = group.options.filter((option) => picked[option.id]).map((option) => option.title);
+    return (
+      <View style={{ gap: 12 }} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: open }}
+          onPress={() => {
+            if (!open) onUnfold();
+            setOpen(!open);
+          }}
+          style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: radius.sm, borderWidth: 1.5, borderColor: removed.length ? c.danger : c.line, backgroundColor: pressed ? c.surfaceSunken : c.surfaceCard })}
+        >
+          <View style={{ flex: 1 }}>
+            <T weight="semibold">Убрать ингредиенты</T>
+            <T size={13} color={removed.length ? c.danger : c.inkSoft} numberOfLines={2}>
+              {removed.length ? removed.map((title, index) => (index ? title.toLowerCase() : title)).join(", ") : "по желанию"}
+            </T>
+          </View>
+          <Icon name={open ? "up" : "down"} size={20} color={c.inkSoft} />
+        </Pressable>
+        {open ? (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: TILE_GAP }}>
+            {group.options.map((option) => (
+              <RemoveTile key={option.id} option={option} width={tile} removed={Boolean(picked[option.id])} onPress={() => onRemove(option)} />
+            ))}
+          </View>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <View style={{ gap: 12 }} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
@@ -225,13 +275,9 @@ function GroupBlock({
         </View>
       ) : (
         <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: TILE_GAP }}>
-          {group.options.map((option) =>
-            group.kind === "remove" ? (
-              <RemoveTile key={option.id} option={option} width={tile} removed={Boolean(picked[option.id])} onPress={() => onRemove(option)} />
-            ) : (
-              <AddonTile key={option.id} option={option} width={tile} qty={picked[option.id] ?? 0} max={group.max_quantity} onChange={(qty) => onAddon(option, qty)} />
-            ),
-          )}
+          {group.options.map((option) => (
+            <AddonTile key={option.id} option={option} width={tile} qty={picked[option.id] ?? 0} max={group.max_quantity} onChange={(qty) => onAddon(option, qty)} />
+          ))}
         </View>
       )}
     </View>

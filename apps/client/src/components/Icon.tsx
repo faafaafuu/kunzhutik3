@@ -15,6 +15,7 @@ const ICONS = {
   close: <Path d="M6 6l12 12M18 6L6 18" />,
   back: <Path d="M15 5l-7 7 7 7" />,
   down: <Path d="M6 9l6 6 6-6" />,
+  up: <Path d="M6 15l6-6 6 6" />,
   right: <Path d="M9 6l6 6-6 6" />,
   check: <Path d="M5 12.5l4.5 4.5L19 7.5" />,
   plus: <Path d="M12 5v14M5 12h14" />,
