@@ -127,3 +127,24 @@ class BonusTransaction(UUIDPrimaryKeyMixin, Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     comment: Mapped[str] = mapped_column(String(200), nullable=False, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class Consent(UUIDPrimaryKeyMixin, Base):
+    """A consent a person gave on the site: who, to what, which version of the documents, when and from where.
+
+    Kept as the evidence the operator is asked for (152-ФЗ, ст. 9). Rows are never edited; a withdrawal is a new row.
+    """
+
+    __tablename__ = "consents"
+
+    # personal_data | marketing | withdrawn_marketing
+    kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    # The date of the documents' text the person agreed to (services/consents.DOCUMENT_VERSION).
+    version: Mapped[str] = mapped_column(String(16), nullable=False)
+    # checkout | login
+    context: Mapped[str] = mapped_column(String(16), nullable=False)
+    phone: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
+    order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)
+    ip: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)

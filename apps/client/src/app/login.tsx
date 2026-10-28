@@ -8,9 +8,11 @@ import Svg, { Path } from "react-native-svg";
 import { api, ApiError } from "@/api/client";
 import type { Customer, Tokens } from "@/api/types";
 import { ScreenHeader } from "@/components/Chrome";
+import { agreed, ConsentChecks, noAgreements } from "@/components/Legal";
 import { toast } from "@/components/Toast";
 import { Button, Field, LinkButton, Muted, Notice, Shell, T, Title } from "@/components/ui";
 import { collectLogin, finishWebRedirect, forgetTelegramLogin, LOGIN_ERRORS, openTelegram, pendingTelegramSecret, startGoogleLogin, startTelegramLogin } from "@/lib/auth";
+import { useShared } from "@/hooks/data";
 import { maskPhone, phoneComplete } from "@/lib/format";
 import { isTelegram } from "@/lib/telegram";
 import { useSession } from "@/store/session";
@@ -34,6 +36,14 @@ export default function LoginScreen() {
   const [limited, setLimited] = useState<string | null>(null);
   const [wait, setWait] = useState(0);
   const [telegram, setTelegram] = useState<{ url: string | null; secret: string } | null>(null);
+  // The consent boxes of this screen. Ticked once for the current edition of the documents, they are not shown again.
+  const [agreements, setAgreements] = useState(noAgreements);
+  const config = useShared((state) => state.config);
+  const consentVersion = useSession((state) => state.consentVersion);
+  const needsConsent = !config?.consent_version || consentVersion !== config.consent_version;
+  const ready = !needsConsent || agreed(agreements);
+  const agreement = { consent: needsConsent && agreed(agreements), marketing_consent: needsConsent && agreed(agreements) && agreements.ads };
+  const rememberConsent = () => needsConsent && config?.consent_version && useSession.getState().setConsentVersion(config.consent_version);
   const input = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   const done = useCallback(
@@ -96,7 +106,8 @@ export default function LoginScreen() {
     setBusy("telegram");
     setError(null);
     try {
-      const started = await startTelegramLogin();
+      const started = await startTelegramLogin(agreement);
+      rememberConsent();
       setTelegram(started);
       setStep("telegram");
       openTelegram(started.url);
@@ -110,7 +121,8 @@ export default function LoginScreen() {
   const withGoogle = async () => {
     setBusy("google");
     setError(null);
-    const failure = await startGoogleLogin("/");
+    rememberConsent();
+    const failure = await startGoogleLogin("/", agreement);
     if (Platform.OS !== "web") {
       setBusy(null);
       if (failure) setError(failure);
@@ -123,7 +135,8 @@ export default function LoginScreen() {
     setError(null);
     setLimited(null);
     try {
-      const result = await api<{ retry_after: number; length: number; debug_code?: string }>("/auth/otp/request", { method: "POST", body: { phone }, auth: false });
+      const result = await api<{ retry_after: number; length: number; debug_code?: string }>("/auth/otp/request", { method: "POST", body: { phone, ...agreement }, auth: false });
+      rememberConsent();
       setLength(result.length);
       setWait(result.retry_after);
       setStep("code");
@@ -132,6 +145,7 @@ export default function LoginScreen() {
       setTimeout(() => input.current?.focus(), 100);
     } catch (caught) {
       const apiError = caught as ApiError;
+      if (apiError.code === "consent_required") useSession.getState().setConsentVersion(null);
       if (apiError.code === "otp_rate_limited") {
         setLimited(apiError.message);
         if (apiError.details.retry_after) setWait(Number(apiError.details.retry_after));
@@ -177,8 +191,9 @@ export default function LoginScreen() {
               </View>
               {/* A sign-in way that is not set up yet is news, not a failure. */}
               {error ? <Notice tone={error.includes("скоро заработает") ? "info" : "bad"}>{error}</Notice> : null}
-              {isTelegram() ? null : <ProviderButton kind="telegram" loading={busy === "telegram"} onPress={withTelegram} />}
-              <ProviderButton kind="google" loading={busy === "google"} onPress={withGoogle} />
+              {needsConsent ? <ConsentChecks value={agreements} onChange={setAgreements} /> : null}
+              {isTelegram() ? null : <ProviderButton kind="telegram" loading={busy === "telegram"} onPress={withTelegram} disabled={!ready} />}
+              <ProviderButton kind="google" loading={busy === "google"} onPress={withGoogle} disabled={!ready} />
               <Divider label="или по номеру телефона" />
               {limited ? (
                 <Notice tone="bad" icon="clock">
@@ -186,7 +201,7 @@ export default function LoginScreen() {
                 </Notice>
               ) : null}
               <Field value={phone} onChangeText={(value) => setPhone(maskPhone(value))} keyboardType="phone-pad" autoComplete="tel" accessibilityLabel="Телефон" placeholder="+7 900 000-00-00" onSubmitEditing={() => phoneComplete(phone) && requestCode()} style={{ textAlign: "center", fontSize: 17 }} />
-              <Button block title="Получить код в SMS" onPress={requestCode} loading={busy === "phone"} disabled={!phoneComplete(phone) || (Boolean(limited) && wait > 0)} />
+              <Button block title="Получить код в SMS" onPress={requestCode} loading={busy === "phone"} disabled={!ready || !phoneComplete(phone) || (Boolean(limited) && wait > 0)} />
               <Muted size={13} style={{ textAlign: "center" }}>
                 Без входа тоже можно заказать — нужны только имя и телефон
               </Muted>
@@ -281,7 +296,7 @@ export default function LoginScreen() {
   );
 }
 
-function ProviderButton({ kind, loading, onPress }: { kind: "telegram" | "google"; loading: boolean; onPress: () => void }) {
+function ProviderButton({ kind, loading, onPress, disabled }: { kind: "telegram" | "google"; loading: boolean; onPress: () => void; disabled?: boolean }) {
   const { c } = useTheme();
   const telegram = kind === "telegram";
   const fg = telegram ? "#ffffff" : c.ink;
@@ -289,7 +304,7 @@ function ProviderButton({ kind, loading, onPress }: { kind: "telegram" | "google
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      disabled={loading}
+      disabled={loading || disabled}
       style={({ pressed }) => ({
         height: 54,
         flexDirection: "row",
@@ -300,7 +315,7 @@ function ProviderButton({ kind, loading, onPress }: { kind: "telegram" | "google
         backgroundColor: telegram ? c.telegram : c.surfaceCard,
         borderWidth: telegram ? 0 : 1,
         borderColor: c.line,
-        opacity: pressed ? 0.85 : 1,
+        opacity: disabled ? 0.45 : pressed ? 0.85 : 1,
       })}
     >
       {loading ? <ActivityIndicator color={fg} size="small" /> : telegram ? <TelegramMark size={22} /> : <GoogleMark size={20} />}

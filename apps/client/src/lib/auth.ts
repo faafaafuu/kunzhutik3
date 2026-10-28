@@ -21,6 +21,7 @@ export const LOGIN_ERRORS: Record<string, string> = {
   cancelled: "Вход отменён",
   login_expired: "Время на вход вышло, попробуйте ещё раз",
   google_unavailable: "Вход через Google скоро заработает. Пока войдите по номеру телефона",
+  consent_required: "Подтвердите согласие на обработку персональных данных",
   google_failed: "Google не подтвердил вход, попробуйте ещё раз",
   login_rate_limited: "Слишком много попыток входа. Попробуйте через час",
 };
@@ -33,8 +34,8 @@ export async function collectLogin(secret: string): Promise<boolean> {
   return true;
 }
 
-export async function startTelegramLogin(): Promise<{ url: string; secret: string }> {
-  const started = await api<{ url: string; secret: string }>("/auth/telegram/start", { method: "POST", auth: false });
+export async function startTelegramLogin(agreement: { consent: boolean; marketing_consent: boolean }): Promise<{ url: string; secret: string }> {
+  const started = await api<{ url: string; secret: string }>("/auth/telegram/start", { method: "POST", body: agreement, auth: false });
   remember(PENDING, started.secret);
   return started;
 }
@@ -60,14 +61,15 @@ export function forgetTelegramLogin(): void {
 }
 
 /** Web: leaves for Google and returns to /login. Native: an in-app browser sheet; resolves with an error text or null. */
-export async function startGoogleLogin(next: string): Promise<string | null> {
+export async function startGoogleLogin(next: string, agreement: { consent: boolean; marketing_consent: boolean }): Promise<string | null> {
+  const flags = `&consent=${agreement.consent}&marketing=${agreement.marketing_consent}`;
   if (Platform.OS === "web") {
     remember(NEXT, next);
-    window.location.assign(`${API_URL}/auth/google/start?return_to=${encodeURIComponent(`${window.location.origin}/login`)}`);
+    window.location.assign(`${API_URL}/auth/google/start?return_to=${encodeURIComponent(`${window.location.origin}/login`)}${flags}`);
     return null;
   }
   const back = Linking.createURL("login");
-  const result = await WebBrowser.openAuthSessionAsync(`${API_URL}/auth/google/start?return_to=${encodeURIComponent(back)}`, back);
+  const result = await WebBrowser.openAuthSessionAsync(`${API_URL}/auth/google/start?return_to=${encodeURIComponent(back)}${flags}`, back);
   if (result.type !== "success") return LOGIN_ERRORS.cancelled;
   return finishRedirect(result.url);
 }

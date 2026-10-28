@@ -3,18 +3,19 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, optional_customer
+from app.api.deps import client_ip, get_db, optional_customer
 from app.core.config import settings
 from app.core.errors import ApiError
 from app.models.customer import Customer
 from app.models.venue import Venue
 from app.schemas.orders import CancelRequest, OrderCreateRequest, QuoteRequest
-from app.services import geo, loyalty, payments
-from app.services.customers import customer_payload, is_new_phone, issue_tokens
+from app.services import consents, geo, loyalty, payments
+from app.services.consents import DOCUMENT_VERSION
+from app.services.customers import customer_payload, is_new_phone, issue_tokens, normalize_phone
 from app.services.menu import item_payload, load_items, menu_payload, venue_overrides
 from app.services.notifications import notify_new_order, notify_status_change
 from app.services.orders import bonus_accrued_for, create_order, load_order, order_payload, transition
@@ -33,6 +34,8 @@ def get_config() -> dict:
     return {
         "brand_name": BRAND_NAME,
         "currency": "RUB",
+        # The edition of the consent and the policy: when it changes, every client asks for the consent again.
+        "consent_version": DOCUMENT_VERSION,
         "min_supported_app_version": settings.min_supported_app_version,
         "ios_store_url": settings.ios_store_url,
         "android_store_url": settings.android_store_url,
@@ -122,6 +125,7 @@ def post_quote(payload: QuoteRequest, db: Session = Depends(get_db), customer: C
 @router.post("/orders", status_code=201)
 def post_order(
     payload: OrderCreateRequest,
+    request: Request,
     background: BackgroundTasks,
     db: Session = Depends(get_db),
     customer: Customer | None = Depends(optional_customer),
@@ -130,8 +134,16 @@ def post_order(
     # A phone we already know is never signed in this way: whoever types it would see that person's
     # addresses, orders and bonuses. The order still lands in that account; its owner signs in by SMS.
     new_account = customer is None and is_new_phone(db, payload.customer_phone)
+    phone = normalize_phone(payload.customer_phone)
+    # The order is not taken without the consent, unless this customer has already given it for the current documents.
+    consents.require_personal_data_consent(db, given=payload.consent, customer=customer, phone=phone)
     # Signed in through Telegram → status updates also go to that chat.
     order = create_order(db, payload, customer=customer, telegram_user_id=customer.telegram_id if customer else None, new_account=new_account)
+    owner_for_consent = customer or db.get(Customer, order.customer_id)
+    consents.record(db, context="checkout", ip=client_ip(request), personal_data=payload.consent, marketing=payload.marketing_consent, phone=phone, customer=owner_for_consent, order_id=order.id)
+    if payload.marketing_consent and owner_for_consent and not owner_for_consent.notify_promo:
+        owner_for_consent.notify_promo = True
+        db.commit()
     payment = None
     if order.payment_method == "online":
         # The kitchen hears about the order only after it is paid. When ЮKassa is unreachable right now the

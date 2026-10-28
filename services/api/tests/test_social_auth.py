@@ -14,7 +14,7 @@ def bot_username(monkeypatch):
 
 
 def _start_telegram(client):
-    response = client.post("/api/v1/auth/telegram/start")
+    response = client.post("/api/v1/auth/telegram/start", json={"consent": True})
     assert response.status_code == 200
     payload = response.json()
     token = payload["url"].split("start=login_", 1)[1]
@@ -54,7 +54,7 @@ def test_telegram_contact_without_an_opened_link_confirms_nothing(client, db):
 def test_telegram_login_says_when_it_is_not_set_up(client, monkeypatch):
     monkeypatch.setattr(settings, "telegram_bot_username", None)
     monkeypatch.setattr(settings, "telegram_bot_token", None)
-    response = client.post("/api/v1/auth/telegram/start")
+    response = client.post("/api/v1/auth/telegram/start", json={"consent": True})
     assert response.status_code == 503 and response.json()["error"]["code"] == "telegram_unavailable"
 
 
@@ -85,7 +85,7 @@ def google(monkeypatch):
 
 def test_google_login_returns_a_one_time_code_to_the_page_that_started_it(client, google):
     base = settings.app_base_url.rstrip("/")
-    start = client.get("/auth/google/start", params={"return_to": f"{base}/login"}, follow_redirects=False)
+    start = client.get("/auth/google/start", params={"return_to": f"{base}/login", "consent": "true"}, follow_redirects=False)
     assert start.status_code == 303
     state = parse_qs(urlparse(start.headers["location"]).query)["state"][0]
     back = client.get("/auth/google/callback", params={"state": state, "code": "c-1"}, follow_redirects=False)
@@ -97,7 +97,7 @@ def test_google_login_returns_a_one_time_code_to_the_page_that_started_it(client
 
 
 def test_google_callback_without_the_browser_cookie_is_refused(client, google):
-    start = client.get("/auth/google/start", follow_redirects=False)
+    start = client.get("/auth/google/start", params={"consent": "true"}, follow_redirects=False)
     state = parse_qs(urlparse(start.headers["location"]).query)["state"][0]
     client.cookies.clear()
     back = client.get("/auth/google/callback", params={"state": state, "code": "c-1"}, follow_redirects=False)
@@ -106,7 +106,7 @@ def test_google_callback_without_the_browser_cookie_is_refused(client, google):
 
 def test_google_not_set_up_goes_back_with_the_reason(client, monkeypatch):
     monkeypatch.setattr(settings, "google_client_id", None)
-    back = client.get("/auth/google/start", follow_redirects=False)
+    back = client.get("/auth/google/start", params={"consent": "true"}, follow_redirects=False)
     assert back.status_code == 303 and "login_error=google_unavailable" in back.headers["location"]
 
 

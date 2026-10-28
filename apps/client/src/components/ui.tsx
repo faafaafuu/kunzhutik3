@@ -374,6 +374,27 @@ export function OptionRow({ selected, onPress, icon, title, subtitle, right }: {
   );
 }
 
+/** A tick box with a label that may hold links: the box and the plain words toggle it, a link only opens its page. */
+export function Checkbox({ checked, onChange, children }: { checked: boolean; onChange: (value: boolean) => void; children: ReactNode }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked }}
+        onPress={() => onChange(!checked)}
+        hitSlop={8}
+        style={{ width: 24, height: 24, marginTop: 1, borderRadius: 7, borderWidth: 2, borderColor: checked ? c.brand : c.inkSoft, backgroundColor: checked ? c.brand : c.surfaceCard, alignItems: "center", justifyContent: "center" }}
+      >
+        {checked ? <Icon name="check" size={16} color={c.onBrand} strokeWidth={3} /> : null}
+      </Pressable>
+      <T size={14} color={c.inkSoft} style={{ flex: 1 }} onPress={() => onChange(!checked)}>
+        {children}
+      </T>
+    </View>
+  );
+}
+
 // ---------- money ----------
 
 export function Totals({ rows, grand }: { rows: { label: string; value: string; tone?: "muted" | "discount" }[]; grand: { label: string; value: string } }) {

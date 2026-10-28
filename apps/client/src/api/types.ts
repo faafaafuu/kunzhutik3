@@ -88,6 +88,7 @@ export type AppConfig = {
     referral?: { enabled: boolean; friend: number; referrer: number; min_order: number };
   };
   telegram_login: boolean;
+  consent_version?: string;
   auth?: { phone: boolean; telegram: boolean; google: boolean };
 };
 

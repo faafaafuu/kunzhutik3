@@ -8,7 +8,7 @@ from conftest import option, order_body
 
 
 def sign_in(client, phone="+79001234567") -> dict:
-    code = client.post("/api/v1/auth/otp/request", json={"phone": phone}).json()["debug_code"]
+    code = client.post("/api/v1/auth/otp/request", json={"phone": phone, "consent": True}).json()["debug_code"]
     session = client.post("/api/v1/auth/otp/verify", json={"phone": phone, "code": code}).json()
     return {"Authorization": f"Bearer {session['tokens']['access_token']}", "_refresh": session["tokens"]["refresh_token"]}
 
@@ -18,7 +18,7 @@ def headers(auth: dict) -> dict:
 
 
 def test_otp_sign_in_and_refresh(client):
-    requested = client.post("/api/v1/auth/otp/request", json={"phone": "8 (900) 123-45-67"})
+    requested = client.post("/api/v1/auth/otp/request", json={"phone": "8 (900) 123-45-67", "consent": True})
     assert requested.status_code == 200
     assert requested.json()["phone"] == "+79001234567"
     code = requested.json()["debug_code"]
@@ -39,8 +39,8 @@ def test_otp_sign_in_and_refresh(client):
 
 
 def test_otp_rate_limit(client):
-    assert client.post("/api/v1/auth/otp/request", json={"phone": "+79005556677"}).status_code == 200
-    second = client.post("/api/v1/auth/otp/request", json={"phone": "+79005556677"})
+    assert client.post("/api/v1/auth/otp/request", json={"phone": "+79005556677", "consent": True}).status_code == 200
+    second = client.post("/api/v1/auth/otp/request", json={"phone": "+79005556677", "consent": True})
     assert second.status_code == 429
     assert second.json()["error"]["code"] == "otp_rate_limited"
 

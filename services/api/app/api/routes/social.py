@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import client_ip, get_db
 from app.core.config import settings
 from app.core.errors import ApiError
-from app.services import loyalty
+from app.services import consents, loyalty
 from app.services.customers import customer_payload, issue_tokens
 from app.services.social_auth import (
     GOOGLE_COOKIE,
@@ -28,9 +28,18 @@ class CollectRequest(BaseModel):
     secret: str = Field(min_length=20, max_length=100)
 
 
+class StartLogin(BaseModel):
+    consent: bool = False
+    marketing_consent: bool = False
+
+
 @router.post("/api/v1/auth/telegram/start")
-def telegram_start(request: Request, db: Session = Depends(get_db)) -> dict:
-    return start_telegram(db, client_ip(request))
+def telegram_start(request: Request, payload: StartLogin | None = None, db: Session = Depends(get_db)) -> dict:
+    payload = payload or StartLogin()
+    consents.require_personal_data_consent(db, given=payload.consent)
+    result = start_telegram(db, client_ip(request))
+    consents.record(db, context="login", ip=client_ip(request), personal_data=payload.consent, marketing=payload.marketing_consent)
+    return result
 
 
 @router.post("/api/v1/auth/collect")
@@ -44,9 +53,11 @@ def collect_login(payload: CollectRequest, db: Session = Depends(get_db)) -> dic
 
 
 @router.get("/auth/google/start", include_in_schema=False)
-def google_start(request: Request, return_to: str = "", db: Session = Depends(get_db)):
+def google_start(request: Request, return_to: str = "", consent: bool = False, marketing: bool = False, db: Session = Depends(get_db)):
     try:
+        consents.require_personal_data_consent(db, given=consent)
         url, state = start_google(db, client_ip(request), return_to)
+        consents.record(db, context="login", ip=client_ip(request), personal_data=consent, marketing=marketing)
     except ApiError as error:
         return RedirectResponse(with_fragment(safe_return_to(return_to), login_error=error.code), status_code=303)
     response = RedirectResponse(url, status_code=303)

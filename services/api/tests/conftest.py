@@ -40,6 +40,7 @@ VOLATILE_TABLES = [
     "customer_addresses",
     "otp_codes",
     "login_requests",
+    "consents",
     "customers",
     "venue_menu_items",
 ]
@@ -126,6 +127,7 @@ def order_body(lines: list[dict], total: str, **extra) -> dict:
         "customer_phone": "+7 900 123-45-67",
         "address_details": {"entrance": "2", "floor": "5", "apartment": "48", "intercom": "48К"},
         "payment_method": "card_on_delivery",
+        "consent": True,
         "comment": "",
         "expected_total": total,
     }

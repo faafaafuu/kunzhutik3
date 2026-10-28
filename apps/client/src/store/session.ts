@@ -14,6 +14,9 @@ type Session = {
   recentOrderIds: string[];
   // A friend's invite code from a ?ref= link, kept until an account takes it.
   referralCode: string | null;
+  // The edition of the consent this person has ticked (config.consent_version): the boxes stay hidden while it is current.
+  consentVersion: string | null;
+  setConsentVersion: (version: string | null) => void;
   // Set when the first order opened an account: the order screen greets the customer once.
   welcomed: { orderId: string; bonus: number } | null;
   rememberOrder: (orderId: string) => void;
@@ -33,6 +36,8 @@ export const useSession = create<Session>()(
       guest: { name: "", phone: "" },
       recentOrderIds: [],
       referralCode: null,
+      consentVersion: null,
+      setConsentVersion: (consentVersion) => set({ consentVersion }),
       welcomed: null,
       setReferralCode: (referralCode) => set({ referralCode }),
       setWelcomed: (welcomed) => set({ welcomed }),

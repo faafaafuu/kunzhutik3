@@ -9,7 +9,7 @@ import type { Customer, Order, PaymentMethod, Quote, SavedAddress, Tokens } from
 import { CartLines, quoteRows } from "@/components/CartLines";
 import { ScreenHeader } from "@/components/Chrome";
 import { Icon } from "@/components/Icon";
-import { ConsentNote } from "@/components/Legal";
+import { agreed, ConsentChecks, ConsentNote, noAgreements } from "@/components/Legal";
 import { toast } from "@/components/Toast";
 import { Button, Columns, Field, LinkButton, Muted, Notice, OptionRow, Panel, Segmented, Shell, StateView, T, Title, Toggle, Totals } from "@/components/ui";
 import { buildQuoteBody, useFetch, useQuote, useShared } from "@/hooks/data";
@@ -40,6 +40,9 @@ export default function CheckoutScreen() {
   const signedIn = Boolean(session.tokens);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
   const [slotsOpen, setSlotsOpen] = useState(false);
+  // The consent boxes. A customer who ticked them for the current edition of the documents is not asked again.
+  const [agreements, setAgreements] = useState(noAgreements);
+  const consentVersion = useSession((state) => state.consentVersion);
   const { quote, quoting, error } = useQuote({ scheduledFor });
   const [name, setName] = useState(session.customer?.name || session.guest.name);
   const [phone, setPhone] = useState(session.customer?.phone ? maskPhone(session.customer.phone) : session.guest.phone);
@@ -84,7 +87,8 @@ export default function CheckoutScreen() {
   const closed = problems.find((problem) => problem.code === "venue_closed");
   const otherProblems = problems.filter((problem) => !["out_of_delivery_zone", "address_required", "venue_closed"].includes(problem.code));
   const balance = Number(quote?.bonus_available ?? 0);
-  const blocked = !quote || quoting || !quote.can_order || Boolean(detailsMissing);
+  const needsConsent = !config?.consent_version || consentVersion !== config.consent_version;
+  const blocked = !quote || quoting || !quote.can_order || Boolean(detailsMissing) || (needsConsent && !agreed(agreements, true));
 
   const submit = async (expected?: string) => {
     setTouched(true);
@@ -111,8 +115,11 @@ export default function CheckoutScreen() {
         address_label: "",
         source: orderSource(),
         referral_code: signedIn ? null : session.referralCode,
+        consent: needsConsent && agreed(agreements, true),
+        marketing_consent: needsConsent && agreed(agreements, true) && agreements.ads,
       };
       const { order, account, payment: toPay } = await api<{ order: Order; account: { customer: Customer; tokens: Tokens } | null; payment: { url?: string; token?: string } | null }>("/orders", { method: "POST", body });
+      if (needsConsent && config?.consent_version) session.setConsentVersion(config.consent_version);
       if (!signedIn) session.rememberGuest(name.trim(), phone);
       // A first order from a new phone opens the account from the order's details: no sign-up step.
       if (account) {
@@ -132,6 +139,8 @@ export default function CheckoutScreen() {
       if (apiError.code === "price_changed" && apiError.details.quote) {
         setChanged({ before: quote.total_amount, quote: apiError.details.quote as Quote });
       } else {
+        // The documents changed since the last tick: show the boxes again.
+        if (apiError.code === "consent_required") session.setConsentVersion(null);
         toast(apiError.message, "bad");
       }
     } finally {
@@ -399,7 +408,7 @@ export default function CheckoutScreen() {
         }
         onPress={() => submit()}
       />
-      <ConsentNote />
+      {needsConsent ? <ConsentChecks withOffer value={agreements} onChange={setAgreements} /> : <ConsentNote />}
     </Panel>
   );
 

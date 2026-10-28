@@ -48,6 +48,9 @@ class OrderCreateRequest(QuoteRequest):
     payment_method: Literal["cash", "card_on_delivery", "online"] = "card_on_delivery"
     # A friend's invite code (from a link or typed in): used only when this order opens a new account.
     referral_code: str | None = Field(default=None, max_length=12)
+    # Ticked by the customer at checkout: consent to personal data processing, and the optional one to promotions.
+    consent: bool = False
+    marketing_consent: bool = False
     comment: str = Field(default="", max_length=500)
     # Total the customer saw. A different server total → 409 price_changed.
     expected_total: Decimal

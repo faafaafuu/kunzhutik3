@@ -11,11 +11,12 @@ from app.core.errors import ApiError
 from app.models.customer import Customer, CustomerAddress, Device
 from app.models.order import Order
 from app.models.venue import Venue
-from app.services import loyalty
+from app.services import consents, loyalty
 from app.services.customers import (
     customer_from_telegram,
     customer_payload,
     issue_tokens,
+    normalize_phone,
     refresh_tokens,
     request_otp,
     revoke_refresh,
@@ -29,6 +30,9 @@ router = APIRouter(prefix="/api/v1", tags=["account"])
 
 class OtpRequest(BaseModel):
     phone: str = Field(min_length=5, max_length=40)
+    # The consent boxes of the sign-in screen.
+    consent: bool = False
+    marketing_consent: bool = False
 
 
 class OtpVerify(BaseModel):
@@ -51,7 +55,11 @@ def _session(db: Session, customer: Customer) -> dict:
 
 @router.post("/auth/otp/request")
 def otp_request(payload: OtpRequest, request: Request, db: Session = Depends(get_db)) -> dict:
-    return request_otp(db, payload.phone, client_ip(request))
+    phone = normalize_phone(payload.phone)
+    consents.require_personal_data_consent(db, given=payload.consent, phone=phone)
+    result = request_otp(db, payload.phone, client_ip(request))
+    consents.record(db, context="login", ip=client_ip(request), personal_data=payload.consent, marketing=payload.marketing_consent, phone=phone)
+    return result
 
 
 @router.post("/auth/otp/verify")
