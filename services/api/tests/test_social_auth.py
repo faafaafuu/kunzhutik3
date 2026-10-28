@@ -112,3 +112,11 @@ def test_google_not_set_up_goes_back_with_the_reason(client, monkeypatch):
 
 def test_config_lists_sign_in_options(client):
     assert client.get("/api/v1/config").json()["auth"]["phone"] is True
+
+
+def test_telegram_api_can_go_through_a_tunnel(monkeypatch):
+    from app.core import telegram
+
+    monkeypatch.setattr(settings, "telegram_api_base", "https://api.telegram.org:8443/")
+    bot = telegram.make_bot()
+    assert bot.session.api.api_url(token="T", method="getMe") == "https://api.telegram.org:8443/botT/getMe"

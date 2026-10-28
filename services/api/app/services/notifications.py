@@ -10,10 +10,10 @@ import asyncio
 import logging
 
 import httpx
-from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.core.config import settings
+from app.core.telegram import make_bot
 from app.db.session import SessionLocal
 from app.models.customer import Customer, Device
 from app.models.order import Order
@@ -164,7 +164,7 @@ def _send_telegram(messages: list[tuple[str, str, InlineKeyboardMarkup | None]])
         return
 
     async def send() -> None:
-        bot = Bot(token=settings.telegram_bot_token)
+        bot = make_bot()
         try:
             for chat_id, text, keyboard in messages:
                 try:

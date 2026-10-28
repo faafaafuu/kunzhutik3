@@ -10,6 +10,7 @@ import { MobileHeader, TopBar } from "@/components/Chrome";
 import { Icon } from "@/components/Icon";
 import { LegalFooter } from "@/components/Legal";
 import { MenuRow, ROW_HEIGHT } from "@/components/MenuRow";
+import { Promotions } from "@/components/Promotions";
 import { Button, Muted, Notice, Shell, Skeleton, StateView, T, Title } from "@/components/ui";
 import { loadMenu, usePlaceResolution, useShared } from "@/hooks/data";
 import { money, time } from "@/lib/format";
@@ -104,8 +105,9 @@ export default function MenuScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View onLayout={(event: LayoutChangeEvent) => (headHeight.current = event.nativeEvent.layout.height)}>
-          <Shell style={{ paddingTop: wide ? 20 : 4 }}>
+          <Shell style={{ paddingTop: wide ? 20 : 4, gap: 12 }}>
             <PlaceBar />
+            <Promotions />
           </Shell>
         </View>
         <View style={{ backgroundColor: c.surface, height: STRIP_HEIGHT, justifyContent: "center" }}>

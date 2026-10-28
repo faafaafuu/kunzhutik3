@@ -258,7 +258,10 @@ export default function LoginScreen() {
                   maxLength={length}
                   autoFocus
                   accessibilityLabel="Код из SMS"
-                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.02, fontFamily: fonts.bold, color: "transparent" }}
+                  caretHidden
+                  selectionColor="transparent"
+                  // The digits are drawn by the cells; the real field only takes the keyboard: no caret, no focus ring.
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.01, fontFamily: fonts.bold, color: "transparent", caretColor: "transparent", outlineStyle: "none", borderWidth: 0 } as object}
                 />
               </View>
               {error ? (

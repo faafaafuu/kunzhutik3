@@ -122,12 +122,27 @@ def build_receipt(order: Order) -> dict | None:
 # ---------- paying ----------
 
 
-def start_payment(db: Session, order: Order) -> str:
-    """A new payment for an order that waits for money. Returns the ЮKassa page to send the customer to."""
+def _confirmation(payment: dict, embedded: bool) -> dict | None:
+    """What the client needs to show the payment: a widget token, or the page to send the customer to."""
+    confirmation = payment.get("confirmation") or {}
+    if embedded and confirmation.get("type") == "embedded" and confirmation.get("confirmation_token"):
+        return {"token": confirmation["confirmation_token"]}
+    if not embedded and confirmation.get("confirmation_url"):
+        return {"url": confirmation["confirmation_url"]}
+    return None
+
+
+def start_payment(db: Session, order: Order, *, embedded: bool = False) -> dict:
+    """A new payment for an order that waits for money.
+
+    embedded — the site shows ЮKassa's widget with the payment methods right on the order screen: {"token": …}.
+    Otherwise the customer goes to ЮKassa's page (the app opens it over itself): {"url": …}.
+    """
+    return_url = f"{settings.app_base_url.rstrip('/')}/pay/return/{order.id}"
     body: dict = {
         "amount": _amount(_cents(order.total_amount)),
         "capture": True,
-        "confirmation": {"type": "redirect", "return_url": f"{settings.app_base_url.rstrip('/')}/pay/return/{order.id}"},
+        "confirmation": {"type": "embedded"} if embedded else {"type": "redirect", "return_url": return_url},
         "description": f"Заказ № {order.number} · {settings.app_name}"[:128],
         "metadata": {"order_id": str(order.id), "number": order.number},
     }
@@ -138,11 +153,15 @@ def start_payment(db: Session, order: Order) -> str:
     order.payment_id = payment["id"]
     order.payment_status = "pending"
     db.commit()
-    return payment["confirmation"]["confirmation_url"]
+    confirmation = _confirmation(payment, embedded)
+    if not confirmation:
+        raise ApiError("payment_failed", "Не получилось начать оплату. Попробуйте ещё раз или выберите оплату при получении", status=502)
+    return confirmation
 
 
-def payment_link(db: Session, order: Order) -> str:
-    """The page to pay an order: the live payment's own, or a fresh payment when the last one failed or expired."""
+def payment_link(db: Session, order: Order, *, embedded: bool = False) -> dict:
+    """How to pay an order: the live payment's widget token or page, or a fresh payment when the last one failed, expired
+    or was made for the other way of paying (the widget on the site, the page in the app)."""
     if order.payment_method != "online" or order.status != "pending_payment":
         raise ApiError("payment_not_needed", "Этот заказ не ждёт оплаты", status=409)
     if not configured():
@@ -156,10 +175,10 @@ def payment_link(db: Session, order: Order) -> str:
             apply_payment(db, order, payment)
             if order.status != "pending_payment":
                 raise ApiError("payment_not_needed", "Заказ уже оплачен", status=409)
-            url = (payment.get("confirmation") or {}).get("confirmation_url")
-            if payment.get("status") == "pending" and url:
-                return url
-    return start_payment(db, order)
+            confirmation = _confirmation(payment, embedded)
+            if payment.get("status") == "pending" and confirmation:
+                return confirmation
+    return start_payment(db, order, embedded=embedded)
 
 
 def apply_payment(db: Session, order: Order, payment: dict) -> bool:

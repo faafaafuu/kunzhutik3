@@ -17,6 +17,8 @@ from app.core.errors import ApiError, money_str
 from app.models.menu import MenuCategory, MenuItem, VenueMenuItem
 from app.models.operator_user import OperatorUser
 from app.models.order import Order, PromoCode
+from app.models.promotion import Promotion
+from app.services.promotions import promotion_payload
 from app.models.venue import DeliveryZone, Venue
 from app.schemas.orders import TransitionRequest
 from app.services import crm, geo
@@ -436,6 +438,69 @@ def admin_toggle_promo(promo_id: UUID, is_active: bool, db: Session = Depends(ge
     promo.is_active = is_active
     db.commit()
     return {"promo_code": _promo_payload(db, promo)}
+
+
+# ---------- promotions on the home screen ----------
+
+
+class PromotionBody(BaseModel):
+    title: str = Field(min_length=2, max_length=80)
+    text: str = Field(default="", max_length=240)
+    accent: str = Field(default="brand", pattern="^(brand|sesame|good|info)$")
+    action: str = Field(default="none", pattern="^(none|promo|referral|welcome)$")
+    promo_code: str | None = Field(default=None, max_length=40, pattern="^[A-Za-z0-9_-]*$")
+    sort: int = 100
+    is_active: bool = True
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
+
+
+def _checked_promotion(db: Session, payload: PromotionBody) -> dict:
+    data = payload.model_dump()
+    data["promo_code"] = (data["promo_code"] or "").upper() or None
+    if data["action"] == "promo":
+        if not data["promo_code"]:
+            raise ApiError("invalid_request", "Для действия «Применить промокод» укажите код", status=422)
+        if not db.query(PromoCode).filter(PromoCode.code == data["promo_code"]).first():
+            raise ApiError("promo_not_found", "Такого промокода нет в разделе «Промокоды»", status=404)
+    else:
+        data["promo_code"] = None
+    return data
+
+
+@router.get("/promotions")
+def admin_promotions(db: Session = Depends(get_db), user: OperatorUser = Depends(require_manager)) -> dict:
+    rows = db.query(Promotion).order_by(Promotion.sort, Promotion.created_at).all()
+    return {"promotions": [promotion_payload(row) for row in rows]}
+
+
+@router.post("/promotions", status_code=201)
+def admin_create_promotion(payload: PromotionBody, db: Session = Depends(get_db), user: OperatorUser = Depends(require_manager)) -> dict:
+    row = Promotion(**_checked_promotion(db, payload))
+    db.add(row)
+    db.commit()
+    return {"promotion": promotion_payload(row)}
+
+
+@router.put("/promotions/{promotion_id}")
+def admin_update_promotion(promotion_id: UUID, payload: PromotionBody, db: Session = Depends(get_db), user: OperatorUser = Depends(require_manager)) -> dict:
+    row = db.get(Promotion, promotion_id)
+    if not row:
+        raise ApiError("promotion_not_found", "Акция не найдена", status=404)
+    for key, value in _checked_promotion(db, payload).items():
+        setattr(row, key, value)
+    db.commit()
+    return {"promotion": promotion_payload(row)}
+
+
+@router.delete("/promotions/{promotion_id}")
+def admin_delete_promotion(promotion_id: UUID, db: Session = Depends(get_db), user: OperatorUser = Depends(require_manager)) -> dict:
+    row = db.get(Promotion, promotion_id)
+    if not row:
+        raise ApiError("promotion_not_found", "Акция не найдена", status=404)
+    db.delete(row)
+    db.commit()
+    return {"status": "ok"}
 
 
 # ---------- panel users ----------

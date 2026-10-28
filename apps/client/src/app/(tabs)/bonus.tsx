@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "@/api/client";
 import type { Loyalty } from "@/api/types";
 import { MobileHeader, TopBar } from "@/components/Chrome";
+import { InviteFriend } from "@/components/InviteFriend";
 import { Button, Muted, Progress, Shell, Skeleton, T, Title } from "@/components/ui";
 import { useShared } from "@/hooks/data";
 import { dayLabel, money } from "@/lib/format";
@@ -58,7 +59,7 @@ export default function BonusScreen() {
             <T size={14} color={c.inkSoft} style={{ textAlign: "center", maxWidth: 420 }}>
               {loyalty
                 ? `1 бонус = 1 ₽. Начисляем ${loyalty.level.percent}% с заказа, оплатить можно до ${maxRedeem}% следующего.`
-                : `1 бонус = 1 ₽. Копите с первого заказа и оплачивайте до ${maxRedeem}% следующего.`}
+                : `1 бонус = 1 ₽. ${config?.bonus.welcome ? `${config.bonus.welcome} бонусов сразу за регистрацию, дальше ` : ""}копите с каждого заказа и оплачивайте до ${maxRedeem}% следующего.`}
             </T>
             {loyalty?.next_level && loyalty.to_next_level ? (
               <View style={{ alignSelf: "stretch", gap: 6, marginTop: 8 }}>
@@ -74,6 +75,8 @@ export default function BonusScreen() {
               </View>
             ) : null}
           </View>
+
+          <InviteFriend />
 
           <View style={card}>
             <T weight="bold" size={18} style={{ marginBottom: 4 }}>

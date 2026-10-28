@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +20,8 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str | None = Field(default=None, alias="TELEGRAM_BOT_TOKEN")
     telegram_webapp_base_url: str | None = Field(default=None, alias="TELEGRAM_WEBAPP_BASE_URL")
+    # Bot API address. Where api.telegram.org is blocked (Russian clouds) — a tunnel abroad, see core/telegram.py.
+    telegram_api_base: str = Field(default="https://api.telegram.org", alias="TELEGRAM_API_BASE")
     # @username of the bot for the "Войти через Telegram" link; asked from Telegram (getMe) when empty.
     telegram_bot_username: str | None = Field(default=None, alias="TELEGRAM_BOT_USERNAME")
     # "Войти через Google": a Web client from console.cloud.google.com with the redirect URI
@@ -54,6 +56,13 @@ class Settings(BaseSettings):
     # Loyalty: bonus percent by 90-day spend ("title:threshold:percent"), and the share of an order bonuses may pay.
     bonus_levels_raw: str = Field(default="Старт:0:3,Свой:5000:5,Друг:15000:7", alias="BONUS_LEVELS")
     bonus_max_redeem_percent: int = Field(default=30, alias="BONUS_MAX_REDEEM_PERCENT")
+    # Welcome bonuses once, when a customer gets an account (an order from a new phone, SMS, Telegram, Google).
+    welcome_bonus: int = Field(default=200, alias="WELCOME_BONUS")
+    # Invite a friend: the friend and the inviter each get these bonuses after the friend's first completed order
+    # of at least REFERRAL_MIN_ORDER ₽ (dishes after discounts). 0 — switch the programme off.
+    referral_friend_bonus: int = Field(default=200, alias="REFERRAL_FRIEND_BONUS")
+    referral_referrer_bonus: int = Field(default=200, alias="REFERRAL_REFERRER_BONUS")
+    referral_min_order: int = Field(default=500, alias="REFERRAL_MIN_ORDER")
 
     # ЮKassa (yookassa.ru → Интеграция → Ключи API). Both empty — online payment is hidden at checkout.
     yookassa_shop_id: str | None = Field(default=None, alias="YOOKASSA_SHOP_ID")
@@ -77,6 +86,12 @@ class Settings(BaseSettings):
     min_supported_app_version: str = Field(default="1.0.0", alias="MIN_SUPPORTED_APP_VERSION")
     ios_store_url: str = Field(default="", alias="IOS_STORE_URL")
     android_store_url: str = Field(default="", alias="ANDROID_STORE_URL")
+
+    @field_validator("yookassa_tax_system_code", mode="before")
+    @classmethod
+    def _empty_is_unset(cls, value):
+        # "YOOKASSA_TAX_SYSTEM_CODE=" in .env means "not set", not a number that failed to parse.
+        return None if isinstance(value, str) and not value.strip() else value
 
     @property
     def telegram_allowed_user_ids(self) -> set[str]:

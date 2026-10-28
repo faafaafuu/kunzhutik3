@@ -45,6 +45,7 @@ class RefreshRequest(BaseModel):
 
 
 def _session(db: Session, customer: Customer) -> dict:
+    loyalty.grant_welcome(db, customer)  # the first sign-in is the registration; later ones change nothing
     return {"customer": customer_payload(customer), "tokens": issue_tokens(db, customer)}
 
 
@@ -226,6 +227,21 @@ def register_device(payload: DeviceBody, customer: Customer = Depends(require_cu
         db.add(Device(customer_id=customer.id, platform=payload.platform, token=payload.token))
     db.commit()
     return {"status": "ok"}
+
+
+class ReferralApply(BaseModel):
+    code: str = Field(min_length=3, max_length=12)
+
+
+@router.get("/me/referral")
+def my_referral(customer: Customer = Depends(require_customer), db: Session = Depends(get_db)) -> dict:
+    return loyalty.referral_payload(db, customer)
+
+
+@router.post("/me/referral/apply")
+def apply_referral(payload: ReferralApply, customer: Customer = Depends(require_customer), db: Session = Depends(get_db)) -> dict:
+    loyalty.apply_referral(db, customer, payload.code)
+    return loyalty.referral_payload(db, customer)
 
 
 @router.get("/loyalty/me")

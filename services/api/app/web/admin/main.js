@@ -3,11 +3,12 @@ import * as customers from "./customers.js";
 import * as menu from "./menu.js";
 import * as orders from "./orders.js";
 import * as promos from "./promos.js";
+import * as promotions from "./promotions.js";
 import * as users from "./users.js";
 import * as zones from "./zones.js";
 
-const SECTIONS = { orders, zones, menu, customers, promos, users };
-const REQUIRED_ROLE = { customers: "manager", promos: "manager", users: "admin" };
+const SECTIONS = { orders, zones, menu, customers, promos, promotions, users };
+const REQUIRED_ROLE = { customers: "manager", promos: "manager", promotions: "manager", users: "admin" };
 
 let current = null;
 

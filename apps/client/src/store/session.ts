@@ -12,7 +12,13 @@ type Session = {
   guest: { name: string; phone: string };
   // Orders placed on this device without signing in, newest first — the "Заказы" tab shows them.
   recentOrderIds: string[];
+  // A friend's invite code from a ?ref= link, kept until an account takes it.
+  referralCode: string | null;
+  // Set when the first order opened an account: the order screen greets the customer once.
+  welcomed: { orderId: string; bonus: number } | null;
   rememberOrder: (orderId: string) => void;
+  setReferralCode: (code: string | null) => void;
+  setWelcomed: (welcomed: { orderId: string; bonus: number } | null) => void;
   signIn: (customer: Customer, tokens: Tokens) => void;
   setCustomer: (customer: Customer) => void;
   signOut: () => void;
@@ -26,6 +32,10 @@ export const useSession = create<Session>()(
       tokens: null,
       guest: { name: "", phone: "" },
       recentOrderIds: [],
+      referralCode: null,
+      welcomed: null,
+      setReferralCode: (referralCode) => set({ referralCode }),
+      setWelcomed: (welcomed) => set({ welcomed }),
       rememberOrder: (orderId) => set((state) => ({ recentOrderIds: [orderId, ...state.recentOrderIds.filter((id) => id !== orderId)].slice(0, 20) })),
       signIn: (customer, tokens) => set({ customer, tokens }),
       setCustomer: (customer) => set({ customer }),

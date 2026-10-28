@@ -11,7 +11,7 @@ import asyncio
 import logging
 from uuid import UUID
 
-from aiogram import Bot, Dispatcher, F, Router
+from aiogram import Dispatcher, F, Router
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import (
     BotCommand,
@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.errors import ApiError
+from app.core.telegram import make_bot
 from app.db.session import SessionLocal
 from app.models.order import Order
 from app.models.venue import Venue
@@ -238,7 +239,7 @@ async def main() -> None:
             await asyncio.sleep(3600)
     if not settings.telegram_allowed_user_ids:
         logger.warning("TELEGRAM_ALLOWED_USER_IDS is empty: nobody will get orders in Telegram")
-    bot = Bot(token=settings.telegram_bot_token)
+    bot = make_bot()
     await bot.set_my_commands(
         [
             BotCommand(command="start", description="Открыть меню"),

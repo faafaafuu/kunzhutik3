@@ -18,9 +18,10 @@ router = APIRouter(tags=["payments"])
 
 
 @router.post("/api/v1/orders/{order_id}/pay")
-def pay_order(order_id: UUID, db: Session = Depends(get_db)) -> dict:
-    """The ЮKassa page for an order that waits for money (the order id is the access key, as for the order itself)."""
-    return {"url": payments.payment_link(db, load_order(db, order_id))}
+def pay_order(order_id: UUID, embedded: bool = False, db: Session = Depends(get_db)) -> dict:
+    """How to pay an order that waits for money: {"token"} for ЮKassa's widget on the site (embedded=true),
+    {"url"} of ЮKassa's page otherwise. The order id is the access key, as for the order itself."""
+    return payments.payment_link(db, load_order(db, order_id), embedded=embedded)
 
 
 @router.post("/api/v1/payments/yookassa/webhook")

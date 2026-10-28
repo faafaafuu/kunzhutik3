@@ -12,6 +12,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ToastHost } from "@/components/Toast";
 import { Button, StateView } from "@/components/ui";
 import { loadConfig, useShared } from "@/hooks/data";
+import { applyPendingReferral, captureReferralFromUrl } from "@/lib/referral";
 import { registerForPush, signInWithTelegram, updateRequired } from "@/lib/session";
 import { useSession } from "@/store/session";
 import { ThemeProvider, useTheme } from "@/theme";
@@ -25,6 +26,7 @@ export default function RootLayout() {
   const signedIn = useSession((state) => Boolean(state.tokens));
 
   useEffect(() => {
+    captureReferralFromUrl();
     (async () => {
       await Promise.all([loadConfig(), signInWithTelegram()]);
       setBooted(true);
@@ -32,7 +34,9 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (signedIn) registerForPush();
+    if (!signedIn) return;
+    registerForPush();
+    applyPendingReferral();
   }, [signedIn]);
 
   useEffect(() => {

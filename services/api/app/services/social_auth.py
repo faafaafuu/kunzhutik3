@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.errors import ApiError
+from app.core.telegram import api_base as telegram_api_base
 from app.models.customer import Customer, LoginRequest
 from app.services.customers import normalize_phone
 from app.services.venues import utcnow
@@ -100,7 +101,7 @@ def telegram_bot_username() -> str:
     if not settings.telegram_bot_token:
         raise ApiError("telegram_unavailable", "Вход через Telegram скоро заработает. Пока войдите по номеру телефона", status=503)
     try:
-        response = httpx.get(f"https://api.telegram.org/bot{settings.telegram_bot_token}/getMe", timeout=10)
+        response = httpx.get(f"{telegram_api_base()}/bot{settings.telegram_bot_token}/getMe", timeout=10)
         _bot_username = response.json()["result"]["username"]
     except (httpx.HTTPError, ValueError, KeyError) as exc:
         logger.warning("Telegram getMe failed: %s", exc)

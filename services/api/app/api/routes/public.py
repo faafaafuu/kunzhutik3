@@ -13,12 +13,13 @@ from app.core.errors import ApiError
 from app.models.customer import Customer
 from app.models.venue import Venue
 from app.schemas.orders import CancelRequest, OrderCreateRequest, QuoteRequest
-from app.services import geo, payments
+from app.services import geo, loyalty, payments
 from app.services.customers import customer_payload, is_new_phone, issue_tokens
 from app.services.menu import item_payload, load_items, menu_payload, venue_overrides
 from app.services.notifications import notify_new_order, notify_status_change
 from app.services.orders import bonus_accrued_for, create_order, load_order, order_payload, transition
 from app.services.pricing import quote
+from app.services.promotions import active_promotions, promotion_payload
 from app.services.social_auth import google_configured
 from app.services.venues import active_venues, default_venue, get_venue, resolve_delivery, venue_payload, zone_payload
 from app.store.catalog import BRAND_NAME
@@ -37,11 +38,21 @@ def get_config() -> dict:
         "android_store_url": settings.android_store_url,
         "payment_methods": ["card_on_delivery", "cash"] + (["online"] if payments.configured() else []),
         "support_phone": settings.support_phone,
-        "bonus": {"levels": settings.bonus_levels, "max_redeem_percent": settings.bonus_max_redeem_percent},
+        "bonus": {
+            "levels": settings.bonus_levels,
+            "max_redeem_percent": settings.bonus_max_redeem_percent,
+            "welcome": settings.welcome_bonus,
+            "referral": {"enabled": loyalty.referral_enabled(), "friend": settings.referral_friend_bonus, "referrer": settings.referral_referrer_bonus, "min_order": settings.referral_min_order},
+        },
         "telegram_login": bool(settings.telegram_bot_token),
         # Sign-in options that are set up; the app still shows all three and explains what is not ready yet.
         "auth": {"phone": True, "telegram": bool(settings.telegram_bot_token), "google": google_configured()},
     }
+
+
+@router.get("/promotions")
+def list_promotions(db: Session = Depends(get_db)) -> dict:
+    return {"promotions": [promotion_payload(promotion) for promotion in active_promotions(db)]}
 
 
 @router.get("/venues")
@@ -126,7 +137,8 @@ def post_order(
         # The kitchen hears about the order only after it is paid. When ЮKassa is unreachable right now the
         # order simply waits: the order screen offers "Оплатить" again.
         try:
-            payment = {"url": payments.start_payment(db, order)}
+            # The site shows ЮKassa's widget on the order screen; the app opens ЮKassa's page over itself.
+            payment = payments.start_payment(db, order, embedded=order.source in ("web", "telegram"))
         except ApiError:
             logger.warning("Could not start the payment of order %s", order.id)
     else:
@@ -134,6 +146,12 @@ def post_order(
     account = None
     if new_account:
         owner = db.get(Customer, order.customer_id)
+        loyalty.grant_welcome(db, owner)
+        if payload.referral_code:
+            try:
+                loyalty.apply_referral(db, owner, payload.referral_code)
+            except ApiError:
+                pass  # a wrong or stale code must not spoil the order
         account = {"customer": customer_payload(owner), "tokens": issue_tokens(db, owner)}
     return {"order": order_payload(order, db.get(Venue, order.venue_id)), "account": account, "payment": payment}
 

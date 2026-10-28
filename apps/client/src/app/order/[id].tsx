@@ -2,7 +2,7 @@
 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Linking, ScrollView, View } from "react-native";
+import { Linking, Platform, ScrollView, View } from "react-native";
 
 import { api, ApiError } from "@/api/client";
 import type { Order, OrderStatusLite } from "@/api/types";
@@ -12,8 +12,10 @@ import { toast } from "@/components/Toast";
 import { Button, Chip, Columns, IconButton, Muted, Notice, Panel, Shell, Skeleton, StateView, T, Title, Totals } from "@/components/ui";
 import { useShared } from "@/hooks/data";
 import { modifiersText, money, time } from "@/lib/format";
+import { PaymentWidget } from "@/components/PaymentWidget";
 import { openPayment } from "@/lib/payment";
 import { useCart } from "@/store/cart";
+import { useSession } from "@/store/session";
 import { radius, useTheme } from "@/theme";
 
 const POLL_MS = 20000;
@@ -28,6 +30,8 @@ export default function OrderScreen() {
   const [error, setError] = useState<ApiError | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [paying, setPaying] = useState(false);
+  const welcomed = useSession((state) => state.welcomed);
+  const setWelcomed = useSession((state) => state.setWelcomed);
   const lastUpdate = useRef<string | null>(null);
 
   const load = async () => {
@@ -129,6 +133,21 @@ export default function OrderScreen() {
 
   const main = (
     <>
+      {welcomed?.orderId === order.id ? (
+        <Panel style={{ backgroundColor: c.sesameSoft, alignItems: "center", gap: 8 }}>
+          <Title size={20} style={{ textAlign: "center" }}>
+            Кабинет открыт
+          </Title>
+          <Muted style={{ textAlign: "center" }}>
+            {welcomed.bonus > 0 ? `На счёт уже упало ${welcomed.bonus} бонусов — ими можно оплатить часть следующего заказа. ` : ""}
+            Заказы, адреса и бонусы теперь сохраняются.
+          </Muted>
+          <View style={{ flexDirection: "row", gap: 8, alignSelf: "stretch" }}>
+            <Button style={{ flex: 1 }} tone="white" title="Бонусы" onPress={() => router.push("/bonus")} />
+            <Button style={{ flex: 1 }} tone="tonal" title="Понятно" onPress={() => setWelcomed(null)} />
+          </View>
+        </Panel>
+      ) : null}
       <Panel>
         <View style={{ alignItems: "center", gap: 6 }}>
           <Chip tone={order.status === "completed" ? "good" : cancelled ? "default" : "brand"} title={order.status_label} />
@@ -153,7 +172,14 @@ export default function OrderScreen() {
             </View>
           ))}
         </View>
-        {order.can_pay ? (
+        {order.can_pay && Platform.OS === "web" ? (
+          <View style={{ gap: 6 }}>
+            <PaymentWidget orderId={order.id} onSettled={load} />
+            <Muted size={12} style={{ textAlign: "center" }}>
+              Оплата через ЮKassa. Заказ отменится, если не оплатить в течение получаса.
+            </Muted>
+          </View>
+        ) : order.can_pay ? (
           <View style={{ gap: 10 }}>
             {order.payment_status === "failed" ? <Notice tone="bad">Оплата не прошла. Можно попробовать ещё раз или выбрать другую карту.</Notice> : null}
             <Button block title={`Оплатить ${money(order.total_amount)}`} loading={paying} onPress={pay} />

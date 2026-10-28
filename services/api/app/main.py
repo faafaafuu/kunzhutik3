@@ -96,6 +96,10 @@ async def add_no_cache_headers(request, call_next):
     response = await call_next(request)
     if request.url.path.startswith("/api/"):
         response.headers["Cache-Control"] = "no-store"
+    elif request.url.path.startswith("/static/") and response.status_code == 200:
+        # Photos and the panel's files: a phone keeps them for a day instead of asking again on every visit,
+        # and shows the cached copy while it checks for a newer one for a week more.
+        response.headers.setdefault("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
     return response
 
 

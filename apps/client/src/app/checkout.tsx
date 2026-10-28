@@ -2,7 +2,7 @@
 
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 import { api, ApiError } from "@/api/client";
 import type { Customer, Order, PaymentMethod, Quote, SavedAddress, Tokens } from "@/api/types";
@@ -21,10 +21,11 @@ import { usePlace } from "@/store/place";
 import { useSession } from "@/store/session";
 import { radius, useTheme } from "@/theme";
 
-const PAYMENT: { value: PaymentMethod; title: string; icon: "card" | "cash" }[] = [
+// Online first: it is the default whenever the shop accepts it.
+const PAYMENT: { value: PaymentMethod; title: string; subtitle?: string; icon: "card" | "cash" }[] = [
+  { value: "online", title: "Онлайн — картой или СБП", subtitle: "Картой, по СБП или SberPay сразу после оформления", icon: "card" },
   { value: "card_on_delivery", title: "Картой при получении", icon: "card" },
   { value: "cash", title: "Наличными", icon: "cash" },
-  { value: "online", title: "Онлайн — картой или СБП", icon: "card" },
 ];
 
 export default function CheckoutScreen() {
@@ -38,10 +39,13 @@ export default function CheckoutScreen() {
   const session = useSession();
   const signedIn = Boolean(session.tokens);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
+  const [slotsOpen, setSlotsOpen] = useState(false);
   const { quote, quoting, error } = useQuote({ scheduledFor });
   const [name, setName] = useState(session.customer?.name || session.guest.name);
   const [phone, setPhone] = useState(session.customer?.phone ? maskPhone(session.customer.phone) : session.guest.phone);
-  const [payment, setPayment] = useState<PaymentMethod>("card_on_delivery");
+  const onlineAccepted = (config?.payment_methods ?? []).includes("online");
+  const [payment, setPayment] = useState<PaymentMethod>(onlineAccepted ? "online" : "card_on_delivery");
+  const [paymentPicked, setPaymentPicked] = useState(false);
   const [comment, setComment] = useState("");
   const [privateHouse, setPrivateHouse] = useState(false);
   const [saveAddress, setSaveAddress] = useState(true);
@@ -49,6 +53,11 @@ export default function CheckoutScreen() {
   const [touched, setTouched] = useState(false);
   const [changed, setChanged] = useState<{ before: string; quote: Quote } | null>(null);
   const saved = useFetch<{ addresses: SavedAddress[] }>(signedIn ? "/me/addresses" : null);
+
+  // The config may arrive after the screen opened: switch to online unless the customer already chose.
+  useEffect(() => {
+    if (onlineAccepted && !paymentPicked) setPayment("online");
+  }, [onlineAccepted, paymentPicked]);
 
   useEffect(() => {
     if (!scheduledFor || !quote) return;
@@ -101,17 +110,23 @@ export default function CheckoutScreen() {
         save_address: signedIn && delivery && saveAddress && !place.address?.savedId,
         address_label: "",
         source: orderSource(),
+        referral_code: signedIn ? null : session.referralCode,
       };
-      const { order, account, payment: toPay } = await api<{ order: Order; account: { customer: Customer; tokens: Tokens } | null; payment: { url: string } | null }>("/orders", { method: "POST", body });
+      const { order, account, payment: toPay } = await api<{ order: Order; account: { customer: Customer; tokens: Tokens } | null; payment: { url?: string; token?: string } | null }>("/orders", { method: "POST", body });
       if (!signedIn) session.rememberGuest(name.trim(), phone);
       // A first order from a new phone opens the account from the order's details: no sign-up step.
-      if (account) session.signIn(account.customer, account.tokens);
+      if (account) {
+        session.signIn(account.customer, account.tokens);
+        session.setReferralCode(null);
+        session.setWelcomed({ orderId: order.id, bonus: config?.bonus.welcome ?? 0 });
+      }
       session.rememberOrder(order.id);
       useCart.getState().clear();
       router.replace({ pathname: "/order/[id]", params: { id: order.id } });
-      // Online: on to ЮKassa's page. If it did not open, the order screen has the "Оплатить" button.
-      if (toPay) openPayment(toPay.url, order.id);
-      else if (order.can_pay) toast("Не получилось открыть оплату — нажмите «Оплатить» в заказе", "bad");
+      // Online: the site shows ЮKassa's widget on the order screen; the app opens ЮKassa's page over itself.
+      // If it did not start, the order screen offers to pay again.
+      if (toPay?.url) openPayment(toPay.url, order.id);
+      else if (!toPay && order.can_pay) toast("Не получилось открыть оплату — попробуйте ещё раз в заказе", "bad");
     } catch (caught) {
       const apiError = caught as ApiError;
       if (apiError.code === "price_changed" && apiError.details.quote) {
@@ -262,11 +277,34 @@ export default function CheckoutScreen() {
       <Panel>
         <Title size={22}>Когда</Title>
         {closed ? <Notice tone="bad" icon="clock">Сейчас закрыто — выберите время.</Notice> : null}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-          {!closed ? <Slot active={!scheduledFor} title={`Как можно скорее${quote?.promised_at ? ` · к ${time(quote.promised_at)}` : ""}`} onPress={() => setScheduledFor(null)} /> : null}
-          {(quote?.slots ?? []).slice(0, 12).map((slot) => (
-            <Slot key={slot} active={scheduledFor === slot} title={slotLabel(slot)} onPress={() => setScheduledFor(slot)} />
-          ))}
+        <View style={{ gap: 8 }}>
+          {!closed ? (
+            <OptionRow
+              selected={!scheduledFor}
+              icon="clock"
+              title="Как можно скорее"
+              // The quote's time follows the picked slot, so it describes "as soon as possible" only while no slot is picked.
+              subtitle={!scheduledFor && quote?.promised_at ? `${delivery ? "Привезём" : "Будет готов"} к ${time(quote.promised_at)}` : undefined}
+              onPress={() => {
+                setScheduledFor(null);
+                setSlotsOpen(false);
+              }}
+            />
+          ) : null}
+          {quote?.slots.length ? (
+            <OptionRow
+              selected={Boolean(scheduledFor)}
+              icon="clock"
+              title="Ко времени"
+              subtitle={scheduledFor ? slotLabel(scheduledFor) : "Выбрать время"}
+              onPress={() => setSlotsOpen((open) => !open)}
+              right={<Icon name={slotsOpen ? "up" : "down"} size={20} color={c.inkSoft} />}
+            />
+          ) : null}
+          {slotsOpen && quote ? <SlotList slots={quote.slots} value={scheduledFor} onPick={(slot) => {
+            setScheduledFor(slot);
+            setSlotsOpen(false);
+          }} /> : null}
         </View>
       </Panel>
 
@@ -274,7 +312,17 @@ export default function CheckoutScreen() {
         <Title size={22}>Оплата</Title>
         <View style={{ gap: 8 }}>
           {methods.map((method) => (
-            <OptionRow key={method.value} selected={payment === method.value} onPress={() => setPayment(method.value)} icon={method.icon} title={method.title} />
+            <OptionRow
+              key={method.value}
+              selected={payment === method.value}
+              onPress={() => {
+                setPaymentPicked(true);
+                setPayment(method.value);
+              }}
+              icon={method.icon}
+              title={method.title}
+              subtitle={method.subtitle}
+            />
           ))}
         </View>
       </Panel>
@@ -367,26 +415,39 @@ export default function CheckoutScreen() {
   );
 }
 
-function Slot({ active, title, onPress }: { active: boolean; title: string; onPress: () => void }) {
+/** The times one can order for, as a dropdown list: one row per slot, the picked one ticked. */
+function SlotList({ slots, value, onPick }: { slots: string[]; value: string | null; onPick: (slot: string) => void }) {
   const { c } = useTheme();
   return (
-    <T
-      accessibilityRole="button"
-      onPress={onPress}
-      weight="semibold"
-      size={14}
-      color={active ? c.brandText : c.ink}
-      style={{
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        borderRadius: radius.sm,
-        borderWidth: 1,
-        borderColor: active ? c.brand : "transparent",
-        backgroundColor: active ? c.surfaceCard : c.surfaceSunken,
-        overflow: "hidden",
-      }}
-    >
-      {title}
-    </T>
+    <View style={{ maxHeight: 288, borderRadius: radius.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.surfaceCard, overflow: "hidden" }}>
+      <ScrollView nestedScrollEnabled>
+        {slots.map((slot, index) => {
+          const active = slot === value;
+          return (
+            <Pressable
+              key={slot}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: active }}
+              onPress={() => onPick(slot)}
+              style={({ pressed }) => ({
+                height: 48,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingHorizontal: 16,
+                borderTopWidth: index ? 1 : 0,
+                borderTopColor: c.line,
+                backgroundColor: active ? c.brandSoft : pressed ? c.surfaceSunken : "transparent",
+              })}
+            >
+              <T weight={active ? "semibold" : "medium"} color={active ? c.brandText : c.ink}>
+                {slotLabel(slot)}
+              </T>
+              {active ? <Icon name="check" size={20} color={c.brandText} strokeWidth={2.2} /> : null}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }

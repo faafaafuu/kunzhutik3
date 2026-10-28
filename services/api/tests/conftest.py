@@ -20,6 +20,8 @@ os.environ["TELEGRAM_ALLOWED_USER_IDS"] = ""
 os.environ["GEOCODER"] = "stub"
 os.environ["OTP_DEBUG"] = "true"
 os.environ["APP_ENV"] = "test"
+# Older tests count bonuses to the ruble; the welcome bonus is switched on by the tests that are about it.
+os.environ["WELCOME_BONUS"] = "0"
 os.environ["CLIENT_DIST_DIR"] = "/nonexistent"
 
 # Inside the seeded 3 km zone around ул. Дзержинского, 18 / far outside it.

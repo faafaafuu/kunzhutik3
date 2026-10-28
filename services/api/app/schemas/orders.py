@@ -46,6 +46,8 @@ class OrderCreateRequest(QuoteRequest):
     customer_phone: str = Field(min_length=5, max_length=40)
     address_details: AddressDetails = Field(default_factory=AddressDetails)
     payment_method: Literal["cash", "card_on_delivery", "online"] = "card_on_delivery"
+    # A friend's invite code (from a link or typed in): used only when this order opens a new account.
+    referral_code: str | None = Field(default=None, max_length=12)
     comment: str = Field(default="", max_length=500)
     # Total the customer saw. A different server total → 409 price_changed.
     expected_total: Decimal

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import client_ip, get_db
 from app.core.config import settings
 from app.core.errors import ApiError
+from app.services import loyalty
 from app.services.customers import customer_payload, issue_tokens
 from app.services.social_auth import (
     GOOGLE_COOKIE,
@@ -38,6 +39,7 @@ def collect_login(payload: CollectRequest, db: Session = Depends(get_db)) -> dic
     customer = collect(db, payload.secret)
     if not customer:
         return {"status": "pending"}
+    loyalty.grant_welcome(db, customer)
     return {"status": "ok", "customer": customer_payload(customer), "tokens": issue_tokens(db, customer)}
 
 

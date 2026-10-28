@@ -14,6 +14,7 @@ from app.models.menu import MenuCategory, MenuItem, MenuItemModifierGroup, Modif
 from app.models.order import PromoCode
 from app.models.venue import DeliveryZone, Venue
 from app.services.geo import circle_polygon
+from app.services.promotions import seed_promotions
 from app.store import catalog
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ def seed(db: Session) -> None:
         if not db.query(PromoCode).first():
             for promo in catalog.PROMO_CODES:
                 db.add(PromoCode(**promo))
+        seed_promotions(db)
         db.commit()
     except SQLAlchemyError:
         db.rollback()

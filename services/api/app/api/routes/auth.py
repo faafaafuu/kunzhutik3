@@ -12,7 +12,7 @@ from app.services.auth import authenticate_operator, clear_session_cookie, get_c
 router = APIRouter(tags=["operator-auth"])
 
 STATIC_DIR = Path(__file__).resolve().parents[2] / "web"
-PANEL_SECTIONS = ("orders", "zones", "menu", "customers", "promos", "users")
+PANEL_SECTIONS = ("orders", "zones", "menu", "customers", "promos", "promotions", "users")
 
 
 @router.get("/admin/login", include_in_schema=False)

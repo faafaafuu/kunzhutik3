@@ -26,13 +26,14 @@ class FakeYooKassa:
         path = url.removeprefix(payments.API)
         if method == "POST" and path == "/payments":
             pid = f"pay-{len(self.payments) + 1}"
+            embedded = json["confirmation"]["type"] == "embedded"
             self.payments[pid] = {
                 "id": pid,
                 "status": "pending",
                 "paid": False,
                 "amount": json["amount"],
                 "metadata": json["metadata"],
-                "confirmation": {"type": "redirect", "confirmation_url": f"https://yoomoney.example/checkout/{pid}"},
+                "confirmation": {"type": "embedded", "confirmation_token": f"ct-{pid}"} if embedded else {"type": "redirect", "confirmation_url": f"https://yoomoney.example/checkout/{pid}"},
                 "receipt": json.get("receipt"),
             }
             return self._answer(self.payments[pid])
@@ -93,7 +94,7 @@ def test_online_order_waits_for_money_and_the_kitchen_hears_only_after_it(client
     created = place_online(client, menu)
     order = created["order"]
     assert order["status"] == "pending_payment" and order["payment_status"] == "pending" and order["can_pay"]
-    assert created["payment"]["url"].startswith("https://yoomoney.example/checkout/")
+    assert created["payment"] == {"token": "ct-pay-1"}  # the site shows the widget, no trip to ЮKassa's page
     assert yookassa.announced == []  # nobody in the kitchen yet
 
     # Open before it is paid: still waiting.
@@ -135,11 +136,13 @@ def test_failed_payment_can_be_retried_from_the_order(client, menu, yookassa):
     status = client.get(f"/api/v1/orders/{order['id']}/status").json()
     assert status["status"] == "pending_payment" and status["payment_status"] == "failed" and status["can_pay"]
 
-    again = client.post(f"/api/v1/orders/{order['id']}/pay")
-    assert again.status_code == 200 and again.json()["url"].endswith("/pay-2")
-    # While the new payment is alive the same page is handed out again, no third payment.
-    assert client.post(f"/api/v1/orders/{order['id']}/pay").json()["url"].endswith("/pay-2")
+    again = client.post(f"/api/v1/orders/{order['id']}/pay?embedded=true")
+    assert again.status_code == 200 and again.json() == {"token": "ct-pay-2"}
+    # While the new payment is alive the same widget token is handed out again, no third payment.
+    assert client.post(f"/api/v1/orders/{order['id']}/pay?embedded=true").json() == {"token": "ct-pay-2"}
     assert len(yookassa.payments) == 2
+    # The app asks for ЮKassa's page instead: a payment of that kind is made for it.
+    assert client.post(f"/api/v1/orders/{order['id']}/pay").json()["url"].endswith("/pay-3")
 
 
 def test_yookassa_down_leaves_the_order_waiting_for_a_retry(client, menu, yookassa):
@@ -227,3 +230,15 @@ def test_receipt_carries_phone_vat_and_delivery_as_a_service(monkeypatch):
     assert receipt["items"][0]["vat_code"] == 1 and receipt["items"][-1]["payment_subject"] == "service"
     monkeypatch.setattr(settings, "yookassa_send_receipt", False)
     assert payments.build_receipt(order) is None
+
+
+def test_empty_tax_system_in_env_means_unset(monkeypatch):
+    from app.core.config import Settings
+
+    monkeypatch.setenv("YOOKASSA_TAX_SYSTEM_CODE", "")
+    assert Settings().yookassa_tax_system_code is None
+
+
+def test_app_orders_get_the_payment_page_not_the_widget(client, menu, yookassa):
+    created = place_online(client, menu, source="ios")
+    assert created["payment"]["url"].startswith("https://yoomoney.example/checkout/")

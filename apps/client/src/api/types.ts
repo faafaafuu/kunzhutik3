@@ -81,7 +81,12 @@ export type AppConfig = {
   android_store_url: string;
   payment_methods: PaymentMethod[];
   support_phone: string;
-  bonus: { levels: BonusLevel[]; max_redeem_percent: number };
+  bonus: {
+    levels: BonusLevel[];
+    max_redeem_percent: number;
+    welcome?: number;
+    referral?: { enabled: boolean; friend: number; referrer: number; min_order: number };
+  };
   telegram_login: boolean;
   auth?: { phone: boolean; telegram: boolean; google: boolean };
 };
@@ -210,4 +215,27 @@ export type Loyalty = {
   levels: BonusLevel[];
   max_redeem_percent: number;
   history: { id: string; kind: string; amount: Money; comment: string; created_at: string }[];
+};
+
+export type Promotion = {
+  id: string;
+  title: string;
+  text: string;
+  accent: "brand" | "sesame" | "good" | "info";
+  action: "none" | "promo" | "referral" | "welcome";
+  promo_code: string | null;
+};
+
+export type Referral = {
+  enabled: boolean;
+  code: string;
+  link: string;
+  friend_bonus: number;
+  referrer_bonus: number;
+  min_order: number;
+  invited: number;
+  rewarded: number;
+  earned: Money;
+  can_apply: boolean;
+  applied: boolean;
 };

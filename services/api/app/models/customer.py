@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,6 +33,10 @@ class Customer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     notify_bonus: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     notify_promo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     source: Mapped[str] = mapped_column(String(20), nullable=False, default="web")
+    # Invite a friend: this customer's own code, who invited them, and when both were rewarded.
+    referral_code: Mapped[str | None] = mapped_column(String(12), unique=True, nullable=True)
+    referred_by_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
+    referral_rewarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class CustomerAddress(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -113,10 +117,12 @@ class BonusTransaction(UUIDPrimaryKeyMixin, Base):
     """Bonus ledger. The balance is the sum of amounts; rows are never edited."""
 
     __tablename__ = "bonus_transactions"
+    # The welcome bonus is given once per customer, even when two sign-ins race.
+    __table_args__ = (Index("uq_bonus_welcome", "customer_id", unique=True, postgresql_where=text("kind = 'welcome'")),)
 
     customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
     order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True, index=True)
-    # accrual | redeem | reversal | manual
+    # accrual | redeem | reversal | manual | welcome | referral
     kind: Mapped[str] = mapped_column(String(16), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     comment: Mapped[str] = mapped_column(String(200), nullable=False, default="")
