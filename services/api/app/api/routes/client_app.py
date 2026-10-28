@@ -13,7 +13,7 @@ from app.core.config import settings
 
 router = APIRouter(include_in_schema=False)
 
-RESERVED_PREFIXES = ("api/", "admin", "static/", "health", "docs", "openapi.json", "legal", "auth/")
+RESERVED_PREFIXES = ("api/", "admin", "static/", "health", "docs", "openapi.json", "legal", "auth/", "pay/")
 
 NOT_BUILT = """<!doctype html><html lang="ru"><meta charset="utf-8"><title>Брайт</title>
 <body style="font-family:system-ui;padding:40px;max-width:560px">

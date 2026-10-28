@@ -3,21 +3,25 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+import logging
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.config import settings
 from app.core.errors import ApiError, money, money_str
 from app.models.customer import BonusTransaction, Customer, CustomerAddress
 from app.models.order import Order, OrderItem, OrderStatusEvent
 from app.models.venue import Venue
 from app.schemas.orders import OrderCreateRequest
-from app.services import loyalty
+from app.services import loyalty, payments
 from app.services.customers import normalize_phone, upsert_by_phone
 from app.services.notifications import PAYMENT_LABELS, STATUS_LABELS
 from app.services.pricing import quote
 from app.services.venues import utcnow
+
+logger = logging.getLogger(__name__)
 
 ACTIVE_STATUSES = ("pending_payment", "new", "confirmed", "preparing", "ready", "delivering")
 FINAL_STATUSES = ("completed", "cancelled", "rejected")
@@ -71,7 +75,8 @@ def create_order(
     """new_account: a guest with a phone we have never seen — the order's delivery address goes into their new account."""
     phone = normalize_phone(request.customer_phone)
     name = request.customer_name.strip()
-    if request.payment_method == "online":
+    online = request.payment_method == "online"
+    if online and not payments.configured():
         raise ApiError("payment_unavailable", "Онлайн-оплата пока не подключена — выберите оплату при получении", status=422)
 
     calc = quote(db, request, customer=customer, phone=phone)
@@ -112,7 +117,8 @@ def create_order(
         business_date=business_date,
         daily_seq=seq,
         number=f"{seq:03d}",
-        status="new",
+        # Online orders wait for the money and do not reach the kitchen before it arrives.
+        status="pending_payment" if online else "new",
         fulfillment=request.fulfillment,
         source=request.source,
         customer_name=name,
@@ -123,7 +129,7 @@ def create_order(
         address_lon=address.longitude if address else None,
         address_details=request.address_details.model_dump() if address else {},
         payment_method=request.payment_method,
-        payment_status="not_required",
+        payment_status="pending" if online else "not_required",
         items_total=calc.items_total,
         discount_total=calc.discount_total,
         bonus_spent=calc.bonus_spent,
@@ -147,7 +153,7 @@ def create_order(
                 modifiers=line.modifiers,
             )
         )
-    order.events.append(OrderStatusEvent(from_status=None, to_status="new", actor=_actor_for(customer, telegram_user_id)))
+    order.events.append(OrderStatusEvent(from_status=None, to_status=order.status, actor=_actor_for(customer, telegram_user_id)))
     db.add(order)
     db.flush()
     if calc.bonus_spent > 0:
@@ -234,7 +240,27 @@ def transition(
         loyalty.on_order_completed(db, order)
     db.add(OrderStatusEvent(order_id=order.id, from_status=previous, to_status=to_status, actor=actor, comment=comment.strip()))
     db.commit()
+    if to_status in ("cancelled", "rejected") and order.payment_status == "paid":
+        try:
+            payments.refund_order(db, order)
+        except Exception:  # The order is cancelled in any case; the refund can be made by hand.
+            logger.exception("Refund of order %s failed", order.id)
     return load_order(db, order.id)
+
+
+def expire_unpaid(db: Session) -> tuple[list[Order], list[Order]]:
+    """Online orders nobody paid within PAYMENT_TTL_MINUTES: asks ЮKassa once more, then cancels the rest.
+
+    Returns (orders found paid after all, orders cancelled)."""
+    cutoff = utcnow() - timedelta(minutes=settings.payment_ttl_minutes)
+    stale = db.query(Order).filter(Order.status == "pending_payment", Order.payment_method == "online", Order.created_at < cutoff).limit(50).all()
+    paid, cancelled = [], []
+    for order in stale:
+        if payments.sync_payment(db, order):
+            paid.append(order)
+        elif order.status == "pending_payment":
+            cancelled.append(transition(db, order, "cancelled", actor="system", comment="Оплата не поступила"))
+    return paid, cancelled
 
 
 # ---------- payloads ----------
@@ -314,6 +340,7 @@ def order_payload(order: Order, venue: Venue | None = None, *, bonus_accrued=Non
         "payment_method": order.payment_method,
         "payment_label": PAYMENT_LABELS.get(order.payment_method, order.payment_method),
         "payment_status": order.payment_status,
+        "can_pay": order.status == "pending_payment" and order.payment_method == "online",
         "address_text": order.address_text,
         "address_details": order.address_details,
         "comment": order.comment,

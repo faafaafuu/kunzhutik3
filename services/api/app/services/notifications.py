@@ -87,7 +87,8 @@ def order_text(order: Order, venue_title: str = "") -> str:
         lines.append(f"Бонусами: −{int(order.bonus_spent)} ₽")
     if order.fulfillment == "delivery":
         lines.append(f"Стоимость доставки: {int(order.delivery_fee)} ₽")
-    lines.append(f"Итого: {int(order.total_amount)} ₽ · {PAYMENT_LABELS.get(order.payment_method, order.payment_method)}")
+    paid = " — ОПЛАЧЕНО, брать деньги не нужно" if order.payment_method == "online" and order.payment_status == "paid" else ""
+    lines.append(f"Итого: {int(order.total_amount)} ₽ · {PAYMENT_LABELS.get(order.payment_method, order.payment_method)}{paid}")
     lines.append("")
     lines.append(f"{order.customer_name}, {order.customer_phone}")
     if order.fulfillment == "delivery":

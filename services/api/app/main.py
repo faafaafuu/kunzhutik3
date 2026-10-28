@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -8,14 +9,39 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import account, admin, auth, client_app, health, legal, public, social
+from app.api.routes import account, admin, auth, client_app, health, legal, payments, public, social
 from app.core.config import settings
 from app.core.errors import ApiError, api_error_handler
 from app.db.session import SessionLocal
 from app.services.auth import ensure_bootstrap_operator
+from app.services.notifications import notify_new_order, notify_status_change
+from app.services.orders import expire_unpaid
+from app.services.payments import configured as payments_configured
 from app.services.seed import seed
 
 logging.basicConfig(level=settings.log_level)
+# httpx logs every request URL at INFO, and the geocoder key and the Telegram bot token travel in the URL.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+def _expire_unpaid() -> None:
+    db = SessionLocal()
+    try:
+        paid, cancelled = expire_unpaid(db)
+        for order in paid:
+            notify_new_order(order.id)
+        for order in cancelled:
+            notify_status_change(order.id, "cancelled")
+    except Exception:
+        logging.getLogger(__name__).exception("Expiring unpaid orders failed")
+    finally:
+        db.close()
+
+
+async def _expire_unpaid_loop() -> None:
+    while True:
+        await asyncio.sleep(60)
+        await asyncio.to_thread(_expire_unpaid)
 
 
 @asynccontextmanager
@@ -27,7 +53,11 @@ async def lifespan(_: FastAPI):
             seed(db)
     finally:
         db.close()
+    # Online orders that nobody paid are cancelled after PAYMENT_TTL_MINUTES.
+    sweeper = asyncio.create_task(_expire_unpaid_loop()) if payments_configured() else None
     yield
+    if sweeper:
+        sweeper.cancel()
 
 
 app = FastAPI(title=f"{settings.app_name} API", lifespan=lifespan)
@@ -74,6 +104,7 @@ app.include_router(auth.router)
 app.include_router(public.router)
 app.include_router(account.router)
 app.include_router(social.router)
+app.include_router(payments.router)
 app.include_router(admin.router)
 app.include_router(legal.router)
 # Last: catches every other GET for the client app.

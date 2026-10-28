@@ -12,10 +12,13 @@ import { toast } from "@/components/Toast";
 import { Button, Chip, Columns, IconButton, Muted, Notice, Panel, Shell, Skeleton, StateView, T, Title, Totals } from "@/components/ui";
 import { useShared } from "@/hooks/data";
 import { modifiersText, money, time } from "@/lib/format";
+import { openPayment } from "@/lib/payment";
 import { useCart } from "@/store/cart";
 import { radius, useTheme } from "@/theme";
 
 const POLL_MS = 20000;
+// Waiting for money: the server checks with ЮKassa on every poll, so the screen follows the payment quickly.
+const PAYMENT_POLL_MS = 3000;
 
 export default function OrderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,6 +27,7 @@ export default function OrderScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [paying, setPaying] = useState(false);
   const lastUpdate = useRef<string | null>(null);
 
   const load = async () => {
@@ -51,10 +55,23 @@ export default function OrderScreen() {
       } catch {
         // Next tick will try again.
       }
-    }, POLL_MS);
+    }, order.status === "pending_payment" ? PAYMENT_POLL_MS : POLL_MS);
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, order?.is_active]);
+  }, [id, order?.is_active, order?.status]);
+
+  const pay = async () => {
+    setPaying(true);
+    try {
+      const { url } = await api<{ url: string }>(`/orders/${id}/pay`, { method: "POST" });
+      await openPayment(url, id);
+    } catch (caught) {
+      toast((caught as ApiError).message, "bad");
+    } finally {
+      setPaying(false);
+      load();
+    }
+  };
 
   const cancel = async () => {
     setCancelling(true);
@@ -136,8 +153,23 @@ export default function OrderScreen() {
             </View>
           ))}
         </View>
+        {order.can_pay ? (
+          <View style={{ gap: 10 }}>
+            {order.payment_status === "failed" ? <Notice tone="bad">Оплата не прошла. Можно попробовать ещё раз или выбрать другую карту.</Notice> : null}
+            <Button block title={`Оплатить ${money(order.total_amount)}`} loading={paying} onPress={pay} />
+            <Muted size={13} style={{ textAlign: "center" }}>
+              Карта или СБП на защищённой странице ЮKassa. Заказ отменится, если не оплатить в течение получаса.
+            </Muted>
+          </View>
+        ) : null}
         {cancelled ? (
-          <Notice tone="bad">{order.payment_method === "online" ? "Деньги вернутся на карту в течение нескольких дней." : "Деньги не списывались — оплата при получении."}</Notice>
+          <Notice tone="bad">
+            {order.payment_status === "paid" || order.payment_status === "refunded"
+              ? "Деньги вернутся на карту в течение нескольких дней."
+              : order.payment_method === "online"
+                ? "Деньги не списывались."
+                : "Деньги не списывались — оплата при получении."}
+          </Notice>
         ) : null}
         {order.status === "completed" && order.bonus_accrued ? (
           <View style={{ alignSelf: "center", paddingVertical: 5, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: c.sesameSoft }}>

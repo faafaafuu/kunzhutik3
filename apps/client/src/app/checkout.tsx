@@ -14,6 +14,7 @@ import { toast } from "@/components/Toast";
 import { Button, Columns, Field, LinkButton, Muted, Notice, OptionRow, Panel, Segmented, Shell, StateView, T, Title, Toggle, Totals } from "@/components/ui";
 import { buildQuoteBody, useFetch, useQuote, useShared } from "@/hooks/data";
 import { maskPhone, money, phoneComplete, slotLabel, time } from "@/lib/format";
+import { openPayment } from "@/lib/payment";
 import { orderSource } from "@/lib/telegram";
 import { useCart } from "@/store/cart";
 import { usePlace } from "@/store/place";
@@ -101,13 +102,16 @@ export default function CheckoutScreen() {
         address_label: "",
         source: orderSource(),
       };
-      const { order, account } = await api<{ order: Order; account: { customer: Customer; tokens: Tokens } | null }>("/orders", { method: "POST", body });
+      const { order, account, payment: toPay } = await api<{ order: Order; account: { customer: Customer; tokens: Tokens } | null; payment: { url: string } | null }>("/orders", { method: "POST", body });
       if (!signedIn) session.rememberGuest(name.trim(), phone);
       // A first order from a new phone opens the account from the order's details: no sign-up step.
       if (account) session.signIn(account.customer, account.tokens);
       session.rememberOrder(order.id);
       useCart.getState().clear();
       router.replace({ pathname: "/order/[id]", params: { id: order.id } });
+      // Online: on to ЮKassa's page. If it did not open, the order screen has the "Оплатить" button.
+      if (toPay) openPayment(toPay.url, order.id);
+      else if (order.can_pay) toast("Не получилось открыть оплату — нажмите «Оплатить» в заказе", "bad");
     } catch (caught) {
       const apiError = caught as ApiError;
       if (apiError.code === "price_changed" && apiError.details.quote) {
@@ -341,7 +345,9 @@ export default function CheckoutScreen() {
               ? "Укажите другой адрес"
               : delivery && !place.address
                 ? "Укажите адрес"
-                : `Подтвердить${delivery ? " заказ" : ""} · ${money(quote.total_amount)}`
+                : payment === "online"
+                  ? `Перейти к оплате · ${money(quote.total_amount)}`
+                  : `Подтвердить${delivery ? " заказ" : ""} · ${money(quote.total_amount)}`
         }
         onPress={() => submit()}
       />

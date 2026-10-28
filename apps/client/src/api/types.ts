@@ -154,6 +154,7 @@ export type Order = {
   payment_method: PaymentMethod;
   payment_label: string;
   payment_status: string;
+  can_pay?: boolean;
   address_text: string;
   address_details: Partial<AddressDetails>;
   comment: string;

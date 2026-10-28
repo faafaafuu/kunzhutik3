@@ -175,6 +175,8 @@ textarea.field { resize: vertical; }
 .hours-row { display: grid; grid-template-columns: 28px 1fr 1fr auto; gap: 6px; align-items: center; font-size: 14px; font-weight: 600; }
 .hours-row .field { padding: 8px 10px; }
 .read-only .leaflet-pm-toolbar { display: none; }
+.pay-ok { color: var(--success); }
+.pay-wait { color: var(--warning); }
 .map-tools { position: absolute; top: 12px; right: 12px; z-index: 500; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .map-tools .btn { box-shadow: var(--shadow-card); background: var(--surface-card); }
 .map-tools .btn.primary { background: var(--brand); color: var(--on-brand); }

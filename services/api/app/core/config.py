@@ -55,6 +55,18 @@ class Settings(BaseSettings):
     bonus_levels_raw: str = Field(default="Старт:0:3,Свой:5000:5,Друг:15000:7", alias="BONUS_LEVELS")
     bonus_max_redeem_percent: int = Field(default=30, alias="BONUS_MAX_REDEEM_PERCENT")
 
+    # ЮKassa (yookassa.ru → Интеграция → Ключи API). Both empty — online payment is hidden at checkout.
+    yookassa_shop_id: str | None = Field(default=None, alias="YOOKASSA_SHOP_ID")
+    yookassa_secret_key: str | None = Field(default=None, alias="YOOKASSA_SECRET_KEY")
+    # Fiscal receipts (54-ФЗ) through «Чеки от ЮKassa». Turn off when the shop sends receipts with its own cash register.
+    yookassa_send_receipt: bool = Field(default=True, alias="YOOKASSA_SEND_RECEIPT")
+    # 1 — без НДС (УСН, патент). Others: 2 — 0 %, 3 — 10 %, 4 — 20 %.
+    yookassa_vat_code: int = Field(default=1, alias="YOOKASSA_VAT_CODE")
+    # 1 — ОСН, 2 — УСН «доходы», 3 — УСН «доходы минус расходы», 5 — ЕСХН, 6 — патент. Empty — the shop's default.
+    yookassa_tax_system_code: int | None = Field(default=None, alias="YOOKASSA_TAX_SYSTEM_CODE")
+    # An online order that is not paid within this time is cancelled.
+    payment_ttl_minutes: int = Field(default=30, alias="PAYMENT_TTL_MINUTES")
+
     support_phone: str = Field(default="+7 (926) 407-01-00", alias="SUPPORT_PHONE")
     # Seller requisites for /legal pages (payment providers check them). Empty — the page says «не указано».
     legal_name: str = Field(default="", alias="LEGAL_NAME")

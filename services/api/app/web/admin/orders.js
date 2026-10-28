@@ -16,6 +16,8 @@ const local = { filter: "active", orders: [], timer: null, root: null, dashboard
 const seen = new Set();
 let firstLoad = true;
 
+const PAYMENT_STATES = { paid: "оплачено", pending: "ждёт оплаты", failed: "оплата не прошла", refunded: "деньги возвращены" };
+
 export async function mount(root) {
   local.root = root;
   root.innerHTML = `
@@ -120,7 +122,7 @@ function renderOrder(order) {
       <div class="order-meta">
         ${order.scheduled_for ? `<span class="chip accent">ко времени ${time(order.scheduled_for)}</span>` : ""}
         ${order.promised_at && order.is_active ? `<span class="${late ? "late" : ""}">обещали к ${time(order.promised_at)}</span>` : ""}
-        <span>${escapeHtml(order.payment_label)}</span>
+        <span>${escapeHtml(order.payment_label)}${order.payment_method === "online" ? ` · <b class="${order.payment_status === "paid" ? "pay-ok" : "pay-wait"}">${PAYMENT_STATES[order.payment_status] || ""}</b>` : ""}</span>
       </div>
       <div class="order-meta"><b>${escapeHtml(order.customer_name)}</b><a href="tel:${phone}">${phoneText}</a>${
         order.customer_id ? `<a href="/admin/customers?id=${order.customer_id}">карточка</a>` : ""

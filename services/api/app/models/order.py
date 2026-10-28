@@ -41,8 +41,10 @@ class Order(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     # cash | card_on_delivery | online
     payment_method: Mapped[str] = mapped_column(String(24), nullable=False)
-    # not_required | pending | paid | refunded
+    # not_required | pending | paid | failed | refunded
     payment_status: Mapped[str] = mapped_column(String(16), nullable=False, default="not_required")
+    # The ЮKassa payment of an online order (the latest attempt).
+    payment_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
     currency: Mapped[str] = mapped_column(String(8), nullable=False, default="RUB")
     items_total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
