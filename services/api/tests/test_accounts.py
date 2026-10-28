@@ -106,6 +106,34 @@ def test_bonuses_accrue_on_completion_and_pay_part_of_the_next_order(operator_cl
     assert len(history) == 2
 
 
+def test_guest_with_a_new_phone_gets_an_account_from_the_order(client, menu):
+    poke = menu["poke-salmon"]
+    line = {"menu_item_id": poke["id"], "quantity": 2, "modifiers": [{"id": option(poke, "Унаги")}]}
+    response = client.post("/api/v1/orders", json=order_body([line], "1450.00"))
+    assert response.status_code == 201, response.text
+    account = response.json()["account"]
+    assert account["customer"]["name"] == "Фарид"
+    auth = {"Authorization": f"Bearer {account['tokens']['access_token']}"}
+    orders = client.get("/api/v1/me/orders", headers=auth).json()["orders"]
+    assert [order["id"] for order in orders] == [response.json()["order"]["id"]]
+    addresses = client.get("/api/v1/me/addresses", headers=auth).json()["addresses"]
+    assert addresses[0]["text"] == order_body([], "0")["address"]["text"]
+    assert addresses[0]["apartment"] == "48"
+
+
+def test_guest_with_a_known_phone_is_not_signed_in(client, menu):
+    poke = menu["poke-salmon"]
+    line = {"menu_item_id": poke["id"], "quantity": 2, "modifiers": [{"id": option(poke, "Унаги")}]}
+    first = client.post("/api/v1/orders", json=order_body([line], "1450.00"))
+    assert first.json()["account"] is not None
+    # Someone else types the same phone: the order goes to that account, but no session is handed out.
+    second = client.post("/api/v1/orders", json=order_body([line], "1450.00", customer_name="Не Фарид"))
+    assert second.status_code == 201, second.text
+    assert second.json()["account"] is None
+    owner = sign_in(client)
+    assert len(client.get("/api/v1/me/orders", headers=headers(owner)).json()["orders"]) == 2
+
+
 def test_saving_address_with_the_order(client, menu):
     auth = sign_in(client)
     poke = menu["poke-salmon"]

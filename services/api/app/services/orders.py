@@ -60,7 +60,15 @@ def load_order(db: Session, order_id) -> Order:
 # ---------- creation ----------
 
 
-def create_order(db: Session, request: OrderCreateRequest, *, customer: Customer | None, telegram_user_id: str | None = None) -> Order:
+def create_order(
+    db: Session,
+    request: OrderCreateRequest,
+    *,
+    customer: Customer | None,
+    telegram_user_id: str | None = None,
+    new_account: bool = False,
+) -> Order:
+    """new_account: a guest with a phone we have never seen — the order's delivery address goes into their new account."""
     phone = normalize_phone(request.customer_phone)
     name = request.customer_name.strip()
     if request.payment_method == "online":
@@ -145,8 +153,8 @@ def create_order(db: Session, request: OrderCreateRequest, *, customer: Customer
     if calc.bonus_spent > 0:
         db.add(BonusTransaction(customer_id=owner.id, order_id=order.id, kind="redeem", amount=-calc.bonus_spent, comment=f"Оплата заказа № {order.number}"))
 
-    if customer and request.save_address and address:
-        _save_address(db, customer, request)
+    if address and ((customer and request.save_address) or new_account):
+        _save_address(db, owner, request)
     db.commit()
     return load_order(db, order.id)
 
