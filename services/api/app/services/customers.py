@@ -234,6 +234,10 @@ def _refresh_hash(token: str) -> str:
 # ---------- CRM record ----------
 
 
+def is_new_phone(db: Session, raw_phone: str) -> bool:
+    return db.query(Customer.id).filter(Customer.phone == normalize_phone(raw_phone)).first() is None
+
+
 def upsert_by_phone(db: Session, phone: str, name: str, *, source: str, signed_in: Customer | None) -> Customer:
     """The customer an order belongs to. Signed-in customers keep their record; guests are matched by phone."""
     if signed_in:
@@ -265,7 +269,9 @@ def customer_payload(customer: Customer) -> dict:
         "phone": customer.phone,
         "phone_display": format_phone(customer.phone),
         "name": customer.name,
+        "email": customer.email,
         "telegram_linked": bool(customer.telegram_id),
+        "google_linked": bool(customer.google_id),
         "notify_status": customer.notify_status,
         "notify_bonus": customer.notify_bonus,
         "notify_promo": customer.notify_promo,

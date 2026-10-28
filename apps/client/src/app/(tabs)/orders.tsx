@@ -6,9 +6,9 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { api, assetUrl } from "@/api/client";
+import { api, thumbUrl } from "@/api/client";
 import type { Order } from "@/api/types";
-import { TopBar } from "@/components/Chrome";
+import { MobileHeader, TopBar } from "@/components/Chrome";
 import { Icon } from "@/components/Icon";
 import { toast } from "@/components/Toast";
 import { Button, Muted, Shell, Skeleton, StateView, T, Title } from "@/components/ui";
@@ -58,8 +58,9 @@ export default function OrdersScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.surface, paddingTop: wide ? 0 : insets.top }}>
       <TopBar />
+      <MobileHeader />
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
-        <Shell style={{ gap: 12, paddingTop: 20, maxWidth: 760 }}>
+        <Shell style={{ gap: 12, paddingTop: wide ? 20 : 4, maxWidth: 760 }}>
           <Title>Заказы</Title>
           {orders === null ? (
             <>
@@ -72,9 +73,9 @@ export default function OrdersScreen() {
               title="Заказов пока нет"
               text={signedIn ? "Самое время выбрать что-нибудь вкусное." : "Войдите, чтобы видеть заказы со всех устройств."}
               action={
-                <View style={{ gap: 8, alignItems: "center" }}>
-                  <Button title="В меню" onPress={() => router.navigate("/")} />
-                  {!signedIn ? <Button tone="tonal" title="Войти" onPress={() => router.push("/login")} /> : null}
+                <View style={{ gap: 8, width: 220 }}>
+                  <Button block title="В меню" onPress={() => router.navigate("/")} />
+                  {!signedIn ? <Button block tone="tonal" title="Войти" onPress={() => router.push("/login")} /> : null}
                 </View>
               }
             />
@@ -107,11 +108,11 @@ function Card({ order, highlight, onPress, onRepeat }: { order: Order; highlight
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: radius.md, backgroundColor: highlight ? c.brandSoft : c.surfaceSunken, opacity: pressed ? 0.8 : 1 })}
+      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: radius.md, backgroundColor: highlight ? c.brandSoft : c.surfaceCard, opacity: pressed ? 0.8 : 1 })}
     >
       <View style={{ flexDirection: "row" }}>
         {thumbs.map((item, index) => (
-          <Image key={index} source={{ uri: assetUrl(item.image_url) }} style={{ width: 44, height: 44, borderRadius: 22, marginLeft: index ? -14 : 0, borderWidth: 2, borderColor: c.surfaceCard }} contentFit="cover" />
+          <Image key={index} source={{ uri: thumbUrl(item.image_url) }} style={{ width: 44, height: 44, borderRadius: 22, marginLeft: index ? -14 : 0, borderWidth: 2, borderColor: c.surfaceCard }} contentFit="cover" />
         ))}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>

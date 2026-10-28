@@ -20,6 +20,12 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str | None = Field(default=None, alias="TELEGRAM_BOT_TOKEN")
     telegram_webapp_base_url: str | None = Field(default=None, alias="TELEGRAM_WEBAPP_BASE_URL")
+    # @username of the bot for the "Войти через Telegram" link; asked from Telegram (getMe) when empty.
+    telegram_bot_username: str | None = Field(default=None, alias="TELEGRAM_BOT_USERNAME")
+    # "Войти через Google": a Web client from console.cloud.google.com with the redirect URI
+    # <APP_BASE_URL>/auth/google/callback. Both empty — the button says the login is not set up yet.
+    google_client_id: str | None = Field(default=None, alias="GOOGLE_CLIENT_ID")
+    google_client_secret: str | None = Field(default=None, alias="GOOGLE_CLIENT_SECRET")
     # Staff accounts that receive new-order notifications and may change order status.
     telegram_allowed_user_ids_raw: str = Field(default="", alias="TELEGRAM_ALLOWED_USER_IDS")
 
@@ -49,7 +55,13 @@ class Settings(BaseSettings):
     bonus_levels_raw: str = Field(default="Старт:0:3,Свой:5000:5,Друг:15000:7", alias="BONUS_LEVELS")
     bonus_max_redeem_percent: int = Field(default=30, alias="BONUS_MAX_REDEEM_PERCENT")
 
-    support_phone: str = Field(default="+7 (916) 498-39-09", alias="SUPPORT_PHONE")
+    support_phone: str = Field(default="+7 (926) 407-01-00", alias="SUPPORT_PHONE")
+    # Seller requisites for /legal pages (payment providers check them). Empty — the page says «не указано».
+    legal_name: str = Field(default="", alias="LEGAL_NAME")
+    legal_inn: str = Field(default="", alias="LEGAL_INN")
+    legal_ogrnip: str = Field(default="", alias="LEGAL_OGRNIP")
+    legal_address: str = Field(default="", alias="LEGAL_ADDRESS")
+    legal_email: str = Field(default="", alias="LEGAL_EMAIL")
     min_supported_app_version: str = Field(default="1.0.0", alias="MIN_SUPPORTED_APP_VERSION")
     ios_store_url: str = Field(default="", alias="IOS_STORE_URL")
     android_store_url: str = Field(default="", alias="ANDROID_STORE_URL")

@@ -20,7 +20,10 @@ class Customer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(160), nullable=False, default="")
     telegram_id: Mapped[str | None] = mapped_column(String(40), unique=True, nullable=True)
     telegram_username: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    # Has signed in at least once (by SMS or Telegram), as opposed to a guest record.
+    # Google account ("sub" of the ID token) and its verified email, for those who sign in with Google.
+    google_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    email: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Has signed in at least once (by SMS, Telegram or Google), as opposed to a guest record.
     is_registered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # CRM fields, edited by managers.
     note: Mapped[str] = mapped_column(Text, nullable=False, default="")
@@ -55,6 +58,30 @@ class OtpCode(UUIDPrimaryKeyMixin, Base):
     code_hash: Mapped[str] = mapped_column(String(128), nullable=False)
     ip: Mapped[str] = mapped_column(String(64), nullable=False, default="")
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+
+class LoginRequest(UUIDPrimaryKeyMixin, Base):
+    """A sign-in that finishes outside the app: in the Telegram bot or on Google's page (services/social_auth.py).
+
+    `token` travels in the link (t.me deep link, OAuth state); `secret` stays with the app, which trades it
+    for a session once `customer_id` is set. Only hashes are stored.
+    """
+
+    __tablename__ = "login_requests"
+
+    # telegram | google
+    provider: Mapped[str] = mapped_column(String(16), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    secret_hash: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    # Where Google sends the browser back: this site or the app's scheme.
+    return_to: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    ip: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    # Who opened the bot link; their shared contact confirms the login.
+    telegram_id: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="CASCADE"), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)

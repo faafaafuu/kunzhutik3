@@ -1,4 +1,5 @@
-// Delivery zones on a map: draw, drag the vertices, set prices. An address outside every zone gets no delivery.
+// Delivery zones on a map: draw, drag the vertices, add or cut a piece around a few houses, set prices.
+// An address outside every zone gets no delivery. Pieces are merged with Turf (union / difference).
 
 import { api, ask, can, escapeHtml, money, showError, toast } from "./core.js";
 
@@ -13,7 +14,13 @@ const DAYS = [
 ];
 const COLORS = ["#ff6900", "#245d9e", "#157a42", "#8f5a0b", "#c2343a", "#6b4fd8"];
 
-const local = { root: null, map: null, venue: null, layers: new Map(), selected: null, draft: null, checkMarker: null, venueMarker: null };
+const local = { root: null, map: null, venue: null, layers: new Map(), selected: null, draft: null, checkMarker: null, venueMarker: null, tool: null, history: [] };
+
+const HINTS = {
+  edit: "Тяните белые точки, чтобы сдвинуть границу. Полупрозрачная точка на стороне — новый изгиб. Правый клик по точке — убрать её.",
+  add: "Обведите дома, которые нужно добавить: ставьте точки и замкните контур на первой. Участок сольётся с зоной.",
+  cut: "Обведите кусок, который нужно убрать: начните и закончите снаружи зоны.",
+};
 
 export async function mount(root) {
   local.root = root;
@@ -28,7 +35,15 @@ export async function mount(root) {
     </div>
     <p class="notice-line muted small" id="check-result">Нажмите на карту, чтобы проверить точку. Адрес вне всех зон — доставки туда нет.</p>
     <div class="zones-layout">
-      <div class="map-wrap"><div id="map"></div></div>
+      <div class="map-wrap">
+        <div id="map"></div>
+        <div class="map-tools" id="map-tools" hidden>
+          <button class="btn sm" type="button" data-tool="add">＋ Добавить участок</button>
+          <button class="btn sm" type="button" data-tool="cut">− Вырезать участок</button>
+          <button class="btn sm subtle" type="button" id="tool-undo" disabled>↶ Отменить шаг</button>
+        </div>
+        <p class="map-hint" id="map-hint" hidden></p>
+      </div>
       <aside class="zones-side">
         <div class="card" id="zone-list"></div>
         <div class="card" id="zone-form" hidden></div>
@@ -36,6 +51,8 @@ export async function mount(root) {
       </aside>
     </div>`;
   root.querySelector("#check-form").addEventListener("submit", onCheckAddress);
+  root.querySelectorAll("[data-tool]").forEach((button) => button.addEventListener("click", () => startTool(button.dataset.tool)));
+  root.querySelector("#tool-undo").addEventListener("click", undo);
   if (!editable) root.querySelector(".zones-layout").classList.add("read-only");
   await load();
 }
@@ -70,6 +87,7 @@ function setupMap() {
     local.map.pm.setLang("ru");
     local.map.pm.setGlobalOptions({ snappable: true, allowSelfIntersection: false });
     local.map.on("pm:create", onDrawn);
+    local.map.on("pm:drawend", onDrawEnd);
     local.map.on("click", (event) => {
       if (local.map.pm.globalDrawModeEnabled()) return;
       checkPoint(event.latlng.lat, event.latlng.lng);
@@ -105,10 +123,12 @@ function addZoneLayer(zone) {
   ).addTo(local.map);
   layer.bindTooltip(`${escapeHtml(zone.title)} · ${money(zone.delivery_fee)}`, { sticky: true });
   layer.on("click", (event) => {
+    // While an outline is being drawn the click is a point of it, even inside a zone.
+    if (local.map.pm.globalDrawModeEnabled()) return;
     L.DomEvent.stopPropagation(event);
     selectZone(zone.id);
   });
-  layer.on("pm:edit", () => markDirty());
+  layer.on("pm:edit", () => changed(layer));
   local.layers.set(zone.id, layer);
 }
 
@@ -155,7 +175,7 @@ function selectZone(zoneId) {
   local.selected = zoneId;
   const zone = local.venue.zones.find((item) => item.id === zoneId);
   const layer = local.layers.get(zoneId);
-  if (can("manager")) layer.pm.enable({ allowSelfIntersection: false });
+  if (can("manager")) startEditing(layer);
   local.map.fitBounds(layer.getBounds().pad(0.2));
   renderZones();
   renderZoneForm(zone);
@@ -168,7 +188,7 @@ function renderZoneForm(zone, isNew = false) {
   form.innerHTML = `
     <form id="zone-edit" class="form-grid">
       <h2>${isNew ? "Новая зона" : escapeHtml(zone.title)}</h2>
-      ${editable ? `<p class="muted small">${isNew ? "Проверьте контур и заполните условия." : "Тяните точки на карте, чтобы поменять границу. Клик по середине стороны добавляет точку."}</p>` : ""}
+      ${editable ? `<p class="muted small">${isNew ? "Поправьте контур на карте и заполните условия." : "Границу правьте прямо на карте: тяните точки или добавьте/вырежьте участок кнопками над картой."}</p>` : ""}
       <label class="field-label">Название<input class="field" name="title" value="${escapeHtml(zone.title)}" required /></label>
       <div class="fields-2">
         <label class="field-label">Доставка, ₽<input class="field" name="delivery_fee" type="number" min="0" step="1" value="${Number(zone.delivery_fee)}" /></label>
@@ -282,14 +302,20 @@ function newZoneDefaults() {
 
 function startDrawing() {
   cancelDraft();
+  stopEditing();
   local.layers.forEach((layer) => layer.pm.disable());
   toast("Ставьте точки на карте. Замкните контур на первой точке.");
   local.map.pm.enableDraw("Polygon", { pathOptions: { color: COLORS[local.venue.zones.length % COLORS.length] } });
 }
 
 function onDrawn(event) {
+  if (local.tool) {
+    applyPiece(event.layer);
+    return;
+  }
   local.draft = event.layer;
-  local.draft.pm.enable();
+  local.draft.on("pm:edit", () => changed(local.draft));
+  startEditing(local.draft);
   renderZoneForm(newZoneDefaults(), true);
 }
 
@@ -308,7 +334,8 @@ async function addCircleZone() {
   }
   const defaults = newZoneDefaults();
   local.draft = L.polygon(points, { color: defaults.color, weight: 3, fillOpacity: 0.18 }).addTo(local.map);
-  local.draft.pm.enable();
+  local.draft.on("pm:edit", () => changed(local.draft));
+  startEditing(local.draft);
   local.map.fitBounds(local.draft.getBounds().pad(0.2));
   renderZoneForm({ ...defaults, title: `До ${km} км` }, true);
 }
@@ -317,8 +344,120 @@ function cancelDraft() {
   if (local.draft) {
     local.draft.remove();
     local.draft = null;
+    stopEditing();
   }
   local.map?.pm.disableDraw();
+}
+
+// ---- editing the border ----
+
+function editingLayer() {
+  return local.draft || (local.selected && local.layers.get(local.selected)) || null;
+}
+
+function ringOf(layer) {
+  return layer.getLatLngs()[0].map((point) => [point.lng, point.lat]);
+}
+
+function setRing(layer, ring) {
+  layer.pm.disable();
+  layer.setLatLngs(ring.map(([lng, lat]) => [lat, lng]));
+  if (!local.tool) layer.pm.enable({ allowSelfIntersection: false });
+}
+
+function startEditing(layer) {
+  layer.pm.enable({ allowSelfIntersection: false });
+  local.tool = null;
+  local.history = [ringOf(layer)];
+  renderTools();
+}
+
+function stopEditing() {
+  local.tool = null;
+  local.history = [];
+  renderTools();
+}
+
+function changed(layer) {
+  local.history.push(ringOf(layer));
+  markDirty();
+  renderTools();
+}
+
+function undo() {
+  const layer = editingLayer();
+  if (!layer || local.history.length < 2) return;
+  local.history.pop();
+  setRing(layer, local.history[local.history.length - 1]);
+  markDirty();
+  renderTools();
+}
+
+function startTool(tool) {
+  const layer = editingLayer();
+  if (!layer) return;
+  if (local.tool === tool) {
+    local.map.pm.disableDraw();
+    return;
+  }
+  // The zone's own handles would catch the clicks meant for the new outline: hide them while drawing.
+  layer.pm.disable();
+  local.tool = tool;
+  local.map.pm.enableDraw("Polygon", { pathOptions: { color: tool === "add" ? "#157a42" : "#c2343a", dashArray: "6 6", fillOpacity: 0.12 } });
+  renderTools();
+}
+
+/** Drawing ended — finished, cancelled with the button or Esc: the zone's handles come back. */
+function onDrawEnd() {
+  if (!local.tool && !local.history.length) return;
+  local.tool = null;
+  const layer = editingLayer();
+  if (layer && !layer.pm.enabled()) layer.pm.enable({ allowSelfIntersection: false });
+  renderTools();
+}
+
+/** Merges the drawn piece into the zone or cuts it out; the zone stays one polygon without holes. */
+function applyPiece(piece) {
+  const tool = local.tool;
+  const layer = editingLayer();
+  piece.remove();
+  local.tool = null;
+  renderTools();
+  if (!layer) return;
+  const closed = (ring) => turf.polygon([[...ring, ring[0]]]);
+  const shapes = turf.featureCollection([closed(ringOf(layer)), closed(ringOf(piece))]);
+  const result = tool === "add" ? turf.union(shapes) : turf.difference(shapes);
+  if (!result) {
+    toast("Так от зоны ничего не останется", "bad");
+    return;
+  }
+  if (result.geometry.type !== "Polygon") {
+    toast(tool === "add" ? "Участок должен касаться зоны или заходить на неё" : "Зона распадётся на части — вырежьте кусок поменьше", "bad");
+    return;
+  }
+  if (result.geometry.coordinates.length > 1) {
+    toast("Вырезать можно только с края: дырку внутри зоны сделать нельзя", "bad");
+    return;
+  }
+  setRing(layer, result.geometry.coordinates[0].slice(0, -1));
+  changed(layer);
+  toast(tool === "add" ? "Участок добавлен — не забудьте сохранить" : "Участок вырезан — не забудьте сохранить", "accent");
+}
+
+function renderTools() {
+  if (!local.root) return;
+  const editing = Boolean(editingLayer()) && can("manager") && (local.history.length > 0 || local.tool);
+  const tools = local.root.querySelector("#map-tools");
+  const hint = local.root.querySelector("#map-hint");
+  tools.hidden = !editing;
+  hint.hidden = !editing;
+  hint.textContent = HINTS[local.tool || "edit"];
+  tools.querySelectorAll("[data-tool]").forEach((button) => {
+    const active = local.tool === button.dataset.tool;
+    button.classList.toggle("primary", active);
+    button.textContent = active ? "Отмена" : button.dataset.tool === "add" ? "＋ Добавить участок" : "− Вырезать участок";
+  });
+  tools.querySelector("#tool-undo").disabled = local.history.length < 2;
 }
 
 // ---- address check ----

@@ -13,10 +13,12 @@ from app.models.customer import Customer
 from app.models.venue import Venue
 from app.schemas.orders import CancelRequest, OrderCreateRequest, QuoteRequest
 from app.services import geo
+from app.services.customers import customer_payload, is_new_phone, issue_tokens
 from app.services.menu import item_payload, load_items, menu_payload, venue_overrides
 from app.services.notifications import notify_new_order, notify_status_change
 from app.services.orders import bonus_accrued_for, create_order, load_order, order_payload, transition
 from app.services.pricing import quote
+from app.services.social_auth import google_configured
 from app.services.venues import active_venues, default_venue, get_venue, resolve_delivery, venue_payload, zone_payload
 from app.store.catalog import BRAND_NAME
 
@@ -35,6 +37,8 @@ def get_config() -> dict:
         "support_phone": settings.support_phone,
         "bonus": {"levels": settings.bonus_levels, "max_redeem_percent": settings.bonus_max_redeem_percent},
         "telegram_login": bool(settings.telegram_bot_token),
+        # Sign-in options that are set up; the app still shows all three and explains what is not ready yet.
+        "auth": {"phone": True, "telegram": bool(settings.telegram_bot_token), "google": google_configured()},
     }
 
 
@@ -109,10 +113,18 @@ def post_order(
     db: Session = Depends(get_db),
     customer: Customer | None = Depends(optional_customer),
 ) -> dict:
+    # A guest with a new phone gets an account from the order and is signed in on this device right away.
+    # A phone we already know is never signed in this way: whoever types it would see that person's
+    # addresses, orders and bonuses. The order still lands in that account; its owner signs in by SMS.
+    new_account = customer is None and is_new_phone(db, payload.customer_phone)
     # Signed in through Telegram → status updates also go to that chat.
-    order = create_order(db, payload, customer=customer, telegram_user_id=customer.telegram_id if customer else None)
+    order = create_order(db, payload, customer=customer, telegram_user_id=customer.telegram_id if customer else None, new_account=new_account)
     background.add_task(notify_new_order, order.id)
-    return {"order": order_payload(order, db.get(Venue, order.venue_id))}
+    account = None
+    if new_account:
+        owner = db.get(Customer, order.customer_id)
+        account = {"customer": customer_payload(owner), "tokens": issue_tokens(db, owner)}
+    return {"order": order_payload(order, db.get(Venue, order.venue_id)), "account": account}
 
 
 @router.get("/orders/{order_id}")

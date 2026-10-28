@@ -9,6 +9,7 @@ import { money, plural } from "@/lib/format";
 import { isTelegram } from "@/lib/telegram";
 import { linePrice, useCart, useCartCount } from "@/store/cart";
 import { usePlace } from "@/store/place";
+import { useSession } from "@/store/session";
 import { cardShadow, floatShadow, radius, SHELL_MAX, useTheme, useWide } from "@/theme";
 
 import { Icon, type IconName } from "./Icon";
@@ -18,7 +19,6 @@ export const TABS: { href: string; name: string; title: string; icon: IconName }
   { href: "/", name: "index", title: "Меню", icon: "menu" },
   { href: "/bonus", name: "bonus", title: "Бонусы", icon: "gift" },
   { href: "/orders", name: "orders", title: "Заказы", icon: "receipt" },
-  { href: "/profile", name: "profile", title: "Профиль", icon: "user" },
 ];
 
 function activeTab(pathname: string): string {
@@ -164,13 +164,6 @@ export function TopBar() {
             );
           })}
         </View>
-        {venue ? (
-          <View style={{ paddingVertical: 5, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: c.brandSoft }}>
-            <T weight="semibold" size={13} color={c.brandText}>
-              {venue.is_open && venue.closes_at ? `до ${new Date(venue.closes_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}` : "закрыто"}
-            </T>
-          </View>
-        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Открыть корзину"
@@ -189,8 +182,61 @@ export function TopBar() {
             </View>
           ) : null}
         </Pressable>
+        <AccountButton />
       </View>
     </View>
+  );
+}
+
+/** Phone header of the tab screens: the name on the left, sign-in or the profile on the right. */
+export function MobileHeader() {
+  const { c } = useTheme();
+  const wide = useWide();
+  if (wide) return null;
+  return (
+    <View style={{ width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, minHeight: 56 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c.brand }} />
+        <T weight="bold" size={22} style={{ letterSpacing: -0.5 }}>
+          Брайт
+        </T>
+      </View>
+      <AccountButton />
+    </View>
+  );
+}
+
+/** "Войти" for a guest; the initial in a circle, leading to the profile, for a signed-in customer. */
+export function AccountButton() {
+  const { c } = useTheme();
+  const router = useRouter();
+  const customer = useSession((state) => (state.tokens ? state.customer : null));
+  if (!customer) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push("/login")}
+        style={({ pressed }) => ({ height: 40, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: pressed ? c.line : c.surfaceSunken })}
+      >
+        <Icon name="user" size={18} color={c.ink} />
+        <T weight="semibold" size={14}>
+          Войти
+        </T>
+      </Pressable>
+    );
+  }
+  const initial = (customer.name || customer.email || "Б").trim().charAt(0).toUpperCase();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Профиль"
+      onPress={() => router.push("/profile")}
+      style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: c.brandSoft, opacity: pressed ? 0.7 : 1 })}
+    >
+      <T weight="bold" size={16} color={c.brandText}>
+        {initial}
+      </T>
+    </Pressable>
   );
 }
 

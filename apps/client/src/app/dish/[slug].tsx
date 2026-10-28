@@ -1,7 +1,6 @@
-// Dish: photo full screen, modifiers on glass, price that follows the choice.
+// Dish: photo on top, then the description, choices and ingredient tiles; the price follows the choice.
 
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
@@ -9,18 +8,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api, assetUrl } from "@/api/client";
 import type { MenuItem, ModifierGroup, ModifierOption } from "@/api/types";
-import { Icon } from "@/components/Icon";
+import { Icon, ingredientIcon } from "@/components/Icon";
 import { toast } from "@/components/Toast";
-import { Button, QtyControl, StateView, T } from "@/components/ui";
+import { Button, Muted, QtyControl, StateView, T, Title } from "@/components/ui";
 import { useShared } from "@/hooks/data";
 import { bonusWord, money } from "@/lib/format";
 import { type CartModifier, useCart } from "@/store/cart";
 import { floatShadow, radius, useTheme } from "@/theme";
 
+const TILE_GAP = 8;
+
 export default function DishScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
-  const { c } = useTheme();
   const menu = useShared((state) => state.menu);
   const [item, setItem] = useState<MenuItem | null>(() => menu?.items.find((entry) => entry.slug === slug) ?? null);
   const [missing, setMissing] = useState(false);
@@ -37,29 +37,24 @@ export default function DishScreen() {
   if (missing) {
     return (
       <Frame onClose={close}>
-        <View style={{ flex: 1, justifyContent: "center", backgroundColor: c.surface }}>
+        <View style={{ flex: 1, justifyContent: "center" }}>
           <StateView icon="search" title="Здесь ничего нет" text="Возможно, блюдо убрали из меню." action={<Button title="В меню" onPress={() => router.replace("/")} />} />
         </View>
       </Frame>
     );
   }
-  if (!item) return <Frame onClose={close}>{null}</Frame>;
-  return (
-    <Frame onClose={close}>
-      <Dish item={item} onDone={close} />
-    </Frame>
-  );
+  return <Frame onClose={close}>{item ? <Dish item={item} onDone={close} /> : null}</Frame>;
 }
 
 /** Centered dialog over a scrim on the desktop web, full screen on phones. */
 function Frame({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   const { c } = useTheme();
   const { width, height } = useWindowDimensions();
-  if (Platform.OS !== "web" || width < 600) return <View style={{ flex: 1, backgroundColor: c.brand }}>{children}</View>;
+  if (Platform.OS !== "web" || width < 600) return <View style={{ flex: 1, backgroundColor: c.surfaceCard }}>{children}</View>;
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
       <Pressable accessibilityLabel="Закрыть" onPress={onClose} style={{ position: "absolute", inset: 0, backgroundColor: c.scrim } as object} />
-      <View style={[{ width: Math.min(540, width - 32), height: Math.min(height - 32, 880), borderRadius: radius.lg, overflow: "hidden", backgroundColor: c.brand }, floatShadow()]}>{children}</View>
+      <View style={[{ width: Math.min(520, width - 32), height: Math.min(height - 32, 860), borderRadius: radius.lg, overflow: "hidden", backgroundColor: c.surfaceCard }, floatShadow()]}>{children}</View>
     </View>
   );
 }
@@ -73,7 +68,6 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
   const config = useShared((state) => state.config);
   const [picked, setPicked] = useState<Picked>({});
   const [quantity, setQuantity] = useState(1);
-  const [more, setMore] = useState(false);
 
   const groups = item.modifier_groups;
   const options = useMemo(() => new Map(groups.flatMap((group) => group.options.map((option) => [option.id, { option, group }] as const))), [groups]);
@@ -83,6 +77,7 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
   const percent = config?.bonus.levels[0]?.percent ?? 0;
   const bonus = Math.floor((total * percent) / 100);
   const soldOut = !item.is_available;
+  const phoneTop = Platform.OS === "web" ? 12 : insets.top + 8;
 
   const toggleChoice = (group: ModifierGroup, option: ModifierOption) => {
     setPicked((current) => {
@@ -106,75 +101,37 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
     onDone();
   };
 
-  const stats = [
-    item.weight ? [item.weight.includes("мл") ? "объём" : "вес", item.weight] : null,
-    item.cook_minutes ? ["готовим", `~${item.cook_minutes} мин`] : null,
-    bonus > 0 && !soldOut ? [bonusWord(bonus), `+${bonus}`] : null,
-  ].filter(Boolean) as [string, string][];
+  const meta = [item.weight, item.cook_minutes ? `готовим ~${item.cook_minutes} мин` : "", bonus > 0 && !soldOut ? `+${bonus} ${bonusWord(bonus)}` : ""].filter(Boolean).join(" · ");
 
   return (
     <View style={{ flex: 1 }}>
-      {item.image_url ? (
-        <Image source={{ uri: assetUrl(item.image_url) }} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: soldOut ? 0.6 : 1 }} contentFit="cover" />
-      ) : null}
-      <Veil />
-      <View style={{ flex: 1, paddingTop: 16 + (Platform.OS === "web" ? 0 : insets.top), paddingHorizontal: 16, paddingBottom: 16 + insets.bottom, gap: 12 }}>
-        <View style={{ alignItems: "center", gap: 10 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+        <View style={{ width: "100%", aspectRatio: 1, maxHeight: 520, backgroundColor: c.surfaceSunken }}>
+          {item.image_url ? <Image source={{ uri: assetUrl(item.image_url) }} style={{ width: "100%", height: "100%", opacity: soldOut ? 0.6 : 1 }} contentFit="cover" transition={200} /> : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Закрыть"
             onPress={onDone}
-            style={{ position: "absolute", left: 0, top: 0, zIndex: 1, width: 44, height: 44, borderRadius: 22, ...glassStyle(c), borderWidth: 1, borderColor: c.glassLine, alignItems: "center", justifyContent: "center" }}
+            style={{ position: "absolute", top: phoneTop, left: 12, width: 40, height: 40, borderRadius: 20, backgroundColor: c.surfaceCard, alignItems: "center", justifyContent: "center" }}
           >
-            <Icon name="back" size={20} color={c.onBrand} strokeWidth={2} />
+            <Icon name="close" size={18} color={c.ink} strokeWidth={2.2} />
           </Pressable>
-          <T weight="semibold" size={22} color={c.onBrand} style={{ textAlign: "center", paddingHorizontal: 52, minHeight: 44, lineHeight: 27 }}>
-            {item.title}
-          </T>
-          <View style={{ flexDirection: "row", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
-            {stats.map(([label, value]) => (
-              <View key={label} style={{ alignItems: "center" }}>
-                <T weight="semibold" color={c.onBrand}>
-                  {value}
-                </T>
-                <T size={12} color={c.onBrand} style={{ opacity: 0.78 }}>
-                  {label}
-                </T>
-              </View>
-            ))}
-          </View>
-          {item.description || item.composition ? (
-            <Pressable onPress={() => setMore((value) => !value)} style={{ paddingVertical: 6, paddingHorizontal: 14, borderRadius: radius.pill, ...glassStyle(c), borderWidth: 1, borderColor: c.glassLine }}>
-              <T weight="semibold" size={13} color={c.onBrand}>
-                Подробнее {more ? "▴" : "▾"}
-              </T>
-            </Pressable>
-          ) : null}
-          {more ? (
-            <View style={{ maxWidth: 420, padding: 14, borderRadius: radius.md, backgroundColor: "rgba(20,14,10,0.55)", gap: 8 }}>
-              {item.description ? (
-                <T size={14} color={c.onBrand}>
-                  {item.description}
-                </T>
-              ) : null}
-              {item.composition ? (
-                <T size={14} color={c.onBrand}>
-                  <T weight="bold" size={14} color={c.onBrand}>
-                    Состав:{" "}
-                  </T>
-                  {item.composition}
-                </T>
-              ) : null}
-            </View>
-          ) : null}
         </View>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end", gap: 10 }} showsVerticalScrollIndicator={false}>
+        <View style={{ paddingHorizontal: 20, paddingTop: 20, gap: 24 }}>
+          <View style={{ gap: 6 }}>
+            <Title size={24}>{item.title}</Title>
+            {meta ? <Muted>{meta}</Muted> : null}
+            {item.description ? <T color={c.ink} style={{ marginTop: 6 }}>{item.description}</T> : null}
+            {item.composition ? (
+              <Muted size={13} style={{ marginTop: 4 }}>
+                Состав: {item.composition}
+              </Muted>
+            ) : null}
+          </View>
           {soldOut ? (
-            <View style={{ alignSelf: "center", paddingVertical: 8, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: c.ink }}>
-              <T weight="semibold" color={c.surfaceCard}>
-                Закончилось — загляните позже
-              </T>
+            <View style={{ padding: 14, borderRadius: radius.sm, backgroundColor: c.surfaceSunken, alignItems: "center" }}>
+              <T weight="semibold">Закончилось — загляните позже</T>
             </View>
           ) : (
             groups.map((group) => (
@@ -189,37 +146,21 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
               />
             ))
           )}
-        </ScrollView>
-
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          {!soldOut ? <QtyControl value={quantity} onChange={(value) => setQuantity(Math.max(1, value))} max={20} /> : null}
-          <Pressable
-            accessibilityRole="button"
-            disabled={soldOut || Boolean(missingGroup)}
-            onPress={submit}
-            style={({ pressed }) => [
-              { flex: 1, height: 64, flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", borderRadius: radius.pill, backgroundColor: pressed ? c.brandStrong : c.brand, opacity: soldOut || missingGroup ? 0.6 : 1 },
-              floatShadow(),
-            ]}
-          >
-            {soldOut ? (
-              <T weight="semibold" size={18} color={c.onBrand}>
-                Закончилось
-              </T>
-            ) : missingGroup ? (
-              <T weight="semibold" size={18} color={c.onBrand}>
-                Выберите {missingGroup.title.toLowerCase()}
-              </T>
-            ) : (
-              <>
-                <Icon name="plus" size={22} color={c.onBrand} strokeWidth={2.2} />
-                <T weight="semibold" size={20} color={c.onBrand}>
-                  {money(total)}
-                </T>
-              </>
-            )}
-          </Pressable>
         </View>
+      </ScrollView>
+
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom, borderTopWidth: 1, borderTopColor: c.line, backgroundColor: c.surfaceCard }}>
+        {!soldOut ? <QtyControl flat value={quantity} onChange={(value) => setQuantity(Math.max(1, value))} max={20} /> : null}
+        <Pressable
+          accessibilityRole="button"
+          disabled={soldOut || Boolean(missingGroup)}
+          onPress={submit}
+          style={({ pressed }) => ({ flex: 1, height: 54, alignItems: "center", justifyContent: "center", borderRadius: radius.pill, backgroundColor: pressed ? c.brandStrong : c.brand, opacity: soldOut || missingGroup ? 0.5 : 1 })}
+        >
+          <T weight="semibold" size={17} color={c.onBrand}>
+            {soldOut ? "Закончилось" : missingGroup ? `Выберите: ${missingGroup.title.toLowerCase()}` : `Добавить · ${money(total)}`}
+          </T>
+        </Pressable>
       </View>
     </View>
   );
@@ -241,52 +182,25 @@ function GroupBlock({
   onAddon: (option: ModifierOption, qty: number) => void;
 }) {
   const { c } = useTheme();
-  if (group.kind === "remove") {
-    return (
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-        {group.options.map((option) => {
-          const on = Boolean(picked[option.id]);
-          return (
-            <Pressable
-              key={option.id}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: on }}
-              onPress={() => onRemove(option)}
-              style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill, ...(on ? { backgroundColor: c.onBrand } : glassStyle(c)), borderWidth: 1, borderColor: on ? "transparent" : c.glassLine }}
-            >
-              <Icon name="close" size={14} color={on ? c.onTint : c.onBrand} strokeWidth={2.2} />
-              <T weight="semibold" size={13} color={on ? c.onTint : c.onBrand}>
-                {option.title}
-              </T>
-            </Pressable>
-          );
-        })}
+  const [width, setWidth] = useState(0);
+  // Equal tiles: as many columns as options up to three, four go 2×2, and a short last row is centred.
+  const count = group.options.length;
+  const columns = count <= 3 ? count : count === 4 ? 2 : 3;
+  const tile = width ? Math.floor((width - TILE_GAP * (columns - 1)) / columns) : 0;
+  const hint = group.kind === "choice" ? (group.required ? (missing ? "выберите один" : "обязательно") : "по желанию") : group.kind === "remove" ? "нажмите, чтобы убрать" : "можно несколько";
+
+  return (
+    <View style={{ gap: 12 }} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+      <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+        <T weight="bold" size={18}>
+          {group.title}
+        </T>
+        <T size={13} color={missing ? c.brandText : c.inkSoft}>
+          {hint}
+        </T>
       </View>
-    );
-  }
-  if (group.kind === "choice") {
-    return (
-      <View style={{ gap: 8 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-          <T weight="semibold" color={c.onBrand}>
-            {group.title}{" "}
-            <T size={12} color={c.onBrand} style={{ opacity: 0.85 }}>
-              {group.subtitle}
-            </T>
-          </T>
-          {group.required ? (
-            <View style={{ paddingVertical: 3, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: missing ? c.danger : c.glass }}>
-              <T weight="semibold" size={12} color={c.onBrand}>
-                {missing ? "Выберите" : "Обязательно"}
-              </T>
-            </View>
-          ) : (
-            <T size={12} color={c.onBrand} style={{ opacity: 0.85 }}>
-              по желанию
-            </T>
-          )}
-        </View>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+      {group.kind === "choice" ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: TILE_GAP }}>
           {group.options.map((option) => {
             const on = Boolean(picked[option.id]);
             return (
@@ -295,81 +209,87 @@ function GroupBlock({
                 accessibilityRole="radio"
                 accessibilityState={{ checked: on }}
                 onPress={() => onChoice(option)}
-                style={{ paddingVertical: 9, paddingHorizontal: 14, borderRadius: radius.pill, ...(on ? { backgroundColor: c.onBrand } : glassStyle(c)), borderWidth: 1, borderColor: on ? "transparent" : c.glassLine }}
+                style={{ width: tile || undefined, minHeight: 52, alignItems: "center", justifyContent: "center", paddingHorizontal: 8, paddingVertical: 8, borderRadius: radius.sm, borderWidth: 1.5, borderColor: on ? c.brand : c.line, backgroundColor: on ? c.brandSoft : c.surfaceCard }}
               >
-                <T weight="semibold" size={13} color={on ? c.onTint : c.onBrand}>
+                <T weight="semibold" size={14} color={on ? c.brandText : c.ink} style={{ textAlign: "center" }} numberOfLines={2}>
                   {option.title}
-                  {Number(option.price_delta) ? ` +${money(option.price_delta)}` : ""}
                 </T>
+                {Number(option.price_delta) ? (
+                  <T size={12} color={c.inkSoft}>
+                    +{money(option.price_delta)}
+                  </T>
+                ) : null}
               </Pressable>
             );
           })}
         </View>
-      </View>
-    );
-  }
-  return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-      {group.options.map((option) => {
-        const qty = picked[option.id] ?? 0;
-        const on = qty > 0;
-        return (
-          <View
-            key={option.id}
-            style={{
-              width: 104,
-              minHeight: 148,
-              alignItems: "center",
-              gap: 3,
-              paddingTop: 12,
-              paddingBottom: 10,
-              paddingHorizontal: 8,
-              borderRadius: radius.md,
-              ...(on ? { backgroundColor: c.surfaceCard } : glassStyle(c)),
-              borderWidth: 1,
-              borderColor: on ? "transparent" : c.glassLine,
-            }}
-          >
-            <View style={{ width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center", backgroundColor: on ? c.brandSoft : c.glassStrong, marginBottom: 4 }}>
-              <Icon name="plus" size={22} color={c.brandText} />
-            </View>
-            <T weight="semibold" size={13} color={on ? c.ink : c.onBrand} style={{ textAlign: "center", minHeight: 32, lineHeight: 16 }} numberOfLines={2}>
-              {option.title}
-            </T>
-            <T size={12} color={on ? c.inkSoft : c.onBrand}>
-              +{money(option.price_delta)}
-            </T>
-            {on ? (
-              <View style={{ marginTop: 4 }}>
-                <QtyControl small flat value={qty} max={group.max_quantity} onChange={(value) => onAddon(option, value)} />
-              </View>
+      ) : (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: TILE_GAP }}>
+          {group.options.map((option) =>
+            group.kind === "remove" ? (
+              <RemoveTile key={option.id} option={option} width={tile} removed={Boolean(picked[option.id])} onPress={() => onRemove(option)} />
             ) : (
-              <Pressable accessibilityRole="button" accessibilityLabel={`Добавить ${option.title}`} onPress={() => onAddon(option, 1)} hitSlop={8} style={{ marginTop: 6, width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
-                <Icon name="plus" size={22} color={c.onBrand} strokeWidth={2.2} />
-              </Pressable>
-            )}
-          </View>
-        );
-      })}
+              <AddonTile key={option.id} option={option} width={tile} qty={picked[option.id] ?? 0} max={group.max_quantity} onChange={(qty) => onAddon(option, qty)} />
+            ),
+          )}
+        </View>
+      )}
     </View>
   );
 }
 
-/** Darkens the top and the bottom of the photo so white text stays readable. */
-function Veil() {
+/** "Без лука": the ingredient's icon; tapped — crossed out and red. */
+function RemoveTile({ option, width, removed, onPress }: { option: ModifierOption; width: number; removed: boolean; onPress: () => void }) {
+  const { c } = useTheme();
   return (
-    <LinearGradient
-      pointerEvents="none"
-      colors={["rgba(20,14,10,0.62)", "rgba(20,14,10,0.18)", "rgba(20,14,10,0)", "rgba(20,14,10,0.12)", "rgba(20,14,10,0.72)"]}
-      locations={[0, 0.3, 0.44, 0.56, 1]}
-      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-    />
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: removed }}
+      onPress={onPress}
+      style={{ width: width || undefined, height: 116, alignItems: "center", justifyContent: "center", gap: 8, padding: 8, borderRadius: radius.sm, borderWidth: 1.5, borderColor: removed ? c.danger : c.line, backgroundColor: removed ? c.dangerSoft : c.surfaceCard }}
+    >
+      <View style={{ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: removed ? c.surfaceCard : c.surfaceSunken }}>
+        <Icon name={ingredientIcon(option.title)} size={26} color={removed ? c.danger : c.ink} />
+        {removed ? <View style={{ position: "absolute", width: 40, height: 2, borderRadius: 1, backgroundColor: c.danger, transform: [{ rotate: "-45deg" }] }} /> : null}
+      </View>
+      <T weight="semibold" size={13} color={removed ? c.danger : c.ink} style={{ textAlign: "center", lineHeight: 16 }} numberOfLines={2}>
+        {option.title}
+      </T>
+    </Pressable>
   );
 }
 
-/** Frosted glass over the photo: blur on the web; without blur on phones the glass is darker to keep text readable. */
-function glassStyle(c: { glass: string }): object {
-  return Platform.OS === "web" ? { backgroundColor: c.glass, backdropFilter: "blur(20px)" } : { backgroundColor: "rgba(20,14,10,0.38)" };
+/** "Авокадо +120 ₽": the ingredient's icon, then a quantity control once added. */
+function AddonTile({ option, width, qty, max, onChange }: { option: ModifierOption; width: number; qty: number; max: number; onChange: (qty: number) => void }) {
+  const { c } = useTheme();
+  const on = qty > 0;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${on ? "Добавлено" : "Добавить"} ${option.title}`}
+      onPress={() => (on ? null : onChange(1))}
+      style={{ width: width || undefined, height: 148, alignItems: "center", justifyContent: "space-between", paddingTop: 12, paddingBottom: 10, paddingHorizontal: 6, borderRadius: radius.sm, borderWidth: 1.5, borderColor: on ? c.brand : c.line, backgroundColor: on ? c.brandSoft : c.surfaceCard }}
+    >
+      <View style={{ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: on ? c.surfaceCard : c.surfaceSunken }}>
+        <Icon name={ingredientIcon(option.title)} size={26} color={on ? c.brandText : c.ink} />
+      </View>
+      <View style={{ alignItems: "center" }}>
+        <T weight="semibold" size={13} style={{ textAlign: "center", lineHeight: 16 }} numberOfLines={2}>
+          {option.title}
+        </T>
+        <T size={12} color={c.inkSoft}>
+          +{money(option.price_delta)}
+        </T>
+      </View>
+      {on ? (
+        <QtyControl small flat value={qty} max={max} onChange={onChange} />
+      ) : (
+        <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceSunken }}>
+          <Icon name="plus" size={16} color={c.ink} strokeWidth={2.2} />
+        </View>
+      )}
+    </Pressable>
+  );
 }
 
 function omit(record: Picked, key: string): Picked {

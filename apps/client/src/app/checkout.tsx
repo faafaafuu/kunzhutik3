@@ -5,10 +5,11 @@ import { useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 
 import { api, ApiError } from "@/api/client";
-import type { Order, PaymentMethod, Quote, SavedAddress } from "@/api/types";
+import type { Customer, Order, PaymentMethod, Quote, SavedAddress, Tokens } from "@/api/types";
 import { CartLines, quoteRows } from "@/components/CartLines";
 import { ScreenHeader } from "@/components/Chrome";
 import { Icon } from "@/components/Icon";
+import { ConsentNote } from "@/components/Legal";
 import { toast } from "@/components/Toast";
 import { Button, Columns, Field, LinkButton, Muted, Notice, OptionRow, Panel, Segmented, Shell, StateView, T, Title, Toggle, Totals } from "@/components/ui";
 import { buildQuoteBody, useFetch, useQuote, useShared } from "@/hooks/data";
@@ -100,8 +101,10 @@ export default function CheckoutScreen() {
         address_label: "",
         source: orderSource(),
       };
-      const { order } = await api<{ order: Order }>("/orders", { method: "POST", body });
+      const { order, account } = await api<{ order: Order; account: { customer: Customer; tokens: Tokens } | null }>("/orders", { method: "POST", body });
       if (!signedIn) session.rememberGuest(name.trim(), phone);
+      // A first order from a new phone opens the account from the order's details: no sign-up step.
+      if (account) session.signIn(account.customer, account.tokens);
       session.rememberOrder(order.id);
       useCart.getState().clear();
       router.replace({ pathname: "/order/[id]", params: { id: order.id } });
@@ -342,7 +345,7 @@ export default function CheckoutScreen() {
         }
         onPress={() => submit()}
       />
-      <Muted size={12}>Нажимая кнопку, вы соглашаетесь с условиями доставки и обработкой персональных данных.</Muted>
+      <ConsentNote />
     </Panel>
   );
 

@@ -12,8 +12,18 @@ import logging
 from uuid import UUID
 
 from aiogram import Bot, Dispatcher, F, Router
-from aiogram.filters import Command, CommandStart
-from aiogram.types import BotCommand, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from aiogram.filters import Command, CommandObject, CommandStart
+from aiogram.types import (
+    BotCommand,
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    Message,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    WebAppInfo,
+)
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -24,6 +34,7 @@ from app.models.venue import Venue
 from app.services.menu import menu_payload
 from app.services.notifications import STATUS_LABELS, notify_status_change, order_text, staff_actions_keyboard
 from app.services.orders import ACTIVE_STATUSES, load_order, transition
+from app.services.social_auth import telegram_contact_shared, telegram_link_opened
 from app.services.venues import default_venue, hours_text, is_open
 from app.store.catalog import BRAND_NAME
 
@@ -51,6 +62,47 @@ def storefront_keyboard() -> InlineKeyboardMarkup:
 
 def is_staff(user_id: int) -> bool:
     return str(user_id) in settings.telegram_allowed_user_ids
+
+
+# "Войти через Telegram" on the site opens t.me/<bot>?start=login_<token>. Registered before the plain /start.
+@router.message(CommandStart(deep_link=True, magic=F.args.startswith("login_")))
+async def login_link(message: Message, command: CommandObject) -> None:
+    db: Session = SessionLocal()
+    try:
+        opened = telegram_link_opened(db, command.args.removeprefix("login_"), str(message.from_user.id))
+    finally:
+        db.close()
+    if not opened:
+        await message.answer("Ссылка для входа устарела. Вернитесь на сайт и нажмите «Войти через Telegram» ещё раз.")
+        return
+    keyboard = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Подтвердить вход", request_contact=True)]], resize_keyboard=True, one_time_keyboard=True)
+    await message.answer(
+        f"Вход в {BRAND_NAME}.\nНажмите «Подтвердить вход» — Telegram передаст нам ваш номер, по нему курьер свяжется с вами.\n\n"
+        "Если вы не входили на сайт, ничего не нажимайте.",
+        reply_markup=keyboard,
+    )
+
+
+@router.message(F.contact)
+async def contact_shared(message: Message) -> None:
+    # Only the button shares the sender's own number; a forwarded contact belongs to someone else.
+    if message.contact.user_id != message.from_user.id:
+        await message.answer("Нужен ваш собственный номер: нажмите кнопку «Подтвердить вход».")
+        return
+    user = message.from_user
+    db: Session = SessionLocal()
+    try:
+        customer = telegram_contact_shared(
+            db,
+            {"id": user.id, "first_name": user.first_name, "last_name": user.last_name, "username": user.username},
+            message.contact.phone_number,
+        )
+    finally:
+        db.close()
+    if not customer:
+        await message.answer("Не нашли начатого входа. Нажмите «Войти через Telegram» на сайте ещё раз.", reply_markup=ReplyKeyboardRemove())
+        return
+    await message.answer("Готово, вы вошли. Вернитесь в браузер или в приложение — заказ можно оформлять.", reply_markup=ReplyKeyboardRemove())
 
 
 @router.message(CommandStart())

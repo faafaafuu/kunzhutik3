@@ -1,4 +1,4 @@
-from app.models.customer import BonusTransaction, Customer, CustomerAddress, CustomerSession, Device, OtpCode
+from app.models.customer import BonusTransaction, Customer, CustomerAddress, CustomerSession, Device, LoginRequest, OtpCode
 from app.models.menu import MenuCategory, MenuItem, MenuItemModifierGroup, Modifier, ModifierGroup, VenueMenuItem
 from app.models.operator_user import OperatorUser
 from app.models.order import Order, OrderItem, OrderStatusEvent, PromoCode
@@ -11,6 +11,7 @@ __all__ = [
     "CustomerSession",
     "DeliveryZone",
     "Device",
+    "LoginRequest",
     "MenuCategory",
     "MenuItem",
     "MenuItemModifierGroup",

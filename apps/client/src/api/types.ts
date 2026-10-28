@@ -83,6 +83,7 @@ export type AppConfig = {
   support_phone: string;
   bonus: { levels: BonusLevel[]; max_redeem_percent: number };
   telegram_login: boolean;
+  auth?: { phone: boolean; telegram: boolean; google: boolean };
 };
 
 export type PaymentMethod = "cash" | "card_on_delivery" | "online";
@@ -187,7 +188,9 @@ export type Customer = {
   phone: string | null;
   phone_display: string;
   name: string;
+  email?: string | null;
   telegram_linked: boolean;
+  google_linked?: boolean;
   notify_status: boolean;
   notify_bonus: boolean;
   notify_promo: boolean;

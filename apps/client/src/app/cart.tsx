@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Platform, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { assetUrl } from "@/api/client";
+import { thumbUrl } from "@/api/client";
 import { CartLines, quoteRows } from "@/components/CartLines";
 import { Icon } from "@/components/Icon";
 import { Button, Field, IconButton, LinkButton, Muted, Notice, Progress, StateView, T, Title, Totals } from "@/components/ui";
@@ -103,7 +103,7 @@ function CartBody({ onClose, bottomInset }: { onClose: () => void; bottomInset: 
                   onPress={() => add(item)}
                   style={{ flex: 1, minHeight: 128, alignItems: "center", gap: 4, paddingTop: 12, paddingBottom: 10, paddingHorizontal: 8, borderRadius: radius.md, backgroundColor: c.surfaceSunken }}
                 >
-                  <Image source={{ uri: assetUrl(item.image_url) }} style={{ width: 48, height: 48, borderRadius: 24 }} contentFit="cover" />
+                  <Image source={{ uri: thumbUrl(item.image_url) }} style={{ width: 48, height: 48, borderRadius: 24 }} contentFit="cover" />
                   <T weight="semibold" size={13} numberOfLines={2} style={{ textAlign: "center", lineHeight: 16 }}>
                     {item.title}
                   </T>

@@ -37,6 +37,7 @@ VOLATILE_TABLES = [
     "customer_sessions",
     "customer_addresses",
     "otp_codes",
+    "login_requests",
     "customers",
     "venue_menu_items",
 ]

@@ -13,7 +13,6 @@ import { ToastHost } from "@/components/Toast";
 import { Button, StateView } from "@/components/ui";
 import { loadConfig, useShared } from "@/hooks/data";
 import { registerForPush, signInWithTelegram, updateRequired } from "@/lib/session";
-import { telegram } from "@/lib/telegram";
 import { useSession } from "@/store/session";
 import { ThemeProvider, useTheme } from "@/theme";
 
@@ -44,7 +43,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider forced={telegram()?.colorScheme ?? null}>
+      <ThemeProvider>
         {updateRequired(config) ? <ForceUpdate storeUrl={Platform.OS === "ios" ? config!.ios_store_url : config!.android_store_url} /> : <AppStack />}
       </ThemeProvider>
     </SafeAreaProvider>

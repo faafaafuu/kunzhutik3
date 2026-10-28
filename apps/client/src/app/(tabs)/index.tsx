@@ -1,23 +1,25 @@
-// Menu — the main screen: where we deliver, search, categories and dishes.
+// Menu — the main screen: where we deliver, categories (with search) and the dishes as a list.
 
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, TextInput, useWindowDimensions, View } from "react-native";
+import { type LayoutChangeEvent, Pressable, ScrollView, TextInput, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { assetUrl } from "@/api/client";
 import type { MenuItem } from "@/api/types";
-import { TopBar } from "@/components/Chrome";
+import { MobileHeader, TopBar } from "@/components/Chrome";
 import { Icon } from "@/components/Icon";
-import { MenuCard } from "@/components/MenuCard";
-import { Button, Chip, LinkButton, Muted, Notice, Shell, Skeleton, StateView, T, Title } from "@/components/ui";
+import { LegalFooter } from "@/components/Legal";
+import { MenuRow, ROW_HEIGHT } from "@/components/MenuRow";
+import { Button, Muted, Notice, Shell, Skeleton, StateView, T, Title } from "@/components/ui";
 import { loadMenu, usePlaceResolution, useShared } from "@/hooks/data";
 import { money, time } from "@/lib/format";
 import { usePlace } from "@/store/place";
-import { cardShadow, fonts, radius, SHELL_MAX, useTheme, useWide } from "@/theme";
+import { fonts, radius, SHELL_MAX, useTheme, useWide } from "@/theme";
 
-const GAP = 16;
+const GAP = 10;
+const SECTION_GAP = 28;
+const LIST_PADDING = 8;
+const STRIP_HEIGHT = 56;
 
 export default function MenuScreen() {
   usePlaceResolution();
@@ -27,19 +29,26 @@ export default function MenuScreen() {
   const { width } = useWindowDimensions();
   const menu = useShared((state) => state.menu);
   const menuError = useShared((state) => state.menuError);
+  const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
-  const sectionY = useRef<Record<string, number>>({});
-  const listTop = useRef(0);
+  // On the web onLayout fires only when a view's size changes, not when it moves, so positions
+  // go stale once something above grows (the menu arrives, a notice appears). Offsets are therefore
+  // summed from heights: the address block, then the sections before this one.
+  // The category strip is skipped twice over: the list starts below it, and when it sticks it covers
+  // exactly its own height, so a section's scroll target does not depend on it.
+  const sectionHeight = useRef<Record<string, number>>({});
+  const headHeight = useRef(0);
 
+  // Two equal columns of rows on the desktop, one on phones.
   const innerWidth = Math.min(width, SHELL_MAX) - 32;
-  const columns = wide ? Math.max(3, Math.floor((innerWidth + GAP) / (220 + GAP))) : width >= 600 ? 3 : 2;
-  const cardWidth = Math.floor((innerWidth - GAP * (columns - 1)) / columns);
+  const columns = wide ? 2 : 1;
+  const rowWidth = Math.floor((innerWidth - GAP * (columns - 1)) / columns);
 
   const venue = menu?.venue ?? null;
   const canOrder = Boolean(venue);
-  const search = query.trim().toLowerCase();
+  const search = searching ? query.trim().toLowerCase() : "";
   const found = useMemo(() => {
     if (!menu || !search) return [];
     return menu.items.filter((item) => `${item.title} ${item.description} ${item.composition}`.toLowerCase().includes(search));
@@ -50,134 +59,161 @@ export default function MenuScreen() {
     return menu.categories.map((category) => ({ category, items: menu.items.filter((item) => item.category_id === category.id) })).filter((section) => section.items.length);
   }, [menu]);
 
+  const sectionTop = (categoryId: string) => {
+    let y = headHeight.current + LIST_PADDING;
+    for (const { category } of sections) {
+      if (category.id === categoryId) return y;
+      const height = sectionHeight.current[category.id];
+      if (height === undefined) return undefined;
+      y += height + SECTION_GAP;
+    }
+    return undefined;
+  };
+
   const jump = (categoryId: string) => {
     setActiveCategory(categoryId);
-    const y = sectionY.current[categoryId];
-    if (y !== undefined) scroll.current?.scrollTo({ y: listTop.current + y - 8, animated: true });
+    const y = sectionTop(categoryId);
+    if (y !== undefined) scroll.current?.scrollTo({ y: Math.max(0, y - 8), animated: true });
   };
 
   const onScroll = (y: number) => {
+    if (search) return;
     let current: string | null = null;
     for (const section of sections) {
-      const top = sectionY.current[section.category.id];
-      if (top !== undefined && listTop.current + top - 120 <= y) current = section.category.id;
+      const top = sectionTop(section.category.id);
+      if (top !== undefined && top - 24 <= y) current = section.category.id;
     }
     if (current && current !== activeCategory) setActiveCategory(current);
+  };
+
+  const closeSearch = () => {
+    setQuery("");
+    setSearching(false);
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.surface, paddingTop: wide ? 0 : insets.top }}>
       <TopBar />
+      <MobileHeader />
       <ScrollView
         ref={scroll}
-        stickyHeaderIndices={search ? undefined : [2]}
+        stickyHeaderIndices={[1]}
         onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
         scrollEventThrottle={64}
         contentContainerStyle={{ paddingBottom: 140 }}
         keyboardShouldPersistTaps="handled"
       >
-        {wide && venue ? <Hero /> : <View />}
-        <Shell style={{ gap: 12, paddingTop: 12 }}>
-          <PlaceBar />
-          <SearchField value={query} onChange={setQuery} />
-        </Shell>
-        {search || !menu ? (
-          <View />
-        ) : (
-          <View style={{ backgroundColor: c.surface, paddingVertical: 10 }}>
-            <Shell>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {sections.map(({ category }) => {
-                  const active = (activeCategory ?? sections[0]?.category.id) === category.id;
-                  return (
-                    <Pressable
-                      key={category.id}
-                      accessibilityRole="tab"
-                      accessibilityState={{ selected: active }}
-                      onPress={() => jump(category.id)}
-                      style={{ paddingVertical: 11, paddingHorizontal: 20, borderRadius: radius.pill, backgroundColor: active ? c.brand : c.surfaceCard }}
-                    >
-                      <T weight="semibold" color={active ? c.onBrand : c.ink}>
-                        {category.title}
-                      </T>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </Shell>
-          </View>
-        )}
-        <Shell style={{ paddingTop: 8 }}>
+        <View onLayout={(event: LayoutChangeEvent) => (headHeight.current = event.nativeEvent.layout.height)}>
+          <Shell style={{ paddingTop: wide ? 20 : 4 }}>
+            <PlaceBar />
+          </Shell>
+        </View>
+        <View style={{ backgroundColor: c.surface, height: STRIP_HEIGHT, justifyContent: "center" }}>
+          <Shell>
+            {searching ? (
+              <SearchField value={query} onChange={setQuery} onClose={closeSearch} />
+            ) : (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Поиск по меню"
+                  onPress={() => setSearching(true)}
+                  style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? c.line : c.surfaceCard })}
+                >
+                  <Icon name="search" size={20} color={c.ink} />
+                </Pressable>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ flex: 1 }}>
+                  {sections.map(({ category }) => {
+                    const active = (activeCategory ?? sections[0]?.category.id) === category.id;
+                    return (
+                      <Pressable
+                        key={category.id}
+                        accessibilityRole="tab"
+                        accessibilityState={{ selected: active }}
+                        onPress={() => jump(category.id)}
+                        style={{ height: 40, justifyContent: "center", paddingHorizontal: 18, borderRadius: radius.pill, backgroundColor: active ? c.ink : c.surfaceCard }}
+                      >
+                        <T weight="semibold" size={14} color={active ? c.surfaceCard : c.ink}>
+                          {category.title}
+                        </T>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+          </Shell>
+        </View>
+        <Shell style={{ paddingTop: LIST_PADDING }}>
           {!menu && menuError ? (
             <StateView icon="refresh" title="Не удалось загрузить меню" text="Проверьте подключение и попробуйте ещё раз." action={<Button title="Повторить" onPress={() => loadMenu(usePlace.getState().venue?.id ?? null)} />} />
           ) : !menu ? (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: GAP }}>
-              {Array.from({ length: columns * 2 }).map((_, index) => (
-                <Skeleton key={index} style={{ width: cardWidth, aspectRatio: 0.78 }} />
+              {Array.from({ length: columns * 5 }).map((_, index) => (
+                <Skeleton key={index} style={{ width: rowWidth, height: ROW_HEIGHT }} />
               ))}
             </View>
           ) : search ? (
             found.length ? (
               <View style={{ gap: 12 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <Muted>Найдено {found.length}</Muted>
-                  <LinkButton title="Сбросить" onPress={() => setQuery("")} />
-                </View>
-                <Grid items={found} cardWidth={cardWidth} canOrder={canOrder} />
+                <Muted>Найдено: {found.length}</Muted>
+                <Rows items={found} rowWidth={rowWidth} canOrder={canOrder} />
               </View>
             ) : (
-              <StateView icon="search" title="Ничего не нашли" text="Попробуйте другое слово или посмотрите всё меню." action={<Button tone="tonal" title="Всё меню" onPress={() => setQuery("")} />} />
+              <StateView icon="search" title="Ничего не нашли" text="Попробуйте другое слово или посмотрите всё меню." action={<Button tone="tonal" title="Всё меню" onPress={closeSearch} />} />
             )
           ) : (
-            <View style={{ gap: 28 }} onLayout={(event) => (listTop.current = event.nativeEvent.layout.y)}>
+            <View style={{ gap: SECTION_GAP }}>
               {sections.map(({ category, items }) => (
-                <View key={category.id} style={{ gap: 14 }} onLayout={(event) => (sectionY.current[category.id] = event.nativeEvent.layout.y)}>
-                  <Title size={24}>{category.title}</Title>
-                  <Grid items={items} cardWidth={cardWidth} canOrder={canOrder} />
+                <View key={category.id} style={{ gap: 12 }} onLayout={(event) => (sectionHeight.current[category.id] = event.nativeEvent.layout.height)}>
+                  <Title size={22}>{category.title}</Title>
+                  <Rows items={items} rowWidth={rowWidth} canOrder={canOrder} />
                 </View>
               ))}
             </View>
           )}
+          <LegalFooter />
         </Shell>
       </ScrollView>
     </View>
   );
 }
 
-function Grid({ items, cardWidth, canOrder }: { items: MenuItem[]; cardWidth: number; canOrder: boolean }) {
+function Rows({ items, rowWidth, canOrder }: { items: MenuItem[]; rowWidth: number; canOrder: boolean }) {
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: GAP }}>
       {items.map((item) => (
-        <MenuCard key={item.id} item={item} width={cardWidth} canOrder={canOrder} />
+        <View key={item.id} style={{ width: rowWidth }}>
+          <MenuRow item={item} canOrder={canOrder} />
+        </View>
       ))}
     </View>
   );
 }
 
-function SearchField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function SearchField({ value, onChange, onClose }: { value: string; onChange: (value: string) => void; onClose: () => void }) {
   const { c } = useTheme();
   return (
-    <View style={[{ flexDirection: "row", alignItems: "center", backgroundColor: c.surfaceCard, borderRadius: radius.pill, paddingLeft: 16, paddingRight: 6 }, cardShadow(c)]}>
-      <Icon name="search" size={20} color={c.inkSoft} />
+    <View style={{ height: 40, flexDirection: "row", alignItems: "center", backgroundColor: c.surfaceCard, borderRadius: radius.pill, paddingLeft: 14, paddingRight: 4 }}>
+      <Icon name="search" size={18} color={c.inkSoft} />
       <TextInput
         value={value}
         onChangeText={onChange}
+        autoFocus
         placeholder="Поиск по названию и составу"
         placeholderTextColor={c.inkSoft}
         returnKeyType="search"
         accessibilityLabel="Поиск по меню"
-        style={{ flex: 1, paddingVertical: 14, paddingHorizontal: 12, fontFamily: fonts.medium, fontSize: 15, color: c.ink, outlineStyle: "none" } as object}
+        style={{ flex: 1, height: 40, paddingHorizontal: 10, fontFamily: fonts.medium, fontSize: 15, color: c.ink, outlineStyle: "none" } as object}
       />
-      {value ? (
-        <Pressable accessibilityLabel="Очистить" onPress={() => onChange("")} style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceSunken }}>
-          <Icon name="close" size={16} color={c.ink} strokeWidth={2.2} />
-        </Pressable>
-      ) : null}
+      <Pressable accessibilityRole="button" accessibilityLabel="Закрыть поиск" onPress={onClose} style={{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceSunken }}>
+        <Icon name="close" size={16} color={c.ink} strokeWidth={2.2} />
+      </Pressable>
     </View>
   );
 }
 
-/** "Доставка · ул. Ленина, 5 ▾ · ~35 мин · открыто до 22:00" and the notices that go with it. */
+/** One card: how we deliver and where, the time and the price; notices only when something is wrong. */
 function PlaceBar() {
   const { c } = useTheme();
   const router = useRouter();
@@ -190,91 +226,49 @@ function PlaceBar() {
   const venue = menu?.venue ?? null;
 
   const pickup = fulfillment === "pickup";
-  const label = pickup ? `Самовывоз · ${venue?.address ?? ""}` : address ? `Доставка · ${shortAddress(address.text)}` : "Укажите адрес доставки";
+  const label = pickup ? `Самовывоз · ${venue?.address ?? ""}` : address ? shortAddress(address.text) : "Укажите адрес доставки";
+  const hours = venue ? (venue.is_open ? `открыто до ${time(venue.closes_at)}` : "сейчас закрыто") : "";
   const meta = pickup
-    ? venue
-      ? `готовим ~${venue.cook_minutes} мин`
-      : ""
+    ? [venue ? `готовим ~${venue.cook_minutes} мин` : "", hours].filter(Boolean).join(" · ")
     : zone
-      ? `~${zone.eta_minutes} мин · доставка ${Number(zone.delivery_fee) ? money(zone.delivery_fee) : "бесплатно"}${zone.free_delivery_from ? `, 0 ₽ от ${money(zone.free_delivery_from)}` : ""}`
-      : !address && venue
-        ? `или заберите сами на ${venue.address}`
-        : "";
+      ? `~${zone.eta_minutes} мин · доставка ${Number(zone.delivery_fee) ? money(zone.delivery_fee) : "бесплатно"}`
+      : [hours, venue ? "или самовывоз" : ""].filter(Boolean).join(" · ");
 
   return (
     <View style={{ gap: 10 }}>
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap", paddingVertical: 10, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: c.surfaceCard }, cardShadow(c)]}>
-        <Icon name={pickup ? "store" : address ? "truck" : "pin"} size={22} color={c.ink} />
-        <Pressable accessibilityRole="button" onPress={() => router.push("/address")} style={{ flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 }}>
-          <T weight="semibold" numberOfLines={1} style={{ flexShrink: 1 }}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push("/address")}
+        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: radius.md, backgroundColor: pressed ? c.surfaceSunken : c.surfaceCard })}
+      >
+        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.brandSoft, alignItems: "center", justifyContent: "center" }}>
+          <Icon name={pickup ? "store" : address ? "truck" : "pin"} size={22} color={c.brandText} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <T weight="semibold" numberOfLines={1}>
             {label}
           </T>
-          <Icon name="down" size={16} color={c.ink} />
-        </Pressable>
-        {meta ? <Muted size={13}>{meta}</Muted> : null}
-        {venue ? <Chip tone="brand" title={venue.is_open ? `открыто до ${time(venue.closes_at)}` : "закрыто"} style={{ marginLeft: "auto" }} /> : null}
-      </View>
+          {meta ? (
+            <Muted size={13} numberOfLines={1}>
+              {meta}
+            </Muted>
+          ) : null}
+        </View>
+        <Icon name="right" size={18} color={c.inkSoft} />
+      </Pressable>
       {venue && !venue.is_open ? (
         <Notice tone="bad" icon="clock">
-          <T weight="bold" color={c.danger} size={14}>
-            Сейчас закрыто.
-          </T>{" "}
-          {venue.opens_at ? `Откроемся ${openLabel(venue.opens_at)} — можно оформить заказ ко времени.` : "Можно оформить заказ ко времени."}
+          {venue.opens_at ? `Сейчас закрыто. Откроемся ${openLabel(venue.opens_at)} — можно заказать ко времени.` : "Сейчас закрыто — можно заказать ко времени."}
         </Notice>
       ) : null}
       {!pickup && outOfZone ? (
         <View style={{ gap: 8 }}>
           <Notice tone="bad" icon="map">
-            <T weight="bold" color={c.danger} size={14}>
-              Сюда пока не доставляем.
-            </T>{" "}
-            {venue ? `Можно забрать заказ самим на ${venue.address}.` : ""}
+            Сюда пока не доставляем.{venue ? ` Можно забрать заказ на ${venue.address}.` : ""}
           </Notice>
-          <Button tone="tonal" size="sm" title="Заберу сам" onPress={() => setFulfillment("pickup")} />
+          <Button block tone="tonal" title="Заберу сам" onPress={() => setFulfillment("pickup")} />
         </View>
       ) : null}
-      {!pickup && !address && menu ? (
-        <Notice tone="info" icon="alert">
-          Показываем меню ближайшей точки.{" "}
-          <T weight="bold" color={c.info} size={14}>
-            Цены и наличие уточним по адресу.
-          </T>
-        </Notice>
-      ) : null}
-    </View>
-  );
-}
-
-function Hero() {
-  const { c } = useTheme();
-  const router = useRouter();
-  const menu = useShared((state) => state.menu);
-  const venue = menu?.venue;
-  const photos = (menu?.items ?? []).filter((item) => item.image_url && item.badges.length).slice(0, 3);
-  return (
-    <View style={{ width: "100%", maxWidth: SHELL_MAX, alignSelf: "center", paddingHorizontal: 16, paddingTop: 16 }}>
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 24, padding: 40, borderRadius: radius.lg, backgroundColor: c.surfaceCard, overflow: "hidden" }, cardShadow(c)]}>
-        <View style={{ flex: 1, gap: 18 }}>
-          {venue ? <Chip tone="brand" title={venue.hours_text} /> : null}
-          <T weight="semibold" size={52} style={{ lineHeight: 54, letterSpacing: -1.5, maxWidth: 560 }}>
-            заказывай поке и <T weight="semibold" size={52} color={c.brand} style={{ lineHeight: 54 }}>кофе</T> по пути
-          </T>
-          <T size={17} color={c.inkSoft} style={{ maxWidth: 440 }}>
-            Соберите заказ в пару касаний — заберите без очереди{venue ? ` на ${venue.address}` : ""} или ждите доставку.
-          </T>
-        </View>
-        <View style={{ flexDirection: "row", gap: 14, alignItems: "flex-end" }}>
-          {photos.map((item, index) => (
-            <Pressable key={item.id} accessibilityRole="button" onPress={() => router.push({ pathname: "/dish/[slug]", params: { slug: item.slug } })} style={[{ width: 150, padding: 10, paddingBottom: 14, borderRadius: radius.lg, backgroundColor: c.surfaceCard, gap: 6, alignItems: "center", transform: [{ rotate: `${[-6, 4, -3][index]}deg` }, { translateY: [0, -20, 10][index] }] }, cardShadow(c)]}>
-              <Image source={{ uri: assetUrl(item.image_url) }} style={{ width: "100%", aspectRatio: 1, borderRadius: radius.md }} contentFit="cover" />
-              <T weight="semibold" size={14} numberOfLines={1}>
-                {item.title}
-              </T>
-              <Muted size={13}>{money(item.price)}</Muted>
-            </Pressable>
-          ))}
-        </View>
-      </View>
     </View>
   );
 }

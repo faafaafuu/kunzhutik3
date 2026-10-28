@@ -3,23 +3,20 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api, ApiError } from "@/api/client";
 import type { Customer } from "@/api/types";
-import { TopBar } from "@/components/Chrome";
+import { ScreenHeader } from "@/components/Chrome";
 import { Icon, type IconName } from "@/components/Icon";
 import { toast } from "@/components/Toast";
 import { Button, Field, Muted, Panel, Shell, StateView, T, Title } from "@/components/ui";
 import { useShared } from "@/hooks/data";
 import { useSession } from "@/store/session";
-import { radius, useTheme, useWide } from "@/theme";
+import { radius, useTheme } from "@/theme";
 
 export default function ProfileScreen() {
   const { c } = useTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const wide = useWide();
   const session = useSession();
   const config = useShared((state) => state.config);
   const customer = session.customer;
@@ -58,23 +55,29 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.surface, paddingTop: wide ? 0 : insets.top }}>
-      <TopBar />
+    <View style={{ flex: 1, backgroundColor: c.surface }}>
+      <ScreenHeader title="Профиль" />
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
-        <Shell style={{ gap: 16, paddingTop: 20, maxWidth: 760 }}>
-          <Title>Профиль</Title>
+        <Shell style={{ gap: 16, paddingTop: 8, maxWidth: 560 }}>
           {!customer ? (
             <Panel>
-              <StateView icon="user" title="Войдите по телефону" text="Сохраним адреса и историю заказов, начислим бонусы с первого заказа." action={<Button title="Войти" onPress={() => router.push("/login")} />} />
+              <StateView icon="user" title="Вы не вошли" text="Сохраним адреса и историю заказов, начислим бонусы с первого заказа." action={<Button title="Войти" onPress={() => router.push("/login")} />} />
             </Panel>
           ) : (
-            <Panel>
-              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-                <Field label="Имя" value={name} onChangeText={setName} style={{ flex: 1, minWidth: 180 }} />
-                <Field label="Телефон" value={customer.phone_display || "не указан"} editable={false} style={{ flex: 1, minWidth: 180, opacity: 0.7 }} />
+            <Panel style={{ alignItems: "stretch" }}>
+              <View style={{ alignItems: "center", gap: 4, paddingBottom: 4 }}>
+                <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: c.brandSoft, alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
+                  <T weight="bold" size={28} color={c.brandText}>
+                    {(customer.name || customer.email || "Б").trim().charAt(0).toUpperCase()}
+                  </T>
+                </View>
+                <Title size={22} style={{ textAlign: "center" }}>
+                  {customer.name || "Без имени"}
+                </Title>
+                <Muted style={{ textAlign: "center" }}>{[customer.phone_display, customer.email].filter(Boolean).join(" · ") || "Телефон спросим при заказе"}</Muted>
               </View>
-              <Muted size={13}>Телефон меняется только через вход с новым номером.</Muted>
-              <Button title="Сохранить" onPress={save} loading={saving} disabled={name.trim() === customer.name} />
+              <Field label="Имя" value={name} onChangeText={setName} />
+              <Button block title="Сохранить" onPress={save} loading={saving} disabled={name.trim() === customer.name} />
             </Panel>
           )}
           <Panel style={{ gap: 0, paddingVertical: 8 }}>

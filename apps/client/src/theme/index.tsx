@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useContext, useMemo } from "react";
-import { Platform, StyleSheet, useColorScheme, useWindowDimensions } from "react-native";
+import { Platform, StyleSheet, useWindowDimensions } from "react-native";
 
 import { dark, light, type Palette, WIDE } from "./tokens";
 
@@ -9,9 +9,9 @@ type Theme = { c: Palette; isDark: boolean };
 
 const ThemeContext = createContext<Theme>({ c: light, isDark: false });
 
+/** The brand is light: the phone's or Telegram's dark mode does not switch it; pass forced="dark" to opt in. */
 export function ThemeProvider({ children, forced }: { children: ReactNode; forced?: "light" | "dark" | null }) {
-  const scheme = useColorScheme();
-  const isDark = (forced ?? scheme) === "dark";
+  const isDark = forced === "dark";
   const value = useMemo(() => ({ c: isDark ? dark : light, isDark }), [isDark]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

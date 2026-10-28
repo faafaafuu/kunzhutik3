@@ -211,7 +211,8 @@ export function StateView({ icon, title, text, action }: { icon: IconName; title
         {title}
       </Title>
       {text ? <Muted style={{ textAlign: "center", maxWidth: 360 }}>{text}</Muted> : null}
-      {action}
+      {/* Button hugs the left edge by default; the wrapper keeps it centred under the text. */}
+      {action ? <View style={{ alignItems: "center" }}>{action}</View> : null}
     </View>
   );
 }
@@ -324,7 +325,7 @@ export function Toggle({ value, onChange, label }: { value: boolean; onChange: (
 export function Segmented<V extends string>({ value, options, onChange }: { value: V; options: { value: V; label: string }[]; onChange: (value: V) => void }) {
   const { c } = useTheme();
   return (
-    <View style={{ flexDirection: "row", alignSelf: "flex-start", gap: 4, padding: 4, borderRadius: radius.pill, backgroundColor: c.surfaceSunken }}>
+    <View style={{ flexDirection: "row", alignSelf: "stretch", gap: 4, padding: 4, borderRadius: radius.pill, backgroundColor: c.surfaceSunken }}>
       {options.map((option) => {
         const active = option.value === value;
         return (
@@ -333,7 +334,7 @@ export function Segmented<V extends string>({ value, options, onChange }: { valu
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             onPress={() => onChange(option.value)}
-            style={[{ paddingVertical: 10, paddingHorizontal: 20, borderRadius: radius.pill, backgroundColor: active ? c.surfaceCard : "transparent" }, active && cardShadow(c)]}
+            style={[{ flex: 1, alignItems: "center", paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: active ? c.surfaceCard : "transparent" }, active && cardShadow(c)]}
           >
             <T weight="semibold">{option.label}</T>
           </Pressable>

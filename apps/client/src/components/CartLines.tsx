@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { Pressable, View } from "react-native";
 
-import { assetUrl } from "@/api/client";
+import { thumbUrl } from "@/api/client";
 import type { Quote } from "@/api/types";
 import { modifiersText, money } from "@/lib/format";
 import { type CartLine, linePrice, useCart } from "@/store/cart";
@@ -32,7 +32,7 @@ function Line({ line, quoted }: { line: CartLine; quoted?: Quote["items"][number
   return (
     <View style={[{ flexDirection: "row", alignItems: "center", gap: 12 }, unavailable && { padding: 10, marginHorizontal: -10, borderRadius: radius.sm, backgroundColor: c.dangerSoft }]}>
       <View style={{ width: 56, height: 56, borderRadius: radius.sm, overflow: "hidden", backgroundColor: c.brandSoft, alignItems: "center", justifyContent: "center" }}>
-        {line.image ? <Image source={{ uri: assetUrl(line.image) }} style={{ width: "100%", height: "100%" }} contentFit="cover" /> : <Icon name="menu" size={28} color={c.brandText} />}
+        {line.image ? <Image source={{ uri: thumbUrl(line.image) }} style={{ width: "100%", height: "100%" }} contentFit="cover" /> : <Icon name="menu" size={28} color={c.brandText} />}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <T weight="semibold" color={unavailable ? c.danger : c.ink} numberOfLines={2}>

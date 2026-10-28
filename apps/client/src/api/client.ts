@@ -28,6 +28,14 @@ export function assetUrl(path: string | null | undefined): string | undefined {
   return path.startsWith("http") ? path : `${API_URL}${path}`;
 }
 
+const PHOTOS = "/static/assets/photos/";
+
+/** A 360 px copy of a menu photo for lists: the full 1200 px one is for the dish screen only. */
+export function thumbUrl(path: string | null | undefined): string | undefined {
+  if (path?.startsWith(PHOTOS)) return assetUrl(PHOTOS + "thumb/" + path.slice(PHOTOS.length));
+  return assetUrl(path);
+}
+
 type Options = { method?: string; body?: unknown; auth?: boolean };
 
 let refreshing: Promise<boolean> | null = null;

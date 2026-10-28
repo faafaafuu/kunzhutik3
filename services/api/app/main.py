@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import account, admin, auth, client_app, health, public
+from app.api.routes import account, admin, auth, client_app, health, legal, public, social
 from app.core.config import settings
 from app.core.errors import ApiError, api_error_handler
 from app.db.session import SessionLocal
@@ -73,6 +73,8 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(public.router)
 app.include_router(account.router)
+app.include_router(social.router)
 app.include_router(admin.router)
+app.include_router(legal.router)
 # Last: catches every other GET for the client app.
 app.include_router(client_app.router)
