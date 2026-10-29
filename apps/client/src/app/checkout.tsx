@@ -13,7 +13,7 @@ import { agreed, ConsentChecks, ConsentNote, noAgreements } from "@/components/L
 import { toast } from "@/components/Toast";
 import { BonusWheel } from "@/components/BonusWheel";
 import { Button, Columns, Field, LinkButton, Muted, Notice, OptionRow, Panel, Segmented, Shell, StateView, T, Title, Toggle, Totals } from "@/components/ui";
-import { buildQuoteBody, useFetch, useQuote, useShared } from "@/hooks/data";
+import { buildQuoteBody, loadMenu, useFetch, useQuote, useShared } from "@/hooks/data";
 import { maskPhone, money, phoneComplete, slotLabel, time } from "@/lib/format";
 import { handOverPayment, preloadPaymentWidget } from "@/components/PaymentWidget";
 import { openPayment } from "@/lib/payment";
@@ -40,6 +40,7 @@ export default function CheckoutScreen() {
   const rewards = useCart((state) => state.rewards);
   const setRewards = useCart((state) => state.setRewards);
   const menuItems = useShared((state) => state.menu?.items);
+  const menuVenueId = useShared((state) => state.menu?.venue_id);
   const place = usePlace();
   const session = useSession();
   const signedIn = Boolean(session.tokens);
@@ -72,6 +73,12 @@ export default function CheckoutScreen() {
 
   // The wheel: dishes of this venue that can be taken for bonuses, cheapest first.
   const giftChoices = (menuItems ?? []).filter((item) => item.bonus_price && item.is_available).sort((a, b) => (a.bonus_price ?? 0) - (b.bonus_price ?? 0));
+  // The wheel shows what the venue making this order has: opened straight on /checkout, or the address moved the
+  // order to another cafe — fetch that venue's menu.
+  const quoteVenueId = quote?.venue.id;
+  useEffect(() => {
+    if (signedIn && quoteVenueId && menuVenueId !== quoteVenueId) loadMenu(quoteVenueId).catch(() => {});
+  }, [signedIn, quoteVenueId, menuVenueId]);
   // A gift that is no longer offered here (another venue, taken off the wheel) leaves the order quietly.
   useEffect(() => {
     if (!menuItems) return;
