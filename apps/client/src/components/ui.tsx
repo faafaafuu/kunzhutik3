@@ -2,7 +2,6 @@
 
 import { type ReactNode, useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
   Animated,
   InputAccessoryView,
   Keyboard,
@@ -25,6 +24,7 @@ import {
 import { cardShadow, fonts, type Palette, radius, SHELL_MAX, useStyles, useTheme, useWide } from "@/theme";
 
 import { Icon, type IconName } from "./Icon";
+import { Spinner } from "./Spinner";
 
 // ---------- text ----------
 
@@ -146,7 +146,7 @@ export function Button({ title, tone = "primary", size = "md", icon, block, load
         style,
       ]}
     >
-      {loading ? <ActivityIndicator color={palette.fg} size="small" /> : icon ? <Icon name={icon} size={18} color={palette.fg} /> : null}
+      {loading ? <Spinner color={palette.fg} size="small" /> : icon ? <Icon name={icon} size={18} color={palette.fg} /> : null}
       <T weight="semibold" size={size === "sm" ? 14 : 15} color={palette.fg}>
         {title}
       </T>

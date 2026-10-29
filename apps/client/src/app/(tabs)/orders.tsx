@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, thumbUrl } from "@/api/client";
 import type { Order } from "@/api/types";
 import { MobileHeader, TopBar } from "@/components/Chrome";
+import { RefreshableScrollView } from "@/components/Refreshable";
 import { Icon } from "@/components/Icon";
 import { toast } from "@/components/Toast";
 import { Button, Muted, Shell, Skeleton, StateView, T, Title } from "@/components/ui";
@@ -59,7 +60,7 @@ export default function OrdersScreen() {
     <View style={{ flex: 1, backgroundColor: c.surface, paddingTop: wide ? 0 : insets.top }}>
       <TopBar />
       <MobileHeader />
-      <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
+      <RefreshableScrollView onRefresh={load} contentContainerStyle={{ paddingBottom: 140 }}>
         <Shell style={{ gap: 12, paddingTop: wide ? 20 : 4, maxWidth: 760 }}>
           <Title>Заказы</Title>
           {orders === null ? (
@@ -95,7 +96,7 @@ export default function OrdersScreen() {
             </>
           )}
         </Shell>
-      </ScrollView>
+      </RefreshableScrollView>
     </View>
   );
 }

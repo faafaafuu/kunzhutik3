@@ -8,6 +8,7 @@ a { color: var(--brand-text); text-decoration: none; }
 
 .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: color-mix(in srgb, var(--surface) 85%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; white-space: nowrap; }
+.brand-mark { height: 30px; width: auto; vertical-align: middle; }
 .brand-dot { width: 36px; height: 36px; border-radius: 50%; background: var(--brand); color: var(--on-brand); display: inline-grid; place-items: center; font-weight: 700; }
 .topbar .spacer { flex: 1; }
 .ghost { border: none; background: var(--surface-card); color: var(--ink); font: inherit; font-weight: 600; padding: 9px 18px; border-radius: var(--radius-pill); cursor: pointer; }

@@ -101,7 +101,7 @@ def _page(path: str, title: str, body: str) -> HTMLResponse:
 </head>
 <body>
 <div class="wrap">
-<a class="top" href="/"><span class="dot">Б</span>{BRAND_NAME} — доставка</a>
+<a class="top" href="/"><img src="/static/logo-mark.svg" alt="" height="30" />{BRAND_NAME} — доставка</a>
 <nav>{nav}</nav>
 <main><h1>{escape(title)}</h1>{body}</main>
 <footer>{footer}</footer>

@@ -2,7 +2,7 @@
 
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
+import { AppState, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 import { api, ApiError } from "@/api/client";
@@ -17,6 +17,7 @@ import { maskPhone, phoneComplete } from "@/lib/format";
 import { isTelegram } from "@/lib/telegram";
 import { useSession } from "@/store/session";
 import { fonts, radius, useTheme } from "@/theme";
+import { Spinner } from "@/components/Spinner";
 
 const POLL_MS = 1500;
 
@@ -185,7 +186,7 @@ export default function LoginScreen() {
             <>
               <View style={{ alignItems: "center", gap: 6, paddingBottom: 8 }}>
                 <Title size={28} style={{ textAlign: "center" }}>
-                  Вход в Брайт
+                  Вход в Брайтс
                 </Title>
                 <Muted style={{ textAlign: "center" }}>Бонусы, адреса и заказы — на всех устройствах</Muted>
               </View>
@@ -216,7 +217,7 @@ export default function LoginScreen() {
               </Title>
               <Muted style={{ textAlign: "center", maxWidth: 340 }}>Нажмите «Подтвердить вход» в чате с ботом и вернитесь сюда — мы сразу вас впустим.</Muted>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 }}>
-                <ActivityIndicator color={c.inkSoft} size="small" />
+                <Spinner size="small" />
                 <Muted size={13}>Ждём подтверждения</Muted>
               </View>
               <View style={{ alignSelf: "stretch", gap: 8 }}>
@@ -318,7 +319,7 @@ function ProviderButton({ kind, loading, onPress, disabled }: { kind: "telegram"
         opacity: disabled ? 0.45 : pressed ? 0.85 : 1,
       })}
     >
-      {loading ? <ActivityIndicator color={fg} size="small" /> : telegram ? <TelegramMark size={22} /> : <GoogleMark size={20} />}
+      {loading ? <Spinner color={fg} size="small" /> : telegram ? <TelegramMark size={22} /> : <GoogleMark size={20} />}
       <T weight="semibold" size={16} color={fg}>
         {telegram ? "Войти через Telegram" : "Войти через Google"}
       </T>

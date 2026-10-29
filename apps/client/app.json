@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Брайт",
+    "name": "Брайтс",
     "slug": "bright",
     "scheme": "bright",
     "version": "1.0.0",
@@ -17,7 +17,7 @@
     "android": {
       "package": "ru.bright.delivery",
       "adaptiveIcon": {
-        "backgroundColor": "#FF6900",
+        "backgroundColor": "#F47216",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -27,8 +27,8 @@
     "web": {
       "output": "single",
       "favicon": "./assets/favicon.png",
-      "name": "Брайт — доставка",
-      "shortName": "Брайт",
+      "name": "Брайтс — доставка",
+      "shortName": "Брайтс",
       "lang": "ru",
       "themeColor": "#FF6900",
       "backgroundColor": "#F4F4F6"
@@ -45,7 +45,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FF6900",
+          "backgroundColor": "#FCF8F2",
           "image": "./assets/splash-icon.png",
           "imageWidth": 160
         }

@@ -4,7 +4,7 @@
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 import { api, ApiError } from "@/api/client";
 import type { GeoResult, SavedAddress, Venue, Zone } from "@/api/types";
@@ -17,6 +17,7 @@ import { money } from "@/lib/format";
 import { emptyDetails, usePlace } from "@/store/place";
 import { useSignedIn } from "@/store/session";
 import { radius, useTheme } from "@/theme";
+import { Spinner } from "@/components/Spinner";
 
 type Check = { state: "idle" | "checking" | "ok" | "out" | "error"; zone?: Zone; venue?: Venue; message?: string };
 
@@ -173,7 +174,7 @@ export default function AddressScreen() {
                   subtitle={`${venue.is_open ? "открыто" : "закрыто"} · ${venue.hours_text} · готовим ~${venue.cook_minutes} мин`}
                 />
               ))}
-              {venues.loading ? <ActivityIndicator color={c.brand} /> : null}
+              {venues.loading ? <Spinner size="small" /> : null}
             </View>
           ) : (
             <View style={{ gap: 12 }}>
@@ -191,7 +192,7 @@ export default function AddressScreen() {
                   autoFocus={!place.address}
                   autoCorrect={false}
                 />
-                {searching ? <ActivityIndicator color={c.brand} style={{ position: "absolute", right: 14, top: 40 }} /> : null}
+                {searching ? <Spinner size="small" style={{ position: "absolute", right: 14, top: 40 }} /> : null}
               </View>
               {results.length ? (
                 <View style={{ borderRadius: radius.md, backgroundColor: c.surfaceCard, overflow: "hidden" }}>
@@ -213,7 +214,7 @@ export default function AddressScreen() {
               ) : null}
               <Button tone="tonal" size="sm" icon="locate" title={locating ? "Определяем…" : "Моё местоположение"} onPress={locate} disabled={locating} />
 
-              {check.state === "checking" ? <ActivityIndicator color={c.brand} /> : null}
+              {check.state === "checking" ? <Spinner size="small" /> : null}
               {check.state === "out" ? (
                 <Notice tone="bad" icon="map">
                   <T weight="bold" size={14} color={c.danger}>

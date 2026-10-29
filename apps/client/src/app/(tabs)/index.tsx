@@ -11,6 +11,7 @@ import { Icon } from "@/components/Icon";
 import { LegalFooter } from "@/components/Legal";
 import { MenuRow, ROW_HEIGHT } from "@/components/MenuRow";
 import { Promotions } from "@/components/Promotions";
+import { RefreshableScrollView } from "@/components/Refreshable";
 import { Button, Muted, Notice, Shell, Skeleton, StateView, T, Title } from "@/components/ui";
 import { loadMenu, usePlaceResolution, useShared } from "@/hooks/data";
 import { money, time } from "@/lib/format";
@@ -96,8 +97,9 @@ export default function MenuScreen() {
     <View style={{ flex: 1, backgroundColor: c.surface, paddingTop: wide ? 0 : insets.top }}>
       <TopBar />
       <MobileHeader />
-      <ScrollView
+      <RefreshableScrollView
         ref={scroll}
+        onRefresh={() => loadMenu(usePlace.getState().venue?.id ?? null)}
         stickyHeaderIndices={[1]}
         onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
         scrollEventThrottle={64}
@@ -176,7 +178,7 @@ export default function MenuScreen() {
           )}
           <LegalFooter />
         </Shell>
-      </ScrollView>
+      </RefreshableScrollView>
     </View>
   );
 }

@@ -2,12 +2,13 @@
 // no trip to ЮKassa's site. The app keeps ЮKassa's page over itself (lib/payment.ts).
 
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Platform, View } from "react-native";
+import { Platform, View } from "react-native";
 
 import { api, ApiError } from "@/api/client";
 import { useTheme } from "@/theme";
 
 import { Button, Muted } from "./ui";
+import { Spinner } from "./Spinner";
 
 const SCRIPT = "https://yookassa.ru/checkout-widget/v1/checkout-widget.js";
 
@@ -88,7 +89,7 @@ export function PaymentWidget({ orderId, onSettled }: { orderId: string; onSettl
     <View style={{ gap: 10 }}>
       {state === "loading" ? (
         <View style={{ height: 120, alignItems: "center", justifyContent: "center", gap: 8 }}>
-          <ActivityIndicator color={c.brand} />
+          <Spinner />
           <Muted size={13}>Загружаем способы оплаты</Muted>
         </View>
       ) : null}

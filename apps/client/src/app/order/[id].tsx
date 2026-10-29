@@ -13,6 +13,7 @@ import { Button, Chip, Columns, IconButton, Muted, Notice, Panel, Shell, Skeleto
 import { useShared } from "@/hooks/data";
 import { modifiersText, money, time } from "@/lib/format";
 import { PaymentWidget } from "@/components/PaymentWidget";
+import { RefreshableScrollView } from "@/components/Refreshable";
 import { closePayment, openPayment } from "@/lib/payment";
 import { useCart } from "@/store/cart";
 import { useSession } from "@/store/session";
@@ -222,7 +223,7 @@ export default function OrderScreen() {
               <Icon name="store" size={22} color={c.brandText} />
             </View>
             <View style={{ flex: 1 }}>
-              <T weight="semibold">Брайт, {order.venue.address}</T>
+              <T weight="semibold">Брайтс, {order.venue.address}</T>
               <Muted size={13}>{venuePhone}</Muted>
             </View>
             <IconButton icon="phone" label="Позвонить в кафе" tone="card" onPress={() => Linking.openURL(`tel:${venuePhone.replace(/[^+\d]/g, "")}`)} />
@@ -284,11 +285,11 @@ export default function OrderScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.surface }}>
       <ScreenHeader title={`Заказ № ${order.number}`} onBack={() => (router.canGoBack() ? router.back() : router.replace("/orders"))} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
+      <RefreshableScrollView onRefresh={load} contentContainerStyle={{ paddingBottom: 60 }}>
         <Shell>
           <Columns main={main} side={side} />
         </Shell>
-      </ScrollView>
+      </RefreshableScrollView>
     </View>
   );
 }

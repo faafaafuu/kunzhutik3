@@ -8,7 +8,7 @@ to 800×800. Modifiers, cooking times, the zone and its prices are EXAMPLE value
 designing the app: replace them with the real ones in the panel.
 """
 
-BRAND_NAME = "Брайт"
+BRAND_NAME = "Брайтс"
 
 VENUE = {
     "code": "BR",

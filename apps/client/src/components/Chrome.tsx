@@ -13,6 +13,7 @@ import { usePlace } from "@/store/place";
 import { useSession } from "@/store/session";
 import { cardShadow, floatShadow, radius, SHELL_MAX, useTheme, useWide } from "@/theme";
 
+import { BrandLogo } from "./Brand";
 import { Icon, type IconName } from "./Icon";
 import { T } from "./ui";
 
@@ -143,23 +144,7 @@ export function TopBar() {
   return (
     <View style={{ backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.line }}>
       <View style={{ width: "100%", maxWidth: SHELL_MAX, alignSelf: "center", paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 20 }}>
-        <Pressable onPress={() => router.navigate("/")} style={{ flexDirection: "row", alignItems: "center", gap: 10 }} accessibilityRole="link">
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.brand, alignItems: "center", justifyContent: "center" }}>
-            <T weight="bold" size={18} color={c.onBrand}>
-              Б
-            </T>
-          </View>
-          <View>
-            <T weight="bold" size={16}>
-              Брайт
-            </T>
-            {venue ? (
-              <T size={12} color={c.inkSoft}>
-                {venue.address}
-              </T>
-            ) : null}
-          </View>
-        </Pressable>
+        <BrandLogo size={18} subtitle={venue?.address} onPress={() => router.navigate("/")} />
         <View style={{ flexDirection: "row", gap: 4, flex: 1, marginLeft: 12 }}>
           {TABS.map((tab) => {
             const active = tab.href === current;
@@ -204,16 +189,12 @@ export function TopBar() {
 /** Phone header of the tab screens: the name on the left, sign-in or the profile on the right. */
 export function MobileHeader() {
   const { c } = useTheme();
+  const router = useRouter();
   const wide = useWide();
   if (wide) return null;
   return (
     <View style={{ width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, minHeight: 56 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c.brand }} />
-        <T weight="bold" size={22} style={{ letterSpacing: -0.5 }}>
-          Брайт
-        </T>
-      </View>
+      <BrandLogo size={22} onPress={() => router.navigate("/")} />
       <AccountButton />
     </View>
   );

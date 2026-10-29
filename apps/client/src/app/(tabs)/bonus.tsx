@@ -9,6 +9,7 @@ import { api } from "@/api/client";
 import type { Loyalty } from "@/api/types";
 import { MobileHeader, TopBar } from "@/components/Chrome";
 import { InviteFriend } from "@/components/InviteFriend";
+import { RefreshableScrollView } from "@/components/Refreshable";
 import { Button, Muted, Progress, Shell, Skeleton, T, Title } from "@/components/ui";
 import { useShared } from "@/hooks/data";
 import { dayLabel, money } from "@/lib/format";
@@ -24,10 +25,13 @@ export default function BonusScreen() {
   const config = useShared((state) => state.config);
   const [loyalty, setLoyalty] = useState<Loyalty | null>(null);
 
+  const refresh = useCallback(async () => {
+    if (signedIn) await api<Loyalty>("/loyalty/me").then(setLoyalty).catch(() => setLoyalty(null));
+  }, [signedIn]);
   useFocusEffect(
     useCallback(() => {
-      if (signedIn) api<Loyalty>("/loyalty/me").then(setLoyalty).catch(() => setLoyalty(null));
-    }, [signedIn]),
+      refresh();
+    }, [refresh]),
   );
 
   const levels = loyalty?.levels ?? config?.bonus.levels ?? [];
@@ -41,7 +45,7 @@ export default function BonusScreen() {
     <View style={{ flex: 1, backgroundColor: c.surface, paddingTop: wide ? 0 : insets.top }}>
       <TopBar />
       <MobileHeader />
-      <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
+      <RefreshableScrollView onRefresh={refresh} contentContainerStyle={{ paddingBottom: 140 }}>
         <Shell style={{ gap: 16, paddingTop: wide ? 20 : 4, maxWidth: 760 }}>
           <Title>Бонусы</Title>
 
@@ -121,7 +125,7 @@ export default function BonusScreen() {
             </View>
           ) : null}
         </Shell>
-      </ScrollView>
+      </RefreshableScrollView>
     </View>
   );
 }

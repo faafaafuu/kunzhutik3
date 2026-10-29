@@ -5,7 +5,7 @@ from app.services.geo import circle_polygon, point_in_polygon, validate_ring
 
 def test_config_has_brand_and_payment_methods(client):
     payload = client.get("/api/v1/config").json()
-    assert payload["brand_name"] == "Брайт"
+    assert payload["brand_name"] == "Брайтс"
     assert "online" not in payload["payment_methods"]
     assert payload["min_supported_app_version"]
 
