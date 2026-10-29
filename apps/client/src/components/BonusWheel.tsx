@@ -31,12 +31,14 @@ type Props = {
 
 export function BonusWheel({ items, balance, taken, onChange }: Props) {
   const { c } = useTheme();
+  // It opens on the middle dish, so there is something on both sides of the half-circle.
+  const middle = Math.floor((items.length - 1) / 2);
   const [width, setWidth] = useState(0);
-  const [selected, setSelected] = useState(0);
-  const position = useRef(new Animated.Value(0)).current;
-  const current = useRef(0);
-  const start = useRef(0);
-  const lastTick = useRef(0);
+  const [selected, setSelected] = useState(middle);
+  const position = useRef(new Animated.Value(middle)).current;
+  const current = useRef(middle);
+  const start = useRef(middle);
+  const lastTick = useRef(middle);
 
   const radius = Math.max(90, Math.min(width / 2 - SIZE / 2 - 8, 150));
   const centerX = width / 2;
@@ -170,6 +172,14 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
             );
           })}
 
+          {/* The site on a computer: a mouse does not drag the wheel, arrows turn it one dish at a time. */}
+          {native ? null : (
+            <>
+              <Arrow side="left" onPress={() => settle(Math.round(current.current) - 1)} disabled={selected === 0} top={baseline - 34} />
+              <Arrow side="right" onPress={() => settle(Math.round(current.current) + 1)} disabled={selected === items.length - 1} top={baseline - 34} />
+            </>
+          )}
+
           {/* The balance in the middle of the half-circle. */}
           <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: baseline - 62, alignItems: "center" }}>
             <T weight="bold" size={40} color={c.brandText} style={{ lineHeight: 44, letterSpacing: -1 }}>
@@ -223,6 +233,32 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
         </View>
       ) : null}
     </View>
+  );
+}
+
+function Arrow({ side, onPress, disabled, top }: { side: "left" | "right"; onPress: () => void; disabled: boolean; top: number }) {
+  const { c } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={side === "left" ? "Предыдущее блюдо" : "Следующее блюдо"}
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => ({
+        position: "absolute",
+        top,
+        [side]: 0,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: c.surfaceSunken,
+        opacity: disabled ? 0.3 : pressed ? 0.6 : 1,
+      })}
+    >
+      <Icon name={side === "left" ? "back" : "right"} size={16} color={c.ink} />
+    </Pressable>
   );
 }
 
