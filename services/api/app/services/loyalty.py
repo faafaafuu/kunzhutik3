@@ -75,7 +75,18 @@ def on_order_completed(db: Session, order: Order) -> None:
     amount = accrual_for(base, percent_for(db, order.customer_id))
     if amount > 0:
         db.add(BonusTransaction(customer_id=order.customer_id, order_id=order.id, kind="accrual", amount=amount, comment=f"Заказ № {order.number}"))
+    _welcome_after_first_order(db, order)
     _reward_referral(db, order)
+
+
+def _welcome_after_first_order(db: Session, order: Order) -> None:
+    """An account opened by an order (the phone was never confirmed) gets the welcome bonus only once that order is
+    done: an order placed and cancelled leaves nothing. Committed with the order's status change."""
+    if settings.welcome_bonus <= 0:
+        return
+    if db.query(BonusTransaction.id).filter(BonusTransaction.customer_id == order.customer_id, BonusTransaction.kind == "welcome").first():
+        return
+    db.add(BonusTransaction(customer_id=order.customer_id, order_id=order.id, kind="welcome", amount=settings.welcome_bonus, comment="Приветственные бонусы"))
 
 
 # ---------- welcome bonus and invite-a-friend ----------

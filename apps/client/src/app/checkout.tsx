@@ -40,6 +40,9 @@ export default function CheckoutScreen() {
   const signedIn = Boolean(session.tokens);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
   const [slotsOpen, setSlotsOpen] = useState(false);
+  // Hooks stay above the early returns below (an emptied cart after the order must not change their count).
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const spots = useRef<Record<string, number>>({});
   // The consent boxes. A customer who ticked them for the current edition of the documents is not asked again.
   const [agreements, setAgreements] = useState(noAgreements);
   const consentVersion = useSession((state) => state.consentVersion);
@@ -100,8 +103,6 @@ export default function CheckoutScreen() {
           : null;
   const blocked = !quote || quoting || (!quote.can_order && !missing);
 
-  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
-  const spots = useRef<Record<string, number>>({});
   const mark = (key: string) => (event: LayoutChangeEvent) => {
     spots.current[key] = event.nativeEvent.layout.y;
   };

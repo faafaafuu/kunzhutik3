@@ -43,15 +43,25 @@ def test_welcome_bonus_is_given_once_on_the_first_sign_in(client, programme, db)
     assert balance(client, auth) == 200
 
 
-def test_welcome_bonus_with_the_account_made_by_the_first_order(client, menu, programme):
-    lines = [poke_line(menu, quantity=2)]
-    body = order_body(lines, quote(client, lines)["total_amount"], customer_phone="+79001110002")
-    account = client.post("/api/v1/orders", json=body).json()["account"]
-    auth = {"Authorization": f"Bearer {account['tokens']['access_token']}"}
-    assert balance(client, auth) == 200
-    # A phone we already know is not signed in by an order, so it gets nothing from it.
-    second = client.post("/api/v1/orders", json={**body, "expected_total": body["expected_total"]}).json()
-    assert second["account"] is None
+def test_welcome_bonus_of_an_account_opened_by_an_order_comes_only_when_it_is_done(operator_client, menu, programme):
+    client = operator_client
+
+    def first_order(phone):
+        lines = [poke_line(menu, quantity=2)]
+        created = client.post("/api/v1/orders", json=order_body(lines, quote(client, lines)["total_amount"], customer_phone=phone)).json()
+        return created["order"], {"Authorization": f"Bearer {created['account']['tokens']['access_token']}"}
+
+    cancelled, auth = first_order("+79001110002")
+    assert balance(client, auth) == 0  # nothing yet for an order that is only placed
+    client.post(f"/api/v1/orders/{cancelled['id']}/cancel", json={"reason": ""})
+    assert balance(client, auth) == 0  # and nothing for a cancelled one
+
+    done, auth = first_order("+79001110005")
+    for status in ("confirmed", "preparing", "ready", "delivering", "completed"):
+        client.post(f"/api/v1/admin/orders/{done['id']}/transition", json={"to": status})
+    assert balance(client, auth) == 200 + 3 * 1300 // 100  # welcome + 3 % of the order
+    history = client.get("/api/v1/loyalty/me", headers=headers(auth)).json()["history"]
+    assert sorted(row["kind"] for row in history) == ["accrual", "welcome"]
 
 
 def test_welcome_bonus_can_be_switched_off(client, monkeypatch):

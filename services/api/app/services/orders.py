@@ -35,7 +35,8 @@ STAFF_TRANSITIONS: dict[str, tuple[str, ...]] = {
     "ready": ("delivering", "completed", "cancelled"),
     "delivering": ("completed", "cancelled"),
 }
-CUSTOMER_CANCELLABLE = ("pending_payment", "new", "confirmed")
+# The customer cancels only until the cafe has accepted the order; after that — by phone with the cafe.
+CUSTOMER_CANCELLABLE = ("pending_payment", "new")
 
 TIMESTAMP_FIELDS = {
     "confirmed": "confirmed_at",
@@ -217,7 +218,7 @@ def transition(
         allowed = staff_next_statuses(order)
     if to_status not in allowed:
         if by_customer:
-            raise ApiError("cancel_not_allowed", "Заказ уже готовится — отменить можно по телефону кафе", status=409)
+            raise ApiError("cancel_not_allowed", "Кафе уже приняло заказ — отменить можно по телефону кафе", status=409)
         raise ApiError(
             "invalid_transition",
             f"Нельзя перевести заказ из «{STATUS_LABELS[order.status]}» в «{STATUS_LABELS[to_status]}»",

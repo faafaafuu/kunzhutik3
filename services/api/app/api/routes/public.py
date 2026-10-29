@@ -158,7 +158,7 @@ def post_order(
     account = None
     if new_account:
         owner = db.get(Customer, order.customer_id)
-        loyalty.grant_welcome(db, owner)
+        # No welcome bonus yet: it comes when this order is done (loyalty.on_order_completed), not for a cancelled one.
         if payload.referral_code:
             try:
                 loyalty.apply_referral(db, owner, payload.referral_code)

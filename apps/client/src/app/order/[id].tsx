@@ -147,7 +147,7 @@ export default function OrderScreen() {
             Кабинет открыт
           </Title>
           <Muted style={{ textAlign: "center" }}>
-            {welcomed.bonus > 0 ? `На счёт уже упало ${welcomed.bonus} бонусов — ими можно оплатить часть следующего заказа. ` : ""}
+            {welcomed.bonus > 0 ? `${welcomed.bonus} приветственных бонусов придут, когда заказ будет выполнен. ` : ""}
             Заказы, адреса и бонусы теперь сохраняются.
           </Muted>
           <View style={{ flexDirection: "row", gap: 8, alignSelf: "stretch" }}>

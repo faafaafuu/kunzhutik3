@@ -160,3 +160,17 @@ def test_pickup_order_skips_delivering(operator_client, menu):
 
 def test_orders_require_an_operator(client):
     assert client.get("/api/v1/admin/orders").status_code == 401
+
+
+def test_the_customer_cancels_only_until_the_cafe_accepts(operator_client, menu):
+    client = operator_client
+    lines = [poke_line(menu, quantity=2)]
+    first = client.post("/api/v1/orders", json=order_body(lines, quote(client, lines)["total_amount"])).json()["order"]
+    assert first["can_cancel"]
+    assert client.post(f"/api/v1/orders/{first['id']}/cancel", json={"reason": ""}).json()["order"]["status"] == "cancelled"
+
+    second = client.post("/api/v1/orders", json=order_body(lines, quote(client, lines)["total_amount"])).json()["order"]
+    accepted = client.post(f"/api/v1/admin/orders/{second['id']}/transition", json={"to": "confirmed"}).json()["order"]
+    assert accepted["can_cancel"] is False
+    refused = client.post(f"/api/v1/orders/{second['id']}/cancel", json={"reason": ""})
+    assert refused.status_code == 409 and refused.json()["error"]["code"] == "cancel_not_allowed"
