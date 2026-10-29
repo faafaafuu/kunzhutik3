@@ -24,7 +24,6 @@ export type CartLine = {
 type Cart = {
   lines: CartLine[];
   promo: string;
-  useBonus: boolean;
   // Dishes taken free for bonuses on the checkout wheel (menu item ids, one portion each).
   rewards: string[];
   add: (item: MenuItem, modifiers?: CartModifier[], quantity?: number) => void;
@@ -32,7 +31,6 @@ type Cart = {
   remove: (key: string) => void;
   clear: () => void;
   setPromo: (promo: string) => void;
-  setUseBonus: (value: boolean) => void;
   setRewards: (rewards: string[]) => void;
   repeat: (lines: Omit<QuoteLine, "is_available">[], menu: MenuItem[]) => number;
 };
@@ -51,7 +49,6 @@ export const useCart = create<Cart>()(
     (set, get) => ({
       lines: [],
       promo: "",
-      useBonus: false,
       rewards: [],
       add: (item, modifiers = [], quantity = 1) => {
         const key = lineKey(item.id, modifiers);
@@ -83,9 +80,8 @@ export const useCart = create<Cart>()(
           lines: quantity <= 0 ? get().lines.filter((line) => line.key !== key) : get().lines.map((line) => (line.key === key ? { ...line, quantity: Math.min(50, quantity) } : line)),
         }),
       remove: (key) => set({ lines: get().lines.filter((line) => line.key !== key) }),
-      clear: () => set({ lines: [], promo: "", useBonus: false, rewards: [] }),
+      clear: () => set({ lines: [], promo: "", rewards: [] }),
       setPromo: (promo) => set({ promo }),
-      setUseBonus: (useBonus) => set({ useBonus }),
       setRewards: (rewards) => set({ rewards }),
       repeat: (orderLines, menu) => {
         // Puts a past order back in the cart; dishes that are gone or sold out are skipped.
@@ -106,7 +102,7 @@ export const useCart = create<Cart>()(
         return added;
       },
     }),
-    { name: "bright-cart", storage: persistStorage, partialize: (state) => ({ lines: state.lines, promo: state.promo, useBonus: state.useBonus, rewards: state.rewards }) },
+    { name: "bright-cart", storage: persistStorage, partialize: (state) => ({ lines: state.lines, promo: state.promo, rewards: state.rewards }) },
   ),
 );
 

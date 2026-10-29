@@ -24,6 +24,9 @@ export const RefreshableScrollView = forwardRef<React.ComponentRef<typeof Scroll
   const [refreshing, setRefreshing] = useState(false);
   const inner = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const pull = useRef(new Animated.Value(0)).current;
+  // 1 while refreshing. Kept as its own animated value: switching the spinner's style between a plain number and an
+  // animation leaves the web view on the old number, and the spinner then never went away.
+  const busy = useRef(new Animated.Value(0)).current;
 
   const running = useRef(false);
 
@@ -71,6 +74,10 @@ export const RefreshableScrollView = forwardRef<React.ComponentRef<typeof Scroll
     };
   }, [pull, run]);
 
+  useEffect(() => {
+    Animated.timing(busy, { toValue: refreshing ? 1 : 0, duration: refreshing ? 120 : 200, useNativeDriver: false }).start();
+  }, [busy, refreshing]);
+
   const setRef = (value: React.ComponentRef<typeof ScrollView> | null) => {
     inner.current = value;
     if (typeof ref === "function") ref(value);
@@ -84,7 +91,11 @@ export const RefreshableScrollView = forwardRef<React.ComponentRef<typeof Scroll
       </ScrollView>
     );
   }
-  const shown = refreshing ? 1 : pull.interpolate({ inputRange: [0, PULL], outputRange: [0, 1], extrapolate: "clamp" });
+  const shown = Animated.add(pull.interpolate({ inputRange: [0, PULL], outputRange: [0, 1], extrapolate: "clamp" }), busy).interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
   return (
     <View style={{ flex: 1 }}>
       <Animated.View pointerEvents="none" style={{ position: "absolute", top: 8, left: 0, right: 0, alignItems: "center", zIndex: 5, opacity: shown, transform: [{ scale: shown }] }}>

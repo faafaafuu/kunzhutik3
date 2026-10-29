@@ -84,7 +84,7 @@ def test_addresses_crud_and_default(client):
     assert client.delete(f"/api/v1/me/addresses/{first['id']}", headers=headers(other)).status_code == 404
 
 
-def test_bonuses_accrue_on_completion_and_pay_part_of_the_next_order(operator_client, menu):
+def test_bonuses_accrue_on_completion_and_do_not_pay_part_of_an_order(operator_client, menu):
     client = operator_client
     auth = sign_in(client)
     poke = menu["poke-salmon"]
@@ -101,17 +101,17 @@ def test_bonuses_accrue_on_completion_and_pay_part_of_the_next_order(operator_cl
         json={"fulfillment": "pickup", "items": [line], "use_bonus": True},
         headers=headers(auth),
     ).json()
-    assert quoted["bonus_spent"] == "39.00"
-    assert quoted["total_amount"] == "1261.00"
+    # Bonuses only buy dishes from the wheel: an old app asking to pay with them gets the full price.
+    assert quoted["bonus_spent"] == "0.00"
+    assert quoted["total_amount"] == "1300.00"
     paid = client.post(
         "/api/v1/orders",
-        json=order_body([line], "1261.00", fulfillment="pickup", address=None, use_bonus=True),
+        json=order_body([line], "1300.00", fulfillment="pickup", address=None, use_bonus=True),
         headers=headers(auth),
     ).json()["order"]
-    assert client.get("/api/v1/loyalty/me", headers=headers(auth)).json()["balance"] == "0.00"
+    assert client.get("/api/v1/loyalty/me", headers=headers(auth)).json()["balance"] == "39.00"
     cancelled = client.post(f"/api/v1/orders/{paid['id']}/cancel", json={})
     assert cancelled.status_code == 200, cancelled.text
-    assert client.get("/api/v1/loyalty/me", headers=headers(auth)).json()["balance"] == "39.00"
     history = client.get("/api/v1/me/orders", headers=headers(auth)).json()["orders"]
     assert len(history) == 2
 

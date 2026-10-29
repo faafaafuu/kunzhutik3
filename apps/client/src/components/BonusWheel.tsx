@@ -1,6 +1,7 @@
 // The bonus wheel at checkout: a half-circle of dishes that can be taken free for bonuses, the balance in its middle.
-// Drag it sideways like the iOS time picker: it clicks on every dish passing the top (a haptic tick in the app, a
-// short click sound on the site) and settles on the nearest one. The dish at the top is the one the button takes.
+// Drag it sideways like the iOS time picker — a finger, or on a computer the mouse and the wheel/trackpad: it clicks
+// on every dish passing the top (a haptic tick in the app, a short click sound on the site) and settles on the
+// nearest one. The dish at the top is the one the button takes.
 
 import { Image } from "expo-image";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,6 +19,8 @@ const SIZE = 64; // a dish on the rim
 const STEP = 30; // degrees between neighbours: ~6 on the visible half
 const MAX_TAKEN = 5; // as many as the server takes in one order
 const native = Platform.OS !== "web";
+// Dragging the wheel must not select its text or call up "Скопировать" on a long press.
+const NO_SELECT = (native ? {} : { userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }) as object;
 
 // Samples of the position relative to the top (in dishes): the curves below are interpolated between them.
 const SAMPLES = Array.from({ length: 33 }, (_, index) => -4 + index * 0.25);
@@ -56,8 +59,8 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
           translateX: at((deg) => centerX + radius * Math.cos((deg * Math.PI) / 180) - SIZE / 2),
           translateY: at((deg) => baseline - radius * Math.sin((deg * Math.PI) / 180) - SIZE / 2),
           // Fades out towards the ends of the half-circle.
-          opacity: at((_, r) => Math.max(0, 1 - Math.abs(r) / 2.9) ** 1.4),
-          scale: at((_, r) => Math.max(0.62, 1.12 - Math.abs(r) * 0.2)),
+          opacity: at((_, r) => (Math.abs(r) <= 1.5 ? 1 : Math.max(0, 1 - (Math.abs(r) - 1.5) / 1.3))),
+          scale: at((_, r) => Math.max(0.7, 1.15 - Math.abs(r) * 0.17)),
         };
       }),
     [items, position, centerX, radius, baseline],
@@ -114,6 +117,69 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
     [perDish, items.length],
   );
 
+  // The site: the responder system follows fingers, not a mouse — drag with the mouse and turn with the wheel here.
+  const surface = useRef<React.ComponentRef<typeof View>>(null);
+  // A mouse drag ends with a click on whatever dish is under the pointer: that click must not turn the wheel back.
+  const dragged = useRef(false);
+  useEffect(() => {
+    if (native) return;
+    const node = surface.current as unknown as HTMLElement | null;
+    if (!node?.addEventListener) return;
+    let from: number | null = null;
+    let last = 0;
+    let lastAt = 0;
+    let speed = 0;
+    const down = (event: MouseEvent) => {
+      if (event.button !== 0) return;
+      position.stopAnimation();
+      unlockSound();
+      from = event.clientX;
+      start.current = current.current;
+      last = event.clientX;
+      lastAt = event.timeStamp;
+      speed = 0;
+      dragged.current = false;
+      event.preventDefault();
+    };
+    const move = (event: MouseEvent) => {
+      if (from === null) return;
+      if (Math.abs(event.clientX - from) > 5) dragged.current = true;
+      const dt = Math.max(1, event.timeStamp - lastAt);
+      speed = (event.clientX - last) / dt;
+      last = event.clientX;
+      lastAt = event.timeStamp;
+      position.setValue(Math.min(items.length - 0.7, Math.max(-0.3, start.current - (event.clientX - from) / perDish)));
+    };
+    const up = () => {
+      if (from === null) return;
+      from = null;
+      settle(Math.round(current.current - (speed * 250) / perDish));
+    };
+    let wheelTimer: ReturnType<typeof setTimeout> | undefined;
+    const wheel = (event: WheelEvent) => {
+      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+      if (!delta) return;
+      event.preventDefault();
+      unlockSound();
+      position.stopAnimation();
+      position.setValue(Math.min(items.length - 1, Math.max(0, current.current + delta / perDish)));
+      clearTimeout(wheelTimer);
+      wheelTimer = setTimeout(() => settle(Math.round(current.current)), 120);
+    };
+    node.addEventListener("mousedown", down);
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    node.addEventListener("wheel", wheel, { passive: false });
+    return () => {
+      node.removeEventListener("mousedown", down);
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      node.removeEventListener("wheel", wheel);
+      clearTimeout(wheelTimer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [perDish, items.length, width]);
+
   if (!items.length) return null;
 
   const take = () => {
@@ -132,7 +198,7 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
       </View>
 
       {width ? (
-        <View {...pan.panHandlers} style={{ height: baseline + 8, overflow: "hidden" }}>
+        <View ref={surface} {...pan.panHandlers} style={[{ height: baseline + 8, overflow: "hidden" }, NO_SELECT]}>
           {/* The rim: a thin half-circle the dishes ride on. */}
           <View
             pointerEvents="none"
@@ -146,7 +212,10 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
             const affordable = (item.bonus_price ?? 0) <= left;
             return (
               <Animated.View key={item.id} style={{ position: "absolute", left: 0, top: 0, width: SIZE, transform: [{ translateX }, { translateY }, { scale }], opacity }}>
-                <Pressable accessibilityRole="button" accessibilityLabel={`${item.title}, ${item.bonus_price} бонусов`} onPress={() => settle(index)} style={{ alignItems: "center" }}>
+                <Pressable accessibilityRole="button" accessibilityLabel={`${item.title}, ${item.bonus_price} бонусов`} onPress={() => {
+                    if (dragged.current) dragged.current = false;
+                    else settle(index);
+                  }} style={{ alignItems: "center" }}>
                   <View
                     style={{
                       width: SIZE,
@@ -156,8 +225,9 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
                       backgroundColor: c.surfaceSunken,
                       borderWidth: index === selected ? 3 : 0,
                       borderColor: c.brand,
-                      opacity: affordable ? 1 : 0.4,
+                      opacity: affordable ? 1 : 0.55,
                     }}
+                    pointerEvents="none"
                   >
                     {item.image_url ? (
                       <Image source={{ uri: thumbUrl(item.image_url) }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
@@ -167,18 +237,15 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
                       </View>
                     )}
                   </View>
+                  <View style={{ marginTop: 4, paddingHorizontal: 7, paddingVertical: 1, borderRadius: 999, backgroundColor: affordable ? c.brandSoft : c.surfaceSunken }}>
+                    <T size={11} weight="semibold" color={affordable ? c.brandText : c.inkSoft}>
+                      {item.bonus_price}
+                    </T>
+                  </View>
                 </Pressable>
               </Animated.View>
             );
           })}
-
-          {/* The site on a computer: a mouse does not drag the wheel, arrows turn it one dish at a time. */}
-          {native ? null : (
-            <>
-              <Arrow side="left" onPress={() => settle(Math.round(current.current) - 1)} disabled={selected === 0} top={baseline - 34} />
-              <Arrow side="right" onPress={() => settle(Math.round(current.current) + 1)} disabled={selected === items.length - 1} top={baseline - 34} />
-            </>
-          )}
 
           {/* The balance in the middle of the half-circle. */}
           <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: baseline - 62, alignItems: "center" }}>
@@ -193,7 +260,7 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
       )}
 
       {dish ? (
-        <View style={{ alignItems: "center", gap: 8 }}>
+        <View style={[{ gap: 10 }, NO_SELECT]}>
           <View style={{ alignItems: "center" }}>
             <T weight="semibold" style={{ textAlign: "center" }}>
               {dish.title}
@@ -203,6 +270,7 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
             </Muted>
           </View>
           <Button
+            block
             title={taken.length >= MAX_TAKEN ? "Больше не поместится" : price > left ? `Не хватает ${price - left} бонусов` : "Взять бесплатно"}
             disabled={price > left || taken.length >= MAX_TAKEN}
             onPress={take}
@@ -236,32 +304,6 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
   );
 }
 
-function Arrow({ side, onPress, disabled, top }: { side: "left" | "right"; onPress: () => void; disabled: boolean; top: number }) {
-  const { c } = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={side === "left" ? "Предыдущее блюдо" : "Следующее блюдо"}
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => ({
-        position: "absolute",
-        top,
-        [side]: 0,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: c.surfaceSunken,
-        opacity: disabled ? 0.3 : pressed ? 0.6 : 1,
-      })}
-    >
-      <Icon name={side === "left" ? "back" : "right"} size={16} color={c.ink} />
-    </Pressable>
-  );
-}
-
 // ---- the click ----
 
 let audio: AudioContext | null = null;
@@ -284,11 +326,13 @@ function tick(): void {
   const now = audio.currentTime;
   const tone = audio.createOscillator();
   const gain = audio.createGain();
-  tone.type = "square";
-  tone.frequency.setValueAtTime(1900, now);
-  gain.gain.setValueAtTime(0.05, now);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.012);
+  // A low, short "tok" — closer to the iOS picker than a beep.
+  tone.type = "triangle";
+  tone.frequency.setValueAtTime(520, now);
+  tone.frequency.exponentialRampToValueAtTime(260, now + 0.018);
+  gain.gain.setValueAtTime(0.12, now);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
   tone.connect(gain).connect(audio.destination);
   tone.start(now);
-  tone.stop(now + 0.015);
+  tone.stop(now + 0.025);
 }

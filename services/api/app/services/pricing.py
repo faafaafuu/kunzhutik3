@@ -149,9 +149,8 @@ def quote(db: Session, request: QuoteRequest, *, customer: Customer | None = Non
     rewards = _reward_lines(db, request, venue, customer, bonus_available, problems)
     bonus_rewards = Decimal(sum(line.bonus_price or 0 for line in rewards))
     lines += rewards
-    if customer and request.use_bonus:
-        # The dishes for bonuses come first; what is left may pay part of the money total.
-        bonus_spent = loyalty.max_redeem(after_discount, max(Decimal(0), bonus_available - bonus_rewards))
+    # Bonuses are not money off the order: they are exchanged only for dishes from the wheel (rewards above).
+    # request.use_bonus is still accepted from older app builds and does nothing.
 
     delivery_fee: Decimal | None = Decimal(0)
     if request.fulfillment == "delivery":

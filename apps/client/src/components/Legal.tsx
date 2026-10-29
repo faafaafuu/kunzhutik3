@@ -7,7 +7,7 @@ import { Platform, View } from "react-native";
 import { assetUrl } from "@/api/client";
 import { useTheme } from "@/theme";
 
-import { Checkbox, Muted, T } from "./ui";
+import { Muted, T } from "./ui";
 
 export const LEGAL_LINKS = [
   { path: "/legal", title: "Реквизиты и контакты" },
@@ -46,43 +46,15 @@ export function LegalFooter() {
   );
 }
 
-/** For a customer who has already ticked the consent: a line with the documents, no boxes. */
-export function ConsentNote() {
+/**
+ * The consent as one line under the button that sends the data (sign-in, a guest's order): pressing it is the
+ * agreement, like in Drinkit or Яндекс Еда. The documents are listed on /legal/documents; the consent to personal data
+ * is its own document there, promotions are asked for separately (the «Акции» switch in the notifications).
+ */
+export function AgreementLine({ action }: { action: string }) {
   return (
-    <Muted size={12}>
-      Оформляя заказ, вы принимаете условия <LegalLink path="/legal/offer" title="оферты" size={12} /> и{" "}
-      <LegalLink path="/legal/delivery" title="доставки" size={12} />. Согласие на обработку данных уже дано,{" "}
-      <LegalLink path="/legal/privacy" title="подробнее" size={12} />.
+    <Muted size={12} style={{ textAlign: "center" }}>
+      {action}, вы соглашаетесь с <LegalLink path="/legal/documents" title="документами и соглашениями" size={12} />
     </Muted>
   );
-}
-
-export type Agreements = { offer: boolean; data: boolean; ads: boolean };
-export const noAgreements: Agreements = { offer: false, data: false, ads: false };
-
-/**
- * The boxes of the consent: the offer (checkout only) and personal data processing are required and start unticked,
- * promotions are optional and start unticked too. A separate document for each, as the law asks.
- */
-export function ConsentChecks({ value, onChange, withOffer }: { value: Agreements; onChange: (value: Agreements) => void; withOffer?: boolean }) {
-  return (
-    <View style={{ gap: 12 }}>
-      {withOffer ? (
-        <Checkbox checked={value.offer} onChange={(offer) => onChange({ ...value, offer })}>
-          Принимаю условия <LegalLink path="/legal/offer" title="оферты" size={14} /> и <LegalLink path="/legal/delivery" title="доставки" size={14} />
-        </Checkbox>
-      ) : null}
-      <Checkbox checked={value.data} onChange={(data) => onChange({ ...value, data })}>
-        Даю <LegalLink path="/legal/consent" title="согласие на обработку персональных данных" size={14} /> на условиях <LegalLink path="/legal/privacy" title="политики" size={14} />
-      </Checkbox>
-      <Checkbox checked={value.ads} onChange={(ads) => onChange({ ...value, ads })}>
-        Хочу получать акции и новости (необязательно)
-      </Checkbox>
-    </View>
-  );
-}
-
-/** The boxes that must be ticked before the customer may go on. */
-export function agreed(value: Agreements, withOffer?: boolean): boolean {
-  return value.data && (!withOffer || value.offer);
 }

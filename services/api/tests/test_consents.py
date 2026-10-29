@@ -63,3 +63,19 @@ def test_sign_in_through_telegram_and_google_needs_the_consent(client, monkeypat
     assert "login_error=consent_required" in refused.headers["location"]
     allowed = client.get("/auth/google/start", params={"consent": "true"}, follow_redirects=False)
     assert "accounts.google.com" in urlparse(allowed.headers["location"]).netloc
+
+
+def test_switching_promotions_on_records_the_marketing_consent(client, db):
+    from app.models.customer import Consent
+    from tests.test_accounts import headers, sign_in
+
+    auth = sign_in(client, "+79005556677")
+    assert client.patch("/api/v1/me", json={"notify_promo": True}, headers=headers(auth)).json()["customer"]["notify_promo"] is True
+    kinds = [row.kind for row in db.query(Consent).filter(Consent.context == "profile").all()]
+    assert kinds == ["marketing"]
+
+
+def test_documents_page_lists_every_document(client):
+    page = client.get("/legal/documents").text
+    for path in ("/legal/offer", "/legal/privacy", "/legal/consent", "/legal/bonus"):
+        assert f'href="{path}"' in page

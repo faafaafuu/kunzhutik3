@@ -1,8 +1,10 @@
 """Consent to personal data processing (152-ФЗ, ст. 9) and to marketing messages (38-ФЗ «О рекламе», ст. 18).
 
-The checkbox is ticked by the person, the server refuses to go on without it, and every consent is written down with
-the version of the documents it was given for. Raise DOCUMENT_VERSION whenever the consent or the policy changes
-in substance: people then tick again.
+Personal data: given by an action — pressing «Получить код» / «Войти» / «Оформить заказ» under the line «…вы
+соглашаетесь с документами и соглашениями» (the consent itself is its own document, /legal/consent). The server
+refuses to go on without it, and every consent is written down with the version of the documents it was given for.
+Marketing: only by switching «Акции» on in the notifications (never pre-ticked, never bundled with the rest).
+Raise DOCUMENT_VERSION whenever the consent or the policy changes in substance.
 """
 
 from __future__ import annotations

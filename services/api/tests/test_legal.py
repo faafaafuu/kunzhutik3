@@ -49,7 +49,8 @@ def test_bonus_rules_follow_the_settings(client, monkeypatch):
     monkeypatch.setattr(settings, "referral_referrer_bonus", 222)
     page = client.get("/legal/bonus").text
     assert "333 бонусов" in page and "111 бонусов" in page and "222 бонусов" in page
-    assert f"{settings.bonus_max_redeem_percent} %" in page
+    # Bonuses are exchanged for dishes, they do not pay part of an order.
+    assert "Обмен бонусов" in page and "частью стоимости заказа ими не платят" in page
     monkeypatch.setattr(settings, "referral_friend_bonus", 0)
     monkeypatch.setattr(settings, "referral_referrer_bonus", 0)
     assert "не действует" in client.get("/legal/bonus").text

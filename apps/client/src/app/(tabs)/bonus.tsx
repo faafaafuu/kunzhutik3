@@ -35,7 +35,6 @@ export default function BonusScreen() {
   );
 
   const levels = loyalty?.levels ?? config?.bonus.levels ?? [];
-  const maxRedeem = loyalty?.max_redeem_percent ?? config?.bonus.max_redeem_percent ?? 30;
   const lowest = levels[0]?.percent ?? 3;
   const highest = levels[levels.length - 1]?.percent ?? 7;
   const progress = loyalty?.next_level ? (Number(loyalty.spent_90_days) / loyalty.next_level.threshold) * 100 : 100;
@@ -62,8 +61,8 @@ export default function BonusScreen() {
             )}
             <T size={14} color={c.inkSoft} style={{ textAlign: "center", maxWidth: 420 }}>
               {loyalty
-                ? `1 бонус = 1 ₽. Начисляем ${loyalty.level.percent}% с заказа, оплатить можно до ${maxRedeem}% следующего.`
-                : `1 бонус = 1 ₽. ${config?.bonus.welcome ? `${config.bonus.welcome} бонусов сразу за регистрацию, дальше ` : ""}копите с каждого заказа и оплачивайте до ${maxRedeem}% следующего.`}
+                ? `Начисляем ${loyalty.level.percent}% с заказа. Бонусы меняются на напитки и десерты — выберите их на колесе при оформлении заказа.`
+                : `${config?.bonus.welcome ? `${config.bonus.welcome} бонусов сразу за регистрацию, дальше ` : ""}копите с каждого заказа и меняйте на напитки и десерты при оформлении.`}
             </T>
             {loyalty?.next_level && loyalty.to_next_level ? (
               <View style={{ alignSelf: "stretch", gap: 6, marginTop: 8 }}>

@@ -199,8 +199,8 @@ def test_dish_for_bonuses_costs_bonuses_not_money(client, db, menu):
     reward = [line for line in result["items"] if line["bonus_price"]]
     assert reward and reward[0]["line_total"] == "0.00" and reward[0]["title"] == "Эклер"
     assert result["items_total"] == "1300.00" and result["bonus_rewards"] == "180.00"
-    # The rest of the balance (820) still pays up to 30% of the money part.
-    assert result["bonus_spent"] == "390.00"
+    # Nothing else comes off the money total.
+    assert result["bonus_spent"] == "0.00" and result["total_amount"] == "1300.00"
 
     before = float(client.get("/api/v1/loyalty/me", headers=headers).json()["balance"])
     order_request = order_body([poke_line(menu, quantity=2)], result["total_amount"], fulfillment="pickup", customer_phone="+79005550101", rewards=[eclair["id"]], use_bonus=True)
@@ -208,8 +208,8 @@ def test_dish_for_bonuses_costs_bonuses_not_money(client, db, menu):
     order = client.post("/api/v1/orders", json=order_request, headers=headers)
     assert order.status_code == 201, order.text
     assert order.json()["order"]["bonus_rewards"] == "180.00"
-    assert float(client.get("/api/v1/loyalty/me", headers=headers).json()["balance"]) == before - 180 - 390
-    # Cancelled before the cafe took it: both the 180 and the 390 come back.
+    assert float(client.get("/api/v1/loyalty/me", headers=headers).json()["balance"]) == before - 180
+    # Cancelled before the cafe took it: the 180 come back.
     order_id = order.json()["order"]["id"]
     assert client.post(f"/api/v1/orders/{order_id}/cancel", json={}, headers=headers).status_code == 200
     assert float(client.get("/api/v1/loyalty/me", headers=headers).json()["balance"]) == before

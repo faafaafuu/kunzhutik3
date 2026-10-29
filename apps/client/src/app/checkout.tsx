@@ -9,7 +9,7 @@ import type { Customer, Order, PaymentMethod, Quote, SavedAddress, Tokens } from
 import { CartLines, quoteRows } from "@/components/CartLines";
 import { ScreenHeader } from "@/components/Chrome";
 import { Icon } from "@/components/Icon";
-import { agreed, ConsentChecks, ConsentNote, noAgreements } from "@/components/Legal";
+import { AgreementLine } from "@/components/Legal";
 import { toast } from "@/components/Toast";
 import { BonusWheel } from "@/components/BonusWheel";
 import { Button, Columns, Field, LinkButton, Muted, Notice, OptionRow, Panel, Segmented, Shell, StateView, T, Title, Toggle, Totals } from "@/components/ui";
@@ -35,8 +35,6 @@ export default function CheckoutScreen() {
   const { c } = useTheme();
   const config = useShared((state) => state.config);
   const lines = useCart((state) => state.lines);
-  const useBonus = useCart((state) => state.useBonus);
-  const setUseBonus = useCart((state) => state.setUseBonus);
   const rewards = useCart((state) => state.rewards);
   const setRewards = useCart((state) => state.setRewards);
   const menuItems = useShared((state) => state.menu?.items);
@@ -50,8 +48,6 @@ export default function CheckoutScreen() {
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const spots = useRef<Record<string, number>>({});
   // The consent boxes. A customer who ticked them for the current edition of the documents is not asked again.
-  const [agreements, setAgreements] = useState(noAgreements);
-  const consentVersion = useSession((state) => state.consentVersion);
   const { quote, quoting, error } = useQuote({ scheduledFor });
   const [name, setName] = useState(session.customer?.name || session.guest.name);
   const [phone, setPhone] = useState(session.customer?.phone ? maskPhone(session.customer.phone) : session.guest.phone);
@@ -116,18 +112,12 @@ export default function CheckoutScreen() {
   const outOfZone = problems.some((problem) => problem.code === "out_of_delivery_zone");
   const closed = problems.find((problem) => problem.code === "venue_closed");
   const otherProblems = problems.filter((problem) => !["out_of_delivery_zone", "address_required", "venue_closed"].includes(problem.code));
-  const balance = Number(quote?.bonus_available ?? 0);
-  const needsConsent = !config?.consent_version || consentVersion !== config.consent_version;
+  // Signed in: the documents were accepted at sign-in. A guest accepts them by placing the order (the line under the
+  // button) — no boxes either way.
   // What still has to be filled in, in the order it appears on the screen. Tapping the button then scrolls there
   // instead of doing nothing; the button is off only while the price is being counted or the venue cannot take it.
-  const missing: "contacts" | "address" | "consent" | null =
-    !signedIn && (!name.trim() || !phoneComplete(phone))
-      ? "contacts"
-      : delivery && (!place.address || outOfZone || detailsMissing)
-        ? "address"
-        : needsConsent && !agreed(agreements, true)
-          ? "consent"
-          : null;
+  const missing: "contacts" | "address" | null =
+    !signedIn && (!name.trim() || !phoneComplete(phone)) ? "contacts" : delivery && (!place.address || outOfZone || detailsMissing) ? "address" : null;
   const blocked = !quote || quoting || (!quote.can_order && !missing);
 
   const mark = (key: string) => (event: LayoutChangeEvent) => {
@@ -137,9 +127,8 @@ export default function CheckoutScreen() {
     if (!missing) return;
     setTouched(true);
     Keyboard.dismiss();
-    if (missing === "consent") scroll.current?.scrollToEnd({ animated: true });
-    else scroll.current?.scrollTo({ y: Math.max(0, (spots.current[missing] ?? 0) - 12), animated: true });
-    toast(missing === "contacts" ? "Укажите имя и телефон" : missing === "address" ? (place.address ? "Проверьте адрес и квартиру" : "Укажите адрес доставки") : "Отметьте согласие с условиями", "bad");
+    scroll.current?.scrollTo({ y: Math.max(0, (spots.current[missing] ?? 0) - 12), animated: true });
+    toast(missing === "contacts" ? "Укажите имя и телефон" : place.address ? "Проверьте адрес и квартиру" : "Укажите адрес доставки", "bad");
   };
 
   const submit = async (expected?: string) => {
@@ -151,7 +140,6 @@ export default function CheckoutScreen() {
         ...buildQuoteBody({
           lines,
           promo: useCart.getState().promo,
-          useBonus: useBonus && signedIn,
           rewards: signedIn ? useCart.getState().rewards : [],
           fulfillment: place.fulfillment,
           address: place.address,
@@ -168,12 +156,11 @@ export default function CheckoutScreen() {
         address_label: "",
         source: orderSource(),
         referral_code: signedIn ? null : session.referralCode,
-        // Ticked before on this device for the current documents: it goes along, the server writes it for this phone.
-        consent: needsConsent ? agreed(agreements, true) : true,
-        marketing_consent: needsConsent && agreed(agreements, true) && agreements.ads,
+        consent: true,
+        marketing_consent: false,
       };
       const { order, account, payment: toPay } = await api<{ order: Order; account: { customer: Customer; tokens: Tokens } | null; payment: { url?: string; token?: string } | null }>("/orders", { method: "POST", body });
-      if (needsConsent && config?.consent_version) session.setConsentVersion(config.consent_version);
+      if (config?.consent_version) session.setConsentVersion(config.consent_version);
       if (!signedIn) session.rememberGuest(name.trim(), phone);
       // A first order from a new phone opens the account from the order's details: no sign-up step.
       if (account) {
@@ -404,17 +391,6 @@ export default function CheckoutScreen() {
         Ваш заказ
       </T>
       <CartLines quote={quote} />
-      {signedIn && balance > 0 ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <T weight="semibold">Списать бонусы</T>
-            <Muted size={13}>
-              до {config?.bonus.max_redeem_percent ?? 30}% суммы · баланс {Math.floor(balance)}
-            </Muted>
-          </View>
-          <Toggle value={useBonus} onChange={setUseBonus} label="Списать бонусы" />
-        </View>
-      ) : null}
       {signedIn && quote?.bonus_available != null && giftChoices.length ? (
         <BonusWheel items={giftChoices} balance={Number(quote.bonus_available)} taken={rewards} onChange={setRewards} />
       ) : null}
@@ -466,7 +442,7 @@ export default function CheckoutScreen() {
         }
         onPress={() => (missing ? showMissing() : submit())}
       />
-      {needsConsent ? <ConsentChecks withOffer value={agreements} onChange={setAgreements} /> : <ConsentNote />}
+      {signedIn ? null : <AgreementLine action="Оформляя заказ" />}
     </Panel>
   );
 

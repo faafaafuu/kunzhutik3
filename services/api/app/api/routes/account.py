@@ -117,7 +117,10 @@ def me(customer: Customer = Depends(require_customer)) -> dict:
 
 
 @router.patch("/me")
-def patch_me(payload: ProfilePatch, customer: Customer = Depends(require_customer), db: Session = Depends(get_db)) -> dict:
+def patch_me(request: Request, payload: ProfilePatch, customer: Customer = Depends(require_customer), db: Session = Depends(get_db)) -> dict:
+    if payload.notify_promo and not customer.notify_promo:
+        # Switching «Акции» on is the consent to promotional messages (38-ФЗ ст. 18): written down like any other.
+        consents.record(db, context="profile", ip=client_ip(request), marketing=True, customer=customer)
     for field, value in payload.model_dump(exclude_none=True).items():
         if field == "email":
             value = value or None

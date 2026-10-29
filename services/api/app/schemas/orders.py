@@ -29,6 +29,7 @@ class QuoteRequest(BaseModel):
     address: AddressInput | None = None
     items: list[CartLine] = Field(default_factory=list, max_length=60)
     promo_code: str | None = Field(default=None, max_length=40)
+    # Ignored: bonuses no longer pay part of an order (kept so older app builds still validate).
     use_bonus: bool = False
     # Dishes taken free for bonuses from the wheel at checkout: one portion per id, no modifiers.
     rewards: list[UUID] = Field(default_factory=list, max_length=5)

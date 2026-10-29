@@ -8,7 +8,7 @@ import Svg, { Path } from "react-native-svg";
 import { api, ApiError } from "@/api/client";
 import type { Customer, Tokens } from "@/api/types";
 import { ScreenHeader } from "@/components/Chrome";
-import { agreed, ConsentChecks, noAgreements } from "@/components/Legal";
+import { AgreementLine } from "@/components/Legal";
 import { toast } from "@/components/Toast";
 import { Button, Field, LinkButton, Muted, Notice, Shell, T, Title } from "@/components/ui";
 import { collectLogin, finishWebRedirect, forgetTelegramLogin, LOGIN_ERRORS, openTelegram, pendingTelegramSecret, startGoogleLogin, startTelegramLogin } from "@/lib/auth";
@@ -37,16 +37,12 @@ export default function LoginScreen() {
   const [limited, setLimited] = useState<string | null>(null);
   const [wait, setWait] = useState(0);
   const [telegram, setTelegram] = useState<{ url: string | null; app_url?: string; secret: string } | null>(null);
-  // The consent boxes of this screen. Ticked once for the current edition of the documents, they are not shown again.
-  const [agreements, setAgreements] = useState(noAgreements);
+  // No boxes: signing in under the line «…вы соглашаетесь с документами и соглашениями» is the consent (the server
+  // writes it down). Promotions are not part of it — they are switched on in the notifications.
   const config = useShared((state) => state.config);
-  const consentVersion = useSession((state) => state.consentVersion);
-  const needsConsent = !config?.consent_version || consentVersion !== config.consent_version;
-  const ready = !needsConsent || agreed(agreements);
-  // Ticked before on this device for the current documents: the same person's consent goes along with the new phone
-  // or sign-in way, so the server writes it down for them instead of refusing.
-  const agreement = { consent: needsConsent ? agreed(agreements) : true, marketing_consent: needsConsent && agreed(agreements) && agreements.ads };
-  const rememberConsent = () => needsConsent && config?.consent_version && useSession.getState().setConsentVersion(config.consent_version);
+  const ready = true;
+  const agreement = { consent: true, marketing_consent: false };
+  const rememberConsent = () => config?.consent_version && useSession.getState().setConsentVersion(config.consent_version);
   const input = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   const done = useCallback(
@@ -194,7 +190,6 @@ export default function LoginScreen() {
               </View>
               {/* A sign-in way that is not set up yet is news, not a failure. */}
               {error ? <Notice tone={error.includes("скоро заработает") ? "info" : "bad"}>{error}</Notice> : null}
-              {needsConsent ? <ConsentChecks value={agreements} onChange={setAgreements} /> : null}
               {isTelegram() ? null : <ProviderButton kind="telegram" loading={busy === "telegram"} onPress={withTelegram} disabled={!ready} />}
               <ProviderButton kind="google" loading={busy === "google"} onPress={withGoogle} disabled={!ready} />
               <Divider label="или по номеру телефона" />
@@ -205,6 +200,7 @@ export default function LoginScreen() {
               ) : null}
               <Field value={phone} onChangeText={(value) => setPhone(maskPhone(value))} keyboardType="phone-pad" autoComplete="tel" accessibilityLabel="Телефон" placeholder="+7 900 000-00-00" onSubmitEditing={() => phoneComplete(phone) && requestCode()} style={{ textAlign: "center", fontSize: 17 }} />
               <Button block title="Получить код в SMS" onPress={requestCode} loading={busy === "phone"} disabled={!ready || !phoneComplete(phone) || (Boolean(limited) && wait > 0)} />
+              <AgreementLine action="Входя любым способом" />
               <Muted size={13} style={{ textAlign: "center" }}>
                 Без входа тоже можно заказать — нужны только имя и телефон
               </Muted>
