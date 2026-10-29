@@ -237,11 +237,6 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
                       </View>
                     )}
                   </View>
-                  <View style={{ marginTop: 4, paddingHorizontal: 7, paddingVertical: 1, borderRadius: 999, backgroundColor: affordable ? c.brandSoft : c.surfaceSunken }}>
-                    <T size={11} weight="semibold" color={affordable ? c.brandText : c.inkSoft}>
-                      {item.bonus_price}
-                    </T>
-                  </View>
                 </Pressable>
               </Animated.View>
             );
