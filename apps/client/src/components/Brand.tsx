@@ -1,4 +1,4 @@
-// The «Брайтс» mark: four tiles, sesame on the tall one. Same geometry as services/api/app/web/logo-mark.svg.
+// The «Брайт» mark: four tiles, sesame on the tall one. Same geometry as services/api/app/web/logo-mark.svg.
 
 import { Pressable, View } from "react-native";
 import Svg, { Rect } from "react-native-svg";
@@ -32,11 +32,11 @@ export function BrandMark({ height = 28 }: { height?: number }) {
 /** Mark and name; a tap goes home. */
 export function BrandLogo({ size = 22, onPress, subtitle }: { size?: number; onPress?: () => void; subtitle?: string | null }) {
   return (
-    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole="link" accessibilityLabel="Брайтс — на главную" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole="link" accessibilityLabel="Брайт — на главную" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
       <BrandMark height={Math.round(size * 1.25)} />
       <View>
         <T weight="bold" size={size} style={{ letterSpacing: -0.5, lineHeight: Math.round(size * 1.15) }}>
-          Брайтс
+          Брайт
         </T>
         {subtitle ? (
           <T size={12} style={{ opacity: 0.6 }}>

@@ -188,7 +188,7 @@ export default function LoginScreen() {
             <>
               <View style={{ alignItems: "center", gap: 6, paddingBottom: 8 }}>
                 <Title size={28} style={{ textAlign: "center" }}>
-                  Вход в Брайтс
+                  Вход в Брайт
                 </Title>
                 <Muted style={{ textAlign: "center" }}>Бонусы, адреса и заказы — на всех устройствах</Muted>
               </View>

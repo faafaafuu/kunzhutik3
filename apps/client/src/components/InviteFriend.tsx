@@ -32,7 +32,7 @@ export function InviteFriend() {
 
   const share = async () => {
     if (!referral) return;
-    const message = `Заказываю еду в «Брайтс» — держи ${programme.friend} бонусов на первый заказ: ${referral.link}`;
+    const message = `Заказываю еду в «Брайт» — держи ${programme.friend} бонусов на первый заказ: ${referral.link}`;
     try {
       if (Platform.OS !== "web") {
         await Share.share({ message });

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Брайтс",
+    "name": "Брайт",
     "slug": "bright",
     "scheme": "bright",
     "version": "1.0.0",
@@ -27,8 +27,8 @@
     "web": {
       "output": "single",
       "favicon": "./assets/favicon.png",
-      "name": "Брайтс — доставка",
-      "shortName": "Брайтс",
+      "name": "Брайт — доставка",
+      "shortName": "Брайт",
       "lang": "ru",
       "themeColor": "#FF6900",
       "backgroundColor": "#F4F4F6"

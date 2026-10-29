@@ -223,7 +223,7 @@ export default function OrderScreen() {
               <Icon name="store" size={22} color={c.brandText} />
             </View>
             <View style={{ flex: 1 }}>
-              <T weight="semibold">Брайтс, {order.venue.address}</T>
+              <T weight="semibold">Брайт, {order.venue.address}</T>
               <Muted size={13}>{venuePhone}</Muted>
             </View>
             <IconButton icon="phone" label="Позвонить в кафе" tone="card" onPress={() => Linking.openURL(`tel:${venuePhone.replace(/[^+\d]/g, "")}`)} />
