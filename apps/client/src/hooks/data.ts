@@ -131,6 +131,7 @@ export function useQuote(options: { scheduledFor?: string | null } = {}) {
   const lines = useCart((state) => state.lines);
   const promo = useCart((state) => state.promo);
   const useBonus = useCart((state) => state.useBonus);
+  const rewards = useCart((state) => state.rewards);
   const fulfillment = usePlace((state) => state.fulfillment);
   const address = usePlace((state) => state.address);
   const venue = usePlace((state) => state.venue);
@@ -141,7 +142,7 @@ export function useQuote(options: { scheduledFor?: string | null } = {}) {
   const [error, setError] = useState<ApiError | null>(null);
   const counter = useRef(0);
 
-  const body = buildQuoteBody({ lines, promo, useBonus: useBonus && signedIn, fulfillment, address, venueId: venue?.id ?? menuVenue?.id ?? null, scheduledFor: options.scheduledFor ?? null });
+  const body = buildQuoteBody({ lines, promo, useBonus: useBonus && signedIn, rewards: signedIn ? rewards : [], fulfillment, address, venueId: venue?.id ?? menuVenue?.id ?? null, scheduledFor: options.scheduledFor ?? null });
   const key = JSON.stringify(body);
 
   useEffect(() => {
@@ -175,6 +176,7 @@ export function buildQuoteBody(input: {
   lines: ReturnType<typeof useCart.getState>["lines"];
   promo: string;
   useBonus: boolean;
+  rewards?: string[];
   fulfillment: "delivery" | "pickup";
   address: ReturnType<typeof usePlace.getState>["address"];
   venueId: string | null;
@@ -191,6 +193,7 @@ export function buildQuoteBody(input: {
     })),
     promo_code: input.promo.trim() || null,
     use_bonus: input.useBonus,
+    rewards: input.rewards ?? [],
     scheduled_for: input.scheduledFor,
   };
 }

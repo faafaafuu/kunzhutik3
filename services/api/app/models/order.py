@@ -49,7 +49,10 @@ class Order(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     currency: Mapped[str] = mapped_column(String(8), nullable=False, default="RUB")
     items_total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     discount_total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    # Bonuses that paid part of the money total (up to the redeem cap).
     bonus_spent: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    # Bonuses for the dishes taken free from the wheel; on top of bonus_spent, not part of the money total.
+    bonus_rewards: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     delivery_fee: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     total_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     promo_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
@@ -85,6 +88,8 @@ class OrderItem(UUIDPrimaryKeyMixin, Base):
     line_total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     # [{"id", "title", "group", "kind", "price_delta", "quantity"}]
     modifiers: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    # Taken for this many bonuses instead of money (price 0); empty for an ordinary line.
+    bonus_price: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     order: Mapped[Order] = relationship(back_populates="items")
 

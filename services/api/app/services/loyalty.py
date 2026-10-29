@@ -201,8 +201,9 @@ def referral_payload(db: Session, customer: Customer) -> dict:
 
 
 def on_order_cancelled(db: Session, order: Order) -> None:
-    """Give back bonuses the cancelled order was paid with."""
-    if not order.customer_id or order.bonus_spent <= 0:
+    """Give back bonuses the cancelled order was paid with, and those spent on its dishes for bonuses."""
+    spent = order.bonus_spent + (order.bonus_rewards or 0)
+    if not order.customer_id or spent <= 0:
         return
     already = db.query(BonusTransaction).filter(BonusTransaction.order_id == order.id, BonusTransaction.kind == "reversal").first()
     if already:
@@ -212,7 +213,7 @@ def on_order_cancelled(db: Session, order: Order) -> None:
             customer_id=order.customer_id,
             order_id=order.id,
             kind="reversal",
-            amount=order.bonus_spent,
+            amount=spent,
             comment=f"Возврат за отменённый заказ № {order.number}",
         )
     )

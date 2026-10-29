@@ -104,10 +104,11 @@ def create_order(
     owner = upsert_by_phone(db, phone, name, source=request.source, signed_in=customer)
     if owner.is_blocked:
         raise ApiError("customer_blocked", "Не получилось оформить заказ. Позвоните нам, пожалуйста", status=403)
-    if calc.bonus_spent > 0:
+    debit = calc.bonus_spent + calc.bonus_rewards
+    if debit > 0:
         # Lock the customer so two orders cannot spend the same bonuses.
         db.query(Customer).filter(Customer.id == owner.id).with_for_update().one()
-        if loyalty.balance(db, owner.id) < calc.bonus_spent:
+        if loyalty.balance(db, owner.id) < debit:
             raise ApiError("price_changed", "Баланс бонусов изменился, проверьте заказ", status=409, details={"quote": calc.as_dict()})
 
     address = request.address if request.fulfillment == "delivery" else None
@@ -134,6 +135,7 @@ def create_order(
         items_total=calc.items_total,
         discount_total=calc.discount_total,
         bonus_spent=calc.bonus_spent,
+        bonus_rewards=calc.bonus_rewards,
         delivery_fee=calc.delivery_fee or 0,
         total_amount=calc.total_amount,
         promo_code=calc.promo["code"] if calc.promo and calc.promo.get("applied") else None,
@@ -152,13 +154,14 @@ def create_order(
                 quantity=line.quantity,
                 line_total=line.line_total,
                 modifiers=line.modifiers,
+                bonus_price=line.bonus_price,
             )
         )
     order.events.append(OrderStatusEvent(from_status=None, to_status=order.status, actor=_actor_for(customer, telegram_user_id)))
     db.add(order)
     db.flush()
-    if calc.bonus_spent > 0:
-        db.add(BonusTransaction(customer_id=owner.id, order_id=order.id, kind="redeem", amount=-calc.bonus_spent, comment=f"Оплата заказа № {order.number}"))
+    if debit > 0:
+        db.add(BonusTransaction(customer_id=owner.id, order_id=order.id, kind="redeem", amount=-debit, comment=f"Оплата заказа № {order.number}"))
 
     if address and ((customer and request.save_address) or new_account):
         _save_address(db, owner, request)
@@ -329,12 +332,14 @@ def order_payload(order: Order, venue: Venue | None = None, *, bonus_accrued=Non
                 "quantity": item.quantity,
                 "line_total": money_str(item.line_total),
                 "modifiers": item.modifiers,
+                "bonus_price": item.bonus_price,
             }
             for item in order.items
         ],
         "items_total": money_str(order.items_total),
         "discount_total": money_str(order.discount_total),
         "bonus_spent": money_str(order.bonus_spent),
+        "bonus_rewards": money_str(order.bonus_rewards),
         "delivery_fee": money_str(order.delivery_fee),
         "total_amount": money_str(order.total_amount),
         "promo_code": order.promo_code,

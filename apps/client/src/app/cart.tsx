@@ -15,6 +15,7 @@ import { money } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import { usePlace } from "@/store/place";
 import { floatShadow, radius, useTheme } from "@/theme";
+import * as haptics from "@/lib/haptics";
 
 export default function CartScreen() {
   const router = useRouter();
@@ -100,7 +101,10 @@ function CartBody({ onClose, bottomInset }: { onClose: () => void; bottomInset: 
                   key={item.id}
                   accessibilityRole="button"
                   accessibilityLabel={`Добавить ${item.title}`}
-                  onPress={() => add(item)}
+                  onPress={() => {
+                    haptics.tap();
+                    add(item);
+                  }}
                   style={{ flex: 1, minHeight: 128, alignItems: "center", gap: 4, paddingTop: 12, paddingBottom: 10, paddingHorizontal: 8, borderRadius: radius.md, backgroundColor: c.surfaceSunken }}
                 >
                   <Image source={{ uri: thumbUrl(item.image_url) }} style={{ width: 48, height: 48, borderRadius: 24 }} contentFit="cover" />

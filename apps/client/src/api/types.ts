@@ -59,6 +59,8 @@ export type MenuItem = {
   image_url: string | null;
   badges: string[];
   cook_minutes: number | null;
+  // Can be taken free for this many bonuses on the checkout wheel; null — not for bonuses.
+  bonus_price: number | null;
   is_available: boolean;
   modifier_groups: ModifierGroup[];
 };
@@ -106,6 +108,8 @@ export type QuoteLine = {
   line_total: Money;
   modifiers: QuotedModifier[];
   is_available: boolean;
+  // A dish taken for bonuses (0 ₽).
+  bonus_price?: number | null;
 };
 
 export type Problem = { code: string; message: string; details: Record<string, unknown> };
@@ -118,6 +122,7 @@ export type Quote = {
   items_total: Money;
   discount_total: Money;
   bonus_spent: Money;
+  bonus_rewards: Money;
   bonus_available: Money | null;
   delivery_fee: Money | null;
   total_amount: Money;
@@ -154,6 +159,7 @@ export type Order = {
   items_total: Money;
   discount_total: Money;
   bonus_spent: Money;
+  bonus_rewards?: Money;
   delivery_fee: Money;
   total_amount: Money;
   promo_code: string | null;

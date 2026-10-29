@@ -54,6 +54,13 @@ export default function RootLayout() {
   );
 }
 
+// The dish and the cart: on the desktop web a dialog / drawer over the page, which must stay visible under the scrim —
+// so no screen background here (the stack paints every other screen with the surface colour). Phones: a native modal.
+const OVERLAY =
+  Platform.OS === "web"
+    ? ({ presentation: "transparentModal", animation: "fade", contentStyle: { backgroundColor: "transparent" } } as const)
+    : ({ presentation: "modal", animation: "default" } as const);
+
 function AppStack() {
   const { c, isDark } = useTheme();
   return (
@@ -61,8 +68,8 @@ function AppStack() {
       <StatusBar style={isDark ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.surface } }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="dish/[slug]" options={{ presentation: Platform.OS === "web" ? "transparentModal" : "modal", animation: Platform.OS === "web" ? "fade" : "default" }} />
-        <Stack.Screen name="cart" options={{ presentation: Platform.OS === "web" ? "transparentModal" : "modal", animation: Platform.OS === "web" ? "fade" : "default" }} />
+        <Stack.Screen name="dish/[slug]" options={OVERLAY} />
+        <Stack.Screen name="cart" options={OVERLAY} />
         <Stack.Screen name="address" options={{ presentation: Platform.OS === "web" ? "card" : "modal" }} />
         <Stack.Screen name="login" options={{ presentation: Platform.OS === "web" ? "card" : "modal" }} />
       </Stack>

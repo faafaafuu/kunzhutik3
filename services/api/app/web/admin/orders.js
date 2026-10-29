@@ -82,7 +82,7 @@ function renderOrder(order) {
   const items = order.items
     .map((item) => {
       const mods = item.modifiers.length ? `<small>${escapeHtml(item.modifiers.map(modLabel).join(", "))}</small>` : "";
-      return `<li><span><b>${escapeHtml(item.title)}</b> × ${item.quantity}${mods}</span><span>${money(item.line_total)}</span></li>`;
+      return `<li><span><b>${escapeHtml(item.title)}</b> × ${item.quantity}${mods}</span><span>${item.bonus_price ? `за ${item.bonus_price} бонусов` : money(item.line_total)}</span></li>`;
     })
     .join("");
   const actions = order.next_statuses

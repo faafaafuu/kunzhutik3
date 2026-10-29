@@ -59,6 +59,8 @@ class QuotedLine:
     line_total: Decimal
     modifiers: list[dict]
     is_available: bool
+    # A dish taken for bonuses: costs this many bonuses, 0 ₽.
+    bonus_price: int | None = None
 
 
 @dataclass
@@ -70,6 +72,7 @@ class Quote:
     items_total: Decimal
     discount_total: Decimal
     bonus_spent: Decimal
+    bonus_rewards: Decimal
     bonus_available: Decimal | None
     delivery_fee: Decimal | None
     total_amount: Decimal
@@ -100,12 +103,14 @@ class Quote:
                     "line_total": money_str(line.line_total),
                     "modifiers": line.modifiers,
                     "is_available": line.is_available,
+                    "bonus_price": line.bonus_price,
                 }
                 for line in self.lines
             ],
             "items_total": money_str(self.items_total),
             "discount_total": money_str(self.discount_total),
             "bonus_spent": money_str(self.bonus_spent),
+            "bonus_rewards": money_str(self.bonus_rewards),
             "bonus_available": money_str(self.bonus_available) if self.bonus_available is not None else None,
             "delivery_fee": money_str(self.delivery_fee) if self.delivery_fee is not None else None,
             "total_amount": money_str(self.total_amount),
@@ -141,8 +146,12 @@ def quote(db: Session, request: QuoteRequest, *, customer: Customer | None = Non
     bonus_spent = Decimal(0)
     if customer:
         bonus_available = loyalty.balance(db, customer.id)
-        if request.use_bonus:
-            bonus_spent = loyalty.max_redeem(after_discount, bonus_available)
+    rewards = _reward_lines(db, request, venue, customer, bonus_available, problems)
+    bonus_rewards = Decimal(sum(line.bonus_price or 0 for line in rewards))
+    lines += rewards
+    if customer and request.use_bonus:
+        # The dishes for bonuses come first; what is left may pay part of the money total.
+        bonus_spent = loyalty.max_redeem(after_discount, max(Decimal(0), bonus_available - bonus_rewards))
 
     delivery_fee: Decimal | None = Decimal(0)
     if request.fulfillment == "delivery":
@@ -201,6 +210,7 @@ def quote(db: Session, request: QuoteRequest, *, customer: Customer | None = Non
         items_total=items_total,
         discount_total=discount,
         bonus_spent=bonus_spent,
+        bonus_rewards=bonus_rewards,
         bonus_available=bonus_available,
         delivery_fee=delivery_fee,
         total_amount=total,
@@ -264,6 +274,33 @@ def _price_lines(db: Session, request: QuoteRequest, venue: Venue, problems: lis
                 modifiers=modifiers,
                 is_available=available,
             )
+        )
+    return lines
+
+
+def _reward_lines(db: Session, request: QuoteRequest, venue: Venue, customer: Customer | None, balance: Decimal | None, problems: list[Problem]) -> list[QuotedLine]:
+    """The dishes the customer took for bonuses on the wheel: 0 ₽ each, paid from the balance in one go."""
+    if not request.rewards:
+        return []
+    if not customer:
+        problems.append(Problem("sign_in_required", "Войдите, чтобы взять блюдо за бонусы", {}))
+        return []
+    items = {item.id: item for item in load_items(db)}
+    overrides = venue_overrides(db, venue)
+    lines: list[QuotedLine] = []
+    for item_id in request.rewards:
+        item = items.get(item_id)
+        if not item or not item.bonus_price:
+            problems.append(Problem("reward_unavailable", "Это блюдо больше нельзя взять за бонусы", {"menu_item_id": str(item_id)}))
+            continue
+        available = is_available(overrides.get(item.id))
+        if not available:
+            problems.append(Problem("item_unavailable", f"{item.title} закончилось", {"menu_item_id": str(item.id), "title": item.title}))
+        lines.append(QuotedLine(item, str(item.id), item.title, item.image_url, Decimal(0), 1, Decimal(0), [], available, bonus_price=item.bonus_price))
+    cost = sum(line.bonus_price or 0 for line in lines)
+    if cost > (balance or 0):
+        problems.append(
+            Problem("bonus_not_enough", f"Не хватает {int(cost - (balance or 0))} бонусов", {"needed": cost, "balance": money_str(balance or 0)})
         )
     return lines
 

@@ -89,7 +89,8 @@ def receipt_items(order: Order) -> list[dict]:
     total = _cents(order.total_amount)
     fee = _cents(order.delivery_fee)
     discount = _cents(order.discount_total) + _cents(order.bonus_spent)
-    lines = [(item.title, item.quantity, _cents(item.line_total)) for item in order.items]
+    # Dishes taken for bonuses cost 0 ₽: a receipt line cannot be zero, and there is nothing to sell in money.
+    lines = [(item.title, item.quantity, _cents(item.line_total)) for item in order.items if _cents(item.line_total) > 0]
     subtotal = sum(price for _, _, price in lines)
 
     items: list[dict] = []

@@ -153,3 +153,17 @@ def test_saving_address_with_the_order(client, menu):
     addresses = client.get("/api/v1/me/addresses", headers=headers(auth)).json()["addresses"]
     assert addresses[0]["apartment"] == "48"
     assert addresses[0]["label"] == "Дом"
+
+
+def test_sms_refused_by_smsru_is_an_error_not_silence(client, monkeypatch):
+    import httpx
+
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "sms_provider", "smsru")
+    monkeypatch.setattr(settings, "smsru_api_id", "test-key")
+    # The request as a whole is "OK", the number itself is refused (no approved sender name).
+    answer = {"status": "OK", "status_code": 100, "sms": {"79007770011": {"status": "ERROR", "status_code": 221, "status_text": "нужен буквенный отправитель"}}}
+    monkeypatch.setattr(httpx, "post", lambda *args, **kwargs: httpx.Response(200, json=answer))
+    refused = client.post("/api/v1/auth/otp/request", json={"phone": "+79007770011", "consent": True})
+    assert refused.status_code == 502 and refused.json()["error"]["code"] == "sms_failed"

@@ -37,6 +37,8 @@ class MenuItem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # "hit", "new"
     badges: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     cook_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Can be taken free for this many bonuses (the wheel at checkout); empty — not for bonuses.
+    bonus_price: Mapped[int | None] = mapped_column(Integer, nullable=True)
     sort: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 

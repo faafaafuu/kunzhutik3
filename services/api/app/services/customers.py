@@ -80,7 +80,8 @@ def request_otp(db: Session, raw_phone: str, ip: str) -> dict:
     code = "".join(secrets.choice("0123456789") for _ in range(OTP_LENGTH))
     db.add(OtpCode(phone=phone, code_hash=_otp_hash(phone, code), ip=ip, expires_at=now + OTP_TTL))
     db.commit()
-    _send_sms(phone, f"Код для входа в Брайт: {code}")
+    if not _send_sms(phone, f"Код для входа в Брайт: {code}"):
+        raise ApiError("sms_failed", "Не получилось отправить СМС с кодом. Войдите через Telegram или попробуйте чуть позже", status=502)
 
     # Same answer whether or not the number is known.
     result = {"phone": phone, "retry_after": int(OTP_RESEND_AFTER.total_seconds()), "length": OTP_LENGTH}
@@ -119,21 +120,24 @@ def _otp_hash(phone: str, code: str) -> str:
     return hmac.new(settings.jwt_secret.encode(), f"otp:{phone}:{code}".encode(), hashlib.sha256).hexdigest()
 
 
-def _send_sms(phone: str, text: str) -> None:
+def _send_sms(phone: str, text: str) -> bool:
+    """True when the message went out (or was written to the log). sms.ru answers "OK" for the request even when it
+    refused the number itself, so the per-number status is what counts."""
     if settings.sms_provider == "smsru" and settings.smsru_api_id:
+        to = phone.lstrip("+")
         try:
-            response = httpx.post(
-                "https://sms.ru/sms/send",
-                data={"api_id": settings.smsru_api_id, "to": phone.lstrip("+"), "msg": text, "json": 1},
-                timeout=10,
-            )
+            response = httpx.post("https://sms.ru/sms/send", data={"api_id": settings.smsru_api_id, "to": to, "msg": text, "json": 1}, timeout=10)
             payload = response.json()
-            if payload.get("status") != "OK":
-                logger.error("sms.ru refused the message to %s: %s", phone, payload)
         except (httpx.HTTPError, ValueError):
             logger.exception("sms.ru request failed")
-        return
+            return False
+        sent = (payload.get("sms") or {}).get(to) or {}
+        if payload.get("status") != "OK" or sent.get("status") != "OK":
+            logger.error("sms.ru refused the message to %s: %s %s", phone, sent.get("status_code") or payload.get("status_code"), sent.get("status_text") or payload.get("status_text"))
+            return False
+        return True
     logger.warning("SMS to %s: %s", phone, text)
+    return True
 
 
 # ---------- Telegram WebApp ----------

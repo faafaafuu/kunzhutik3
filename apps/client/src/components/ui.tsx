@@ -22,6 +22,7 @@ import {
 } from "react-native";
 
 import { cardShadow, fonts, type Palette, radius, SHELL_MAX, useStyles, useTheme, useWide } from "@/theme";
+import * as haptics from "@/lib/haptics";
 
 import { Icon, type IconName } from "./Icon";
 import { Spinner } from "./Spinner";
@@ -305,7 +306,10 @@ export function QtyControl({ value, onChange, flat, small, max = 50 }: { value: 
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={sign < 0 ? "Меньше" : "Больше"}
-      onPress={() => onChange(Math.min(max, value + sign))}
+      onPress={() => {
+        haptics.select();
+        onChange(Math.min(max, value + sign));
+      }}
       disabled={sign > 0 && value >= max}
       hitSlop={4}
       style={({ pressed }) => ({
@@ -339,7 +343,10 @@ export function Toggle({ value, onChange, label }: { value: boolean; onChange: (
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}
       accessibilityLabel={label}
-      onPress={() => onChange(!value)}
+      onPress={() => {
+        haptics.select();
+        onChange(!value);
+      }}
       style={{ width: 48, height: 28, borderRadius: radius.pill, backgroundColor: value ? c.brand : c.surfaceSunken, justifyContent: "center" }}
     >
       <View style={[{ width: 22, height: 22, borderRadius: 11, backgroundColor: c.surfaceCard, marginLeft: value ? 23 : 3 }, cardShadow(c)]} />
@@ -359,7 +366,10 @@ export function Segmented<V extends string>({ value, options, onChange }: { valu
             key={option.value}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
-            onPress={() => onChange(option.value)}
+            onPress={() => {
+              if (option.value !== value) haptics.select();
+              onChange(option.value);
+            }}
             style={[{ flex: 1, alignItems: "center", paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: active ? c.surfaceCard : "transparent" }, active && cardShadow(c)]}
           >
             <T weight="semibold">{option.label}</T>
@@ -408,7 +418,10 @@ export function Checkbox({ checked, onChange, children }: { checked: boolean; on
       <Pressable
         accessibilityRole="checkbox"
         accessibilityState={{ checked }}
-        onPress={() => onChange(!checked)}
+        onPress={() => {
+          haptics.select();
+          onChange(!checked);
+        }}
         hitSlop={8}
         style={{ width: 24, height: 24, marginTop: 1, borderRadius: 7, borderWidth: 2, borderColor: checked ? c.brand : c.inkSoft, backgroundColor: checked ? c.brand : c.surfaceCard, alignItems: "center", justifyContent: "center" }}
       >

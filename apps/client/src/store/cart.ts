@@ -25,12 +25,15 @@ type Cart = {
   lines: CartLine[];
   promo: string;
   useBonus: boolean;
+  // Dishes taken free for bonuses on the checkout wheel (menu item ids, one portion each).
+  rewards: string[];
   add: (item: MenuItem, modifiers?: CartModifier[], quantity?: number) => void;
   setQuantity: (key: string, quantity: number) => void;
   remove: (key: string) => void;
   clear: () => void;
   setPromo: (promo: string) => void;
   setUseBonus: (value: boolean) => void;
+  setRewards: (rewards: string[]) => void;
   repeat: (lines: Omit<QuoteLine, "is_available">[], menu: MenuItem[]) => number;
 };
 
@@ -49,6 +52,7 @@ export const useCart = create<Cart>()(
       lines: [],
       promo: "",
       useBonus: false,
+      rewards: [],
       add: (item, modifiers = [], quantity = 1) => {
         const key = lineKey(item.id, modifiers);
         const lines = get().lines;
@@ -79,9 +83,10 @@ export const useCart = create<Cart>()(
           lines: quantity <= 0 ? get().lines.filter((line) => line.key !== key) : get().lines.map((line) => (line.key === key ? { ...line, quantity: Math.min(50, quantity) } : line)),
         }),
       remove: (key) => set({ lines: get().lines.filter((line) => line.key !== key) }),
-      clear: () => set({ lines: [], promo: "", useBonus: false }),
+      clear: () => set({ lines: [], promo: "", useBonus: false, rewards: [] }),
       setPromo: (promo) => set({ promo }),
       setUseBonus: (useBonus) => set({ useBonus }),
+      setRewards: (rewards) => set({ rewards }),
       repeat: (orderLines, menu) => {
         // Puts a past order back in the cart; dishes that are gone or sold out are skipped.
         let added = 0;
@@ -101,7 +106,7 @@ export const useCart = create<Cart>()(
         return added;
       },
     }),
-    { name: "bright-cart", storage: persistStorage, partialize: (state) => ({ lines: state.lines, promo: state.promo, useBonus: state.useBonus }) },
+    { name: "bright-cart", storage: persistStorage, partialize: (state) => ({ lines: state.lines, promo: state.promo, useBonus: state.useBonus, rewards: state.rewards }) },
   ),
 );
 

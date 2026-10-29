@@ -10,6 +10,12 @@ import { useTheme } from "@/theme";
 import { Spinner } from "./Spinner";
 
 const PULL = 70; // px of pull that starts a refresh
+// The spinner stays at least this long: an iOS RefreshControl switched off within the same moment it came on keeps
+// spinning for good. And at most this long: a request that hangs must not leave it turning forever.
+const MIN_SHOWN_MS = 600;
+const MAX_SHOWN_MS = 12000;
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 type Props = ScrollViewProps & { onRefresh: () => Promise<unknown> | void; children: ReactNode };
 
@@ -19,11 +25,17 @@ export const RefreshableScrollView = forwardRef<React.ComponentRef<typeof Scroll
   const inner = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const pull = useRef(new Animated.Value(0)).current;
 
+  const running = useRef(false);
+
   const run = useCallback(async () => {
+    if (running.current) return;
+    running.current = true;
     setRefreshing(true);
     try {
-      await onRefresh();
+      const work = Promise.resolve(onRefresh()).catch(() => {});
+      await Promise.all([Promise.race([work, wait(MAX_SHOWN_MS)]), wait(MIN_SHOWN_MS)]);
     } finally {
+      running.current = false;
       setRefreshing(false);
     }
   }, [onRefresh]);

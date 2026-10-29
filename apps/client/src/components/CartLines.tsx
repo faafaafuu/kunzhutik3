@@ -74,6 +74,8 @@ export function quoteRows(quote: Quote, fulfillment: "delivery" | "pickup") {
   const rows: { label: string; value: string; tone?: "muted" | "discount" }[] = [{ label: "Блюда", value: money(quote.items_total), tone: "muted" }];
   if (Number(quote.discount_total)) rows.push({ label: "Скидка по промокоду", value: `−${money(quote.discount_total)}`, tone: "discount" });
   if (Number(quote.bonus_spent)) rows.push({ label: "Бонусами", value: `−${money(quote.bonus_spent)}`, tone: "discount" });
+  const gifts = quote.items.filter((item) => item.bonus_price);
+  if (gifts.length) rows.push({ label: `Бесплатно: ${gifts.map((item) => item.title).join(", ")}`, value: `${Math.round(Number(quote.bonus_rewards))} бонусов`, tone: "discount" });
   if (fulfillment === "delivery") {
     rows.push({ label: "Доставка", value: quote.delivery_fee === null ? "по адресу" : Number(quote.delivery_fee) ? money(quote.delivery_fee) : "бесплатно", tone: "muted" });
   }

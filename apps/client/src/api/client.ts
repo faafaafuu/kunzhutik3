@@ -55,10 +55,15 @@ async function send(path: string, method: string, body: unknown, auth: boolean):
   if (body !== undefined) headers["Content-Type"] = "application/json";
   const token = useSession.getState().tokens?.access_token;
   if (auth && token) headers.Authorization = `Bearer ${token}`;
+  // A request on a bad mobile link can hang without an answer: after 20 s it fails like being offline.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
   try {
-    return await fetch(`${API_URL}/api/v1${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+    return await fetch(`${API_URL}/api/v1${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: controller.signal });
   } catch {
     throw new ApiError(0, "offline", "Нет подключения к интернету");
+  } finally {
+    clearTimeout(timer);
   }
 }
 

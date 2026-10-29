@@ -177,3 +177,52 @@ def test_the_customer_cancels_only_until_the_cafe_accepts(operator_client, menu)
     assert accepted["can_cancel"] is False
     refused = client.post(f"/api/v1/orders/{second['id']}/cancel", json={"reason": ""})
     assert refused.status_code == 409 and refused.json()["error"]["code"] == "cancel_not_allowed"
+
+
+def _rich_customer(client, db, phone="+79005550101", balance=1000):
+    from app.models.customer import BonusTransaction, Customer
+    from tests.test_accounts import sign_in
+
+    auth = sign_in(client, phone)
+    customer = db.query(Customer).filter(Customer.phone == phone).one()
+    db.add(BonusTransaction(customer_id=customer.id, kind="manual", amount=balance, comment="тест"))
+    db.commit()
+    return {"Authorization": auth["Authorization"]}
+
+
+def test_dish_for_bonuses_costs_bonuses_not_money(client, db, menu):
+    headers = _rich_customer(client, db)
+    eclair = menu["eclair"]
+    assert eclair["bonus_price"] == 180
+    body = {"fulfillment": "pickup", "items": [poke_line(menu, quantity=2)], "rewards": [eclair["id"]], "use_bonus": True}
+    result = client.post("/api/v1/orders/quote", json=body, headers=headers).json()
+    reward = [line for line in result["items"] if line["bonus_price"]]
+    assert reward and reward[0]["line_total"] == "0.00" and reward[0]["title"] == "Эклер"
+    assert result["items_total"] == "1300.00" and result["bonus_rewards"] == "180.00"
+    # The rest of the balance (820) still pays up to 30% of the money part.
+    assert result["bonus_spent"] == "390.00"
+
+    before = float(client.get("/api/v1/loyalty/me", headers=headers).json()["balance"])
+    order_request = order_body([poke_line(menu, quantity=2)], result["total_amount"], fulfillment="pickup", customer_phone="+79005550101", rewards=[eclair["id"]], use_bonus=True)
+    order_request.pop("address", None)
+    order = client.post("/api/v1/orders", json=order_request, headers=headers)
+    assert order.status_code == 201, order.text
+    assert order.json()["order"]["bonus_rewards"] == "180.00"
+    assert float(client.get("/api/v1/loyalty/me", headers=headers).json()["balance"]) == before - 180 - 390
+    # Cancelled before the cafe took it: both the 180 and the 390 come back.
+    order_id = order.json()["order"]["id"]
+    assert client.post(f"/api/v1/orders/{order_id}/cancel", json={}, headers=headers).status_code == 200
+    assert float(client.get("/api/v1/loyalty/me", headers=headers).json()["balance"]) == before
+
+
+def test_dish_for_bonuses_needs_enough_bonuses_and_a_sign_in(client, db, menu):
+    eclair = menu["eclair"]
+    guest = client.post("/api/v1/orders/quote", json={"fulfillment": "pickup", "items": [poke_line(menu)], "rewards": [eclair["id"]]}).json()
+    assert guest["problems"][0]["code"] == "sign_in_required"
+    headers = _rich_customer(client, db, phone="+79005550102", balance=100)
+    # 180 + 180 + 220 is more than 100 plus whatever welcome bonus the sign-in gave.
+    rewards = [eclair["id"], eclair["id"], menu["cheesecake"]["id"]]
+    poor = client.post("/api/v1/orders/quote", json={"fulfillment": "pickup", "items": [poke_line(menu)], "rewards": rewards}, headers=headers).json()
+    assert [p["code"] for p in poor["problems"]] == ["bonus_not_enough"]
+    not_offered = client.post("/api/v1/orders/quote", json={"fulfillment": "pickup", "items": [poke_line(menu)], "rewards": [menu["poke-salmon"]["id"]]}, headers=headers).json()
+    assert not_offered["problems"][0]["code"] == "reward_unavailable"

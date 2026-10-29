@@ -86,6 +86,9 @@ ITEMS = [
     ("choux", "desserts", "Пирожное Шу", "Хрустящее пирожное Шу, наполненное нежным кремом.", 180, "", [], ""),
 ]
 
+# Taken free for bonuses on the checkout wheel, at the base price (1 бонус = 1 ₽).
+BONUS_PRICES = {slug: price for slug, _, _, _, price, *_ in ITEMS if slug in ("americano", "espresso", "flat-white", "latte", "eclair", "cheesecake", "choux")}
+
 # EXAMPLE modifiers. Options: (code, title, price, weight).
 ADDONS = {
     "double": ("Двойная порция", 250, "+70 г"),

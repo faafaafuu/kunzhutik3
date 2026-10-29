@@ -9,6 +9,7 @@ import type { MenuItem } from "@/api/types";
 import { money } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import { radius, useTheme } from "@/theme";
+import * as haptics from "@/lib/haptics";
 
 import { Icon } from "./Icon";
 import { QtyControl, T } from "./ui";
@@ -71,7 +72,11 @@ export function MenuRow({ item, canOrder }: { item: MenuItem; canOrder: boolean 
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Добавить ${item.title}`}
-              onPress={() => (hasModifiers ? open() : add(item))}
+              onPress={() => {
+                haptics.tap();
+                if (hasModifiers) open();
+                else add(item);
+              }}
               hitSlop={8}
               style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? c.brandStrong : c.brand })}
             >

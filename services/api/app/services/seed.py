@@ -87,6 +87,7 @@ def _seed_menu(db: Session) -> None:
             image_url=catalog.PHOTO.format(slug),
             badges=badges,
             cook_minutes=catalog.COOK_MINUTES.get(category_slug),
+            bonus_price=catalog.BONUS_PRICES.get(slug),
             sort=sort,
         )
         for group_sort, code in enumerate(catalog.ITEM_GROUPS.get(slug, [])):

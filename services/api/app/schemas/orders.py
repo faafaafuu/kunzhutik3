@@ -30,6 +30,8 @@ class QuoteRequest(BaseModel):
     items: list[CartLine] = Field(default_factory=list, max_length=60)
     promo_code: str | None = Field(default=None, max_length=40)
     use_bonus: bool = False
+    # Dishes taken free for bonuses from the wheel at checkout: one portion per id, no modifiers.
+    rewards: list[UUID] = Field(default_factory=list, max_length=5)
     # Empty — as soon as possible.
     scheduled_for: datetime | None = None
 

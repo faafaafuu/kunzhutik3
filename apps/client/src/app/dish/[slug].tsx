@@ -14,6 +14,7 @@ import { useShared } from "@/hooks/data";
 import { bonusWord, money } from "@/lib/format";
 import { type CartModifier, useCart } from "@/store/cart";
 import { floatShadow, radius, useTheme } from "@/theme";
+import * as haptics from "@/lib/haptics";
 
 const TILE_GAP = 8;
 
@@ -99,6 +100,7 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
       return { id, title: option.title, kind: group.kind, price: Number(option.price_delta), quantity: qty };
     });
     add(item, modifiers, quantity);
+    haptics.success();
     onDone();
   };
 

@@ -11,6 +11,7 @@ import { ScreenHeader } from "@/components/Chrome";
 import { Icon } from "@/components/Icon";
 import { agreed, ConsentChecks, ConsentNote, noAgreements } from "@/components/Legal";
 import { toast } from "@/components/Toast";
+import { BonusWheel } from "@/components/BonusWheel";
 import { Button, Columns, Field, LinkButton, Muted, Notice, OptionRow, Panel, Segmented, Shell, StateView, T, Title, Toggle, Totals } from "@/components/ui";
 import { buildQuoteBody, useFetch, useQuote, useShared } from "@/hooks/data";
 import { maskPhone, money, phoneComplete, slotLabel, time } from "@/lib/format";
@@ -36,6 +37,9 @@ export default function CheckoutScreen() {
   const lines = useCart((state) => state.lines);
   const useBonus = useCart((state) => state.useBonus);
   const setUseBonus = useCart((state) => state.setUseBonus);
+  const rewards = useCart((state) => state.rewards);
+  const setRewards = useCart((state) => state.setRewards);
+  const menuItems = useShared((state) => state.menu?.items);
   const place = usePlace();
   const session = useSession();
   const signedIn = Boolean(session.tokens);
@@ -65,6 +69,16 @@ export default function CheckoutScreen() {
   useEffect(() => {
     if (onlineAccepted && !paymentPicked) setPayment("online");
   }, [onlineAccepted, paymentPicked]);
+
+  // The wheel: dishes of this venue that can be taken for bonuses, cheapest first.
+  const giftChoices = (menuItems ?? []).filter((item) => item.bonus_price && item.is_available).sort((a, b) => (a.bonus_price ?? 0) - (b.bonus_price ?? 0));
+  // A gift that is no longer offered here (another venue, taken off the wheel) leaves the order quietly.
+  useEffect(() => {
+    if (!menuItems) return;
+    const kept = rewards.filter((id) => giftChoices.some((item) => item.id === id));
+    if (kept.length !== rewards.length) setRewards(kept);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuItems, rewards]);
 
   // Paying online: ЮKassa's widget script downloads while the form is being filled, not after «Перейти к оплате».
   useEffect(() => {
@@ -131,6 +145,7 @@ export default function CheckoutScreen() {
           lines,
           promo: useCart.getState().promo,
           useBonus: useBonus && signedIn,
+          rewards: signedIn ? useCart.getState().rewards : [],
           fulfillment: place.fulfillment,
           address: place.address,
           venueId: quote.venue.id,
@@ -392,6 +407,9 @@ export default function CheckoutScreen() {
           </View>
           <Toggle value={useBonus} onChange={setUseBonus} label="Списать бонусы" />
         </View>
+      ) : null}
+      {signedIn && quote?.bonus_available != null && giftChoices.length ? (
+        <BonusWheel items={giftChoices} balance={Number(quote.bonus_available)} taken={rewards} onChange={setRewards} />
       ) : null}
       {quote ? (
         <View style={{ opacity: quoting ? 0.45 : 1, gap: 12 }}>

@@ -255,7 +255,7 @@ export default function OrderScreen() {
                 </T>
               ) : null}
             </View>
-            <T weight="semibold">{money(item.line_total)}</T>
+            <T weight="semibold">{item.bonus_price ? `${item.bonus_price} бонусов` : money(item.line_total)}</T>
           </View>
         ))}
       </View>

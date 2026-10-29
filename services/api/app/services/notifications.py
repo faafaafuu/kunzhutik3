@@ -79,7 +79,8 @@ def order_text(order: Order, venue_title: str = "") -> str:
     lines.append("")
     for item in order.items:
         mods = ", ".join(_mod_label(mod) for mod in item.modifiers)
-        lines.append(f"• {item.title} × {item.quantity} — {int(item.line_total)} ₽" + (f"\n   {mods}" if mods else ""))
+        price = f"за {item.bonus_price} бонусов" if item.bonus_price else f"{int(item.line_total)} ₽"
+        lines.append(f"• {item.title} × {item.quantity} — {price}" + (f"\n   {mods}" if mods else ""))
     lines.append("")
     if order.discount_total:
         lines.append(f"Скидка: −{int(order.discount_total)} ₽")

@@ -289,6 +289,7 @@ def admin_venue_menu(venue_id: UUID, db: Session = Depends(get_db), user: Operat
                 "category": item.category.title,
                 "image_url": item.image_url,
                 "base_price": money_str(item.price),
+                "bonus_price": item.bonus_price,
                 "price": money_str(effective_price(item, overrides.get(item.id))),
                 "price_override": money_str(overrides[item.id].price_override)
                 if item.id in overrides and overrides[item.id].price_override is not None
@@ -343,6 +344,8 @@ class ItemPatch(BaseModel):
     description: str | None = None
     weight: str | None = Field(default=None, max_length=40)
     price: Decimal | None = Field(default=None, ge=0)
+    # For the wheel at checkout: 0 takes the dish off it.
+    bonus_price: int | None = Field(default=None, ge=0, le=100000)
     badges: list[str] | None = None
     is_active: bool | None = None
 
@@ -355,6 +358,8 @@ def admin_patch_item(item_id: UUID, payload: ItemPatch, db: Session = Depends(ge
     data = payload.model_dump(exclude_none=True)
     if "badges" in data:
         data["badges"] = [badge for badge in data["badges"] if badge in ("hit", "new")]
+    if "bonus_price" in data:
+        data["bonus_price"] = data["bonus_price"] or None
     for field, value in data.items():
         setattr(item, field, value)
     db.commit()

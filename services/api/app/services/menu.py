@@ -78,6 +78,7 @@ def item_payload(item: MenuItem, override: VenueMenuItem | None, venue: Venue | 
         "image_url": item.image_url,
         "badges": item.badges or [],
         "cook_minutes": item.cook_minutes or (venue.cook_minutes if venue else None),
+        "bonus_price": item.bonus_price,
         "is_available": is_available(override),
         "modifier_groups": [group_payload(link.group) for link in item.group_links],
     }

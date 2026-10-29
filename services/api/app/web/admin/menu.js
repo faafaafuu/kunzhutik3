@@ -66,7 +66,7 @@ function render() {
         <tr class="${item.is_available ? "" : "is-off"} ${item.is_active ? "" : "is-hidden"}">
           <td class="thumb-cell">${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="" />` : ""}</td>
           <td><b>${escapeHtml(item.title)}</b>${item.weight ? ` <span class="muted small">${escapeHtml(item.weight)}</span>` : ""}${item.is_active ? "" : ' <span class="chip">скрыто</span>'}<div class="badges-cell">${badges}</div></td>
-          <td class="num">${money(item.price)}${item.price_override ? `<br><small class="muted">база ${money(item.base_price)}</small>` : ""}${
+          <td class="num">${money(item.price)}${item.price_override ? `<br><small class="muted">база ${money(item.base_price)}</small>` : ""}${item.bonus_price ? `<br><small class="muted">или ${item.bonus_price} бонусов</small>` : ""}${
             manager ? `<br><button class="link-button small" data-price="${item.id}">изменить</button>` : ""
           }</td>
           <td class="actions-cell">${stop}</td>
@@ -102,16 +102,18 @@ async function onClick(event) {
       const item = local.items.find((entry) => entry.id === target.dataset.price);
       const answer = await ask({
         title: item.title,
-        text: "Базовая цена — для всей сети. Цена точки — только здесь; пусто — как в сети.",
+        text: "Базовая цена — для всей сети. Цена точки — только здесь; пусто — как в сети. «За бонусы» — блюдо появится на колесе при оформлении; пусто — нельзя взять за бонусы.",
         fields: [
           { name: "base", label: "Цена сети, ₽", type: "number", value: Number(item.base_price) },
           { name: "override", label: "Цена этой точки, ₽", type: "number", value: item.price_override ? Number(item.price_override) : "" },
+          { name: "bonus", label: "За бонусы", type: "number", value: item.bonus_price ?? "" },
         ],
         submit: "Сохранить",
       });
       if (!answer) return;
-      if (Number(answer.base) !== Number(item.base_price)) {
-        await api(`/api/v1/admin/menu/items/${item.id}`, { method: "PATCH", body: { price: Number(answer.base) } });
+      const bonus = answer.bonus === "" ? 0 : Math.max(0, Math.round(Number(answer.bonus)));
+      if (Number(answer.base) !== Number(item.base_price) || bonus !== (item.bonus_price ?? 0)) {
+        await api(`/api/v1/admin/menu/items/${item.id}`, { method: "PATCH", body: { price: Number(answer.base), bonus_price: bonus } });
       }
       await venueItem(item.id, answer.override === "" ? { clear_price_override: true } : { price_override: Number(answer.override) });
     } else return;
