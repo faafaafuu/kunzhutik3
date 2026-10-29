@@ -1,13 +1,12 @@
 // The «Брайт» brand: the sun with the coffee bean, and the «БРАЙТ · КОФЕ И ЕДА» wordmark (paths in brandPaths.ts,
 // the same art as services/api/app/web/logo-mark.svg). The wordmark takes the text colour, so it reads on a dark theme.
 
-import { Pressable, View } from "react-native";
+import { Pressable } from "react-native";
 import Svg, { G, Path } from "react-native-svg";
 
 import { useTheme } from "@/theme";
 
 import { type Shape, SUN, WORDMARK } from "./brandPaths";
-import { T } from "./ui";
 
 export const BRAND_ORANGE = "#E85A28";
 
@@ -29,21 +28,14 @@ export function BrandMark({ height = 28 }: { height?: number }) {
 }
 
 /** Sun and wordmark; a tap goes home. `size` is about the height of the wordmark's capitals. */
-export function BrandLogo({ size = 22, onPress, subtitle }: { size?: number; onPress?: () => void; subtitle?: string | null }) {
+export function BrandLogo({ size = 22, onPress }: { size?: number; onPress?: () => void }) {
   const { c } = useTheme();
   // The wordmark art: capitals take ~58% of its height, the «КОФЕ И ЕДА» line the rest.
   const wordHeight = Math.round(size * 1.7);
   return (
     <Pressable onPress={onPress} disabled={!onPress} accessibilityRole="link" accessibilityLabel="Брайт — кофе и еда, на главную" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
       <BrandMark height={Math.round(wordHeight * 1.15)} />
-      <View style={{ gap: 2 }}>
-        <Traced shape={WORDMARK} height={wordHeight} color={c.ink} />
-        {subtitle ? (
-          <T size={12} style={{ opacity: 0.6 }}>
-            {subtitle}
-          </T>
-        ) : null}
-      </View>
+      <Traced shape={WORDMARK} height={wordHeight} color={c.ink} />
     </Pressable>
   );
 }

@@ -5,11 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useShared } from "@/hooks/data";
 import { money, plural } from "@/lib/format";
 import { isTelegram } from "@/lib/telegram";
 import { linePrice, useCart, useCartCount } from "@/store/cart";
-import { usePlace } from "@/store/place";
 import { useSession } from "@/store/session";
 import { cardShadow, floatShadow, radius, SHELL_MAX, useTheme, useWide } from "@/theme";
 
@@ -131,21 +129,19 @@ export function CartBar({ floating }: { floating?: boolean }) {
   );
 }
 
-/** Desktop header from the mockups: brand, sections, hours, cart pill. */
+/** Desktop header: the logo, sections, cart pill and the account button. */
 export function TopBar() {
   const { c } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const wide = useWide();
   const count = useCartCount();
-  const menuVenue = useShared((state) => state.menu?.venue);
-  const venue = usePlace((state) => state.venue) ?? menuVenue;
   if (!wide || isTelegram()) return null;
   const current = activeTab(pathname);
   return (
     <View style={{ backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.line }}>
       <View style={{ width: "100%", maxWidth: SHELL_MAX, alignSelf: "center", paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 20 }}>
-        <BrandLogo size={18} subtitle={venue?.address} onPress={() => router.navigate("/")} />
+        <BrandLogo size={20} onPress={() => router.navigate("/")} />
         <View style={{ flexDirection: "row", gap: 4, flex: 1, marginLeft: 12 }}>
           {TABS.map((tab) => {
             const active = tab.href === current;
