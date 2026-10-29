@@ -26,6 +26,14 @@ export const LOGIN_ERRORS: Record<string, string> = {
   login_rate_limited: "Слишком много попыток входа. Попробуйте через час",
 };
 
+/** Forgets the session on this device and revokes its refresh token on the server (best effort). */
+export function signOut(): void {
+  const session = useSession.getState();
+  const refresh = session.tokens?.refresh_token;
+  session.signOut();
+  if (refresh) api("/auth/logout", { method: "POST", body: { refresh_token: refresh }, auth: false }).catch(() => {});
+}
+
 /** True once the login is confirmed and the session is stored; false while it waits. */
 export async function collectLogin(secret: string): Promise<boolean> {
   const result = await api<Collected>("/auth/collect", { method: "POST", body: { secret }, auth: false });

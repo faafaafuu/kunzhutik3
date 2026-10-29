@@ -1,8 +1,8 @@
 // App chrome: the bottom tab bar with the cart bar above it (phones), the top bar (desktop web).
 
 import { usePathname, useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
-import { Animated, Platform, Pressable, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Dimensions, Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useShared } from "@/hooks/data";
@@ -13,6 +13,7 @@ import { usePlace } from "@/store/place";
 import { useSession } from "@/store/session";
 import { cardShadow, floatShadow, radius, SHELL_MAX, useTheme, useWide } from "@/theme";
 
+import { type Anchor, AccountMenu } from "./AccountMenu";
 import { BrandLogo } from "./Brand";
 import { Icon, type IconName } from "./Icon";
 import { T } from "./ui";
@@ -200,30 +201,49 @@ export function MobileHeader() {
   );
 }
 
-/** Round personal-account button: a person icon for a guest (leads to sign-in), the initial for a signed-in customer (leads to the profile). */
+/** Round personal-account button: a person icon for a guest (leads to sign-in), the initial for a signed-in customer
+ * (opens the account menu right under the button). */
 export function AccountButton() {
   const { c } = useTheme();
   const router = useRouter();
+  const button = useRef<React.ComponentRef<typeof View>>(null);
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
   const customer = useSession((state) => (state.tokens ? state.customer : null));
   const initial = customer ? (customer.name || customer.email || "Б").trim().charAt(0).toUpperCase() : null;
+
+  const press = () => {
+    if (!customer) {
+      router.push("/login");
+      return;
+    }
+    // Where the button is on screen: the menu hangs from its bottom edge, right-aligned with it.
+    button.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
+      setAnchor({ top: y + height + 8, right: Math.max(8, Dimensions.get("window").width - x - width) });
+    });
+  };
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={customer ? "Личный кабинет" : "Войти в личный кабинет"}
-      onPress={() => router.push(customer ? "/profile" : "/login")}
-      style={({ pressed }) => [
-        { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", backgroundColor: customer ? c.brandSoft : c.surfaceCard, opacity: pressed ? 0.7 : 1 },
-        customer ? null : cardShadow(c),
-      ]}
-    >
-      {initial ? (
-        <T weight="bold" size={17} color={c.brandText}>
-          {initial}
-        </T>
-      ) : (
-        <Icon name="user" size={22} color={c.ink} />
-      )}
-    </Pressable>
+    <>
+      <Pressable
+        ref={button}
+        accessibilityRole="button"
+        accessibilityLabel={customer ? "Личный кабинет" : "Войти в личный кабинет"}
+        onPress={press}
+        style={({ pressed }) => [
+          { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", backgroundColor: customer ? c.brandSoft : c.surfaceCard, opacity: pressed ? 0.7 : 1 },
+          customer ? null : cardShadow(c),
+        ]}
+      >
+        {initial ? (
+          <T weight="bold" size={17} color={c.brandText}>
+            {initial}
+          </T>
+        ) : (
+          <Icon name="user" size={22} color={c.ink} />
+        )}
+      </Pressable>
+      <AccountMenu anchor={anchor} onClose={() => setAnchor(null)} />
+    </>
   );
 }
 

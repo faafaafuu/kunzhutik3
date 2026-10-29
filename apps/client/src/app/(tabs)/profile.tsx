@@ -1,4 +1,4 @@
-// Profile: name, addresses, notifications, sign out. Guests see the sign-in offer.
+// Profile («Мои данные»): name and e-mail, the ways to sign in, the account sections, sign out. Guests see the sign-in offer.
 
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -11,6 +11,7 @@ import { Icon, type IconName } from "@/components/Icon";
 import { toast } from "@/components/Toast";
 import { Button, Field, Muted, Panel, Shell, StateView, T, Title } from "@/components/ui";
 import { useShared } from "@/hooks/data";
+import { signOut as endSession } from "@/lib/auth";
 import { useSession } from "@/store/session";
 import { radius, useTheme } from "@/theme";
 
@@ -21,6 +22,7 @@ export default function ProfileScreen() {
   const config = useShared((state) => state.config);
   const customer = session.customer;
   const [name, setName] = useState(customer?.name ?? "");
+  const [email, setEmail] = useState(customer?.email ?? "");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -29,16 +31,21 @@ export default function ProfileScreen() {
       .then((payload) => {
         session.setCustomer(payload.customer);
         setName(payload.customer.name);
+        setEmail(payload.customer.email ?? "");
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.tokens?.access_token]);
 
+  const emailValid = !email.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
+  const changed = Boolean(customer) && (name.trim() !== customer?.name || email.trim().toLowerCase() !== (customer?.email ?? ""));
+
   const save = async () => {
     setSaving(true);
     try {
-      const payload = await api<{ customer: Customer }>("/me", { method: "PATCH", body: { name } });
+      const payload = await api<{ customer: Customer }>("/me", { method: "PATCH", body: { name, email: email.trim() } });
       session.setCustomer(payload.customer);
+      setEmail(payload.customer.email ?? "");
       toast("Сохранили");
     } catch (error) {
       toast((error as ApiError).message, "bad");
@@ -47,16 +54,14 @@ export default function ProfileScreen() {
     }
   };
 
-  const signOut = async () => {
-    const refresh = session.tokens?.refresh_token;
-    session.signOut();
-    if (refresh) api("/auth/logout", { method: "POST", body: { refresh_token: refresh }, auth: false }).catch(() => {});
+  const signOut = () => {
+    endSession();
     toast("Вы вышли");
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.surface }}>
-      <ScreenHeader title="Профиль" />
+      <ScreenHeader title="Мои данные" />
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
         <Shell style={{ gap: 16, paddingTop: 8, maxWidth: 560 }}>
           {!customer ? (
@@ -76,13 +81,25 @@ export default function ProfileScreen() {
                 </Title>
                 <Muted style={{ textAlign: "center" }}>{[customer.phone_display, customer.email].filter(Boolean).join(" · ") || "Телефон спросим при заказе"}</Muted>
               </View>
-              <Field label="Имя" value={name} onChangeText={setName} />
-              <Button block title="Сохранить" onPress={save} loading={saving} disabled={name.trim() === customer.name} />
+              <Field label="Имя" value={name} onChangeText={setName} autoComplete="name" />
+              <Field
+                label="E-mail"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                error={emailValid ? undefined : "Проверьте e-mail"}
+              />
+              <Muted size={13}>
+                Вход: {[customer.phone ? "по телефону" : null, customer.telegram_linked ? "Telegram" : null, customer.google_linked ? "Google" : null].filter(Boolean).join(", ") || "—"}
+              </Muted>
+              <Button block title="Сохранить" onPress={save} loading={saving} disabled={!changed || !emailValid} />
             </Panel>
           )}
           <Panel style={{ gap: 0, paddingVertical: 8 }}>
-            {customer ? <Item icon="pin" title="Адреса" onPress={() => router.push("/addresses")} /> : null}
-            <Item icon="receipt" title="Заказы" onPress={() => router.navigate("/orders")} />
+            {customer ? <Item icon="pin" title="Адреса доставки" onPress={() => router.push("/addresses")} /> : null}
+            <Item icon="receipt" title="Мои заказы" onPress={() => router.navigate("/orders")} />
             <Item icon="gift" title="Бонусы" onPress={() => router.navigate("/bonus")} />
             {customer ? <Item icon="bell" title="Уведомления" onPress={() => router.push("/notifications")} /> : null}
             {config?.support_phone ? <Item icon="phone" title={`Поддержка · ${config.support_phone}`} onPress={() => Linking.openURL(`tel:${config.support_phone.replace(/[^+\d]/g, "")}`)} /> : null}

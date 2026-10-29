@@ -1,9 +1,10 @@
 """Customer sign-in and the account: profile, addresses, order history, devices, bonuses."""
 
+import re
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import client_ip, get_db, require_customer
@@ -88,11 +89,26 @@ def logout(payload: RefreshRequest, db: Session = Depends(get_db)) -> dict:
 # ---------- profile ----------
 
 
+EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
 class ProfilePatch(BaseModel):
     name: str | None = Field(default=None, max_length=160)
+    # "" clears it.
+    email: str | None = Field(default=None, max_length=200)
     notify_status: bool | None = None
     notify_bonus: bool | None = None
     notify_promo: bool | None = None
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip().lower()
+        if value and not EMAIL.match(value):
+            raise ValueError("Проверьте e-mail: похоже, в нём ошибка")
+        return value
 
 
 @router.get("/me")
@@ -103,6 +119,8 @@ def me(customer: Customer = Depends(require_customer)) -> dict:
 @router.patch("/me")
 def patch_me(payload: ProfilePatch, customer: Customer = Depends(require_customer), db: Session = Depends(get_db)) -> dict:
     for field, value in payload.model_dump(exclude_none=True).items():
+        if field == "email":
+            value = value or None
         setattr(customer, field, value.strip() if isinstance(value, str) else value)
     db.commit()
     return {"customer": customer_payload(customer)}

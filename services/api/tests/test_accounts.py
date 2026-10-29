@@ -59,6 +59,16 @@ def test_telegram_init_data(client):
     assert forged.json()["error"]["code"] == "telegram_invalid"
 
 
+def test_profile_name_and_email(client):
+    auth = sign_in(client)
+    saved = client.patch("/api/v1/me", json={"name": " Анна ", "email": " Anna@Example.RU "}, headers=headers(auth)).json()["customer"]
+    assert (saved["name"], saved["email"]) == ("Анна", "anna@example.ru")
+    assert client.patch("/api/v1/me", json={"email": "anna@"}, headers=headers(auth)).status_code == 422
+    # An empty e-mail clears it; fields left out stay.
+    cleared = client.patch("/api/v1/me", json={"email": ""}, headers=headers(auth)).json()["customer"]
+    assert (cleared["name"], cleared["email"]) == ("Анна", None)
+
+
 def test_addresses_crud_and_default(client):
     auth = sign_in(client)
     body = {"label": "Дом", "text": "Солнечногорск, улица Ленина, 5", "latitude": 56.1812, "longitude": 36.9739, "apartment": "48"}
