@@ -39,6 +39,7 @@ def yookassa_webhook(background: BackgroundTasks, payload: dict = Body(...), db:
 PAY_PAGE = """<!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Оплата заказа № {number} · Брайт</title><link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="preconnect" href="https://yookassa.ru"><link rel="preconnect" href="https://yoomoney.ru">
 <style>
 body {{ margin: 0; background: #f4f4f6; color: #1c1c1e; font: 500 16px/1.5 -apple-system, system-ui, sans-serif; }}
 .wrap {{ max-width: 520px; margin: 0 auto; padding: 20px 16px 40px; }}
@@ -50,7 +51,7 @@ h1 {{ font-size: 22px; margin: 4px 0 2px; }} .muted {{ color: #62666f; font-size
 <div class="muted">Брайт · заказ № {number}</div>
 <h1>Оплата {total} ₽</h1>
 <div class="muted">Выберите способ — картой, по СБП или SberPay.</div>
-<div class="card"><div id="widget"></div>
+<div class="card"><div class="muted" id="wait" style="text-align:center;padding:32px 0">Загружаем способы оплаты…</div><div id="widget"></div>
 <div class="done" id="done"><h1>Оплачено</h1><div class="muted">Заказ уже передан в кафе.</div><a href="{back}">Вернуться к заказу</a></div></div>
 </div>
 <script src="https://yookassa.ru/checkout-widget/v1/checkout-widget.js"></script>
@@ -63,7 +64,7 @@ const widget = new window.YooMoneyCheckoutWidget({{
 }});
 widget.on("success", function () {{ widget.destroy(); document.getElementById("done").style.display = "block"; }});
 widget.on("fail", function () {{ widget.destroy(); location.reload(); }});
-widget.render("widget");
+widget.render("widget").then(function () {{ document.getElementById("wait").remove(); }});
 </script></body></html>"""
 
 

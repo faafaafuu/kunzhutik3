@@ -16,6 +16,27 @@ type Widget = { render: (id: string) => Promise<void>; on: (event: "success" | "
 type WidgetClass = new (options: object) => Widget;
 
 let loading: Promise<WidgetClass> | null = null;
+// The token that came back with the new order: the widget starts on it without asking the server again.
+const handedOver = new Map<string, string>();
+
+/** Checkout: start fetching ЮKassa's script while the customer fills the form, so the order screen does not wait for it. */
+export function preloadPaymentWidget(): void {
+  if (Platform.OS === "web") loadWidget().catch(() => {});
+}
+
+/** The payment created together with the order; used once by the order screen's widget. */
+export function handOverPayment(orderId: string, token: string): void {
+  handedOver.set(orderId, token);
+}
+
+async function paymentToken(orderId: string): Promise<string | undefined> {
+  const token = handedOver.get(orderId);
+  if (token) {
+    handedOver.delete(orderId);
+    return token;
+  }
+  return (await api<{ token?: string }>(`/orders/${orderId}/pay?embedded=true`, { method: "POST" })).token;
+}
 
 function loadWidget(): Promise<WidgetClass> {
   const ready = () => (window as unknown as { YooMoneyCheckoutWidget?: WidgetClass }).YooMoneyCheckoutWidget;
@@ -50,10 +71,10 @@ export function PaymentWidget({ orderId, onSettled }: { orderId: string; onSettl
     setState("loading");
     (async () => {
       try {
-        const [Widget, payment] = await Promise.all([loadWidget(), api<{ token?: string }>(`/orders/${orderId}/pay?embedded=true`, { method: "POST" })]);
-        if (!alive || !payment.token) return;
+        const [Widget, token] = await Promise.all([loadWidget(), paymentToken(orderId)]);
+        if (!alive || !token) return;
         widget = new Widget({
-          confirmation_token: payment.token,
+          confirmation_token: token,
           return_url: `${window.location.origin}/order/${orderId}`,
           customization: { colors: { control_primary: c.brand, background: c.surfaceCard } },
           error_callback: () => {

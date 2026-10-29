@@ -14,6 +14,7 @@ import { toast } from "@/components/Toast";
 import { Button, Columns, Field, LinkButton, Muted, Notice, OptionRow, Panel, Segmented, Shell, StateView, T, Title, Toggle, Totals } from "@/components/ui";
 import { buildQuoteBody, useFetch, useQuote, useShared } from "@/hooks/data";
 import { maskPhone, money, phoneComplete, slotLabel, time } from "@/lib/format";
+import { handOverPayment, preloadPaymentWidget } from "@/components/PaymentWidget";
 import { openPayment } from "@/lib/payment";
 import { orderSource } from "@/lib/telegram";
 import { useCart } from "@/store/cart";
@@ -64,6 +65,11 @@ export default function CheckoutScreen() {
   useEffect(() => {
     if (onlineAccepted && !paymentPicked) setPayment("online");
   }, [onlineAccepted, paymentPicked]);
+
+  // Paying online: ЮKassa's widget script downloads while the form is being filled, not after «Перейти к оплате».
+  useEffect(() => {
+    if (payment === "online") preloadPaymentWidget();
+  }, [payment]);
 
   useEffect(() => {
     if (!scheduledFor || !quote) return;
@@ -158,6 +164,7 @@ export default function CheckoutScreen() {
       router.replace({ pathname: "/order/[id]", params: { id: order.id } });
       // Online: the site shows ЮKassa's widget on the order screen; the app opens ЮKassa's page over itself.
       // If it did not start, the order screen offers to pay again.
+      if (toPay?.token) handOverPayment(order.id, toPay.token);
       if (toPay) openPayment(order.id);
       else if (order.can_pay) toast("Не получилось открыть оплату — попробуйте ещё раз в заказе", "bad");
     } catch (caught) {
