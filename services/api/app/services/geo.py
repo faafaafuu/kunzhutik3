@@ -48,7 +48,7 @@ def distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * radius * math.asin(math.sqrt(a))
 
 
-def circle_polygon(lat: float, lon: float, radius_km: float, points: int = 32) -> list[list[float]]:
+def circle_polygon(lat: float, lon: float, radius_km: float, points: int = 12) -> list[list[float]]:
     """A closed ring approximating a circle — the starting shape of a new zone."""
     ring = []
     for step in range(points):

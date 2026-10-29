@@ -13,13 +13,14 @@ import { cardShadow, radius, useTheme } from "@/theme";
 
 export type Anchor = { top: number; right: number };
 
-type Entry = { icon: IconName; title: string; href: string };
+// tab — one of the bottom-bar sections (switched to); the rest are screens pushed over the current one.
+type Entry = { icon: IconName; title: string; href: string; tab?: boolean };
 
 const ENTRIES: Entry[] = [
-  { icon: "receipt", title: "Мои заказы", href: "/orders" },
+  { icon: "receipt", title: "Мои заказы", href: "/orders", tab: true },
   { icon: "user", title: "Мои данные", href: "/profile" },
   { icon: "pin", title: "Адреса доставки", href: "/addresses" },
-  { icon: "gift", title: "Бонусы", href: "/bonus" },
+  { icon: "gift", title: "Бонусы", href: "/bonus", tab: true },
   { icon: "bell", title: "Уведомления", href: "/notifications" },
 ];
 
@@ -29,9 +30,10 @@ export function AccountMenu({ anchor, onClose }: { anchor: Anchor | null; onClos
   const customer = useSession((state) => state.customer);
   if (!anchor || !customer) return null;
 
-  const open = (href: string) => {
+  const open = (entry: Entry) => {
     onClose();
-    router.navigate(href as never);
+    if (entry.tab) router.navigate(entry.href as never);
+    else router.push(entry.href as never);
   };
 
   return (
@@ -51,7 +53,7 @@ export function AccountMenu({ anchor, onClose }: { anchor: Anchor | null; onClos
             </Muted>
           </View>
           {ENTRIES.map((entry) => (
-            <Row key={entry.href} icon={entry.icon} title={entry.title} onPress={() => open(entry.href)} />
+            <Row key={entry.href} icon={entry.icon} title={entry.title} onPress={() => open(entry)} />
           ))}
           <View style={{ height: 1, backgroundColor: c.line, marginVertical: 4 }} />
           <Row

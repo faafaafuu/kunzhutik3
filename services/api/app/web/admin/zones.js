@@ -16,6 +16,10 @@ const COLORS = ["#ff6900", "#245d9e", "#157a42", "#8f5a0b", "#c2343a", "#6b4fd8"
 
 const local = { venues: [], root: null, map: null, venue: null, layers: new Map(), selected: null, draft: null, checkMarker: null, venueMarker: null, tool: null, history: [] };
 
+// A new circle zone: enough points to look round, few enough to drag by hand.
+const CIRCLE_POINTS = 12;
+const MIN_POINTS = 6;
+
 const HINTS = {
   edit: "Тяните белые точки, чтобы сдвинуть границу. Полупрозрачная точка на стороне — новый изгиб. Правый клик по точке — убрать её.",
   add: "Обведите дома, которые нужно добавить: ставьте точки и замкните контур на первой. Участок сольётся с зоной.",
@@ -41,6 +45,7 @@ export async function mount(root) {
         <div class="map-tools" id="map-tools" hidden>
           <button class="btn sm" type="button" data-tool="add">＋ Добавить участок</button>
           <button class="btn sm" type="button" data-tool="cut">− Вырезать участок</button>
+          <button class="btn sm subtle" type="button" id="tool-simplify" title="Убрать лишние точки, форма почти не изменится">Меньше точек</button>
           <button class="btn sm subtle" type="button" id="tool-undo" disabled>↶ Отменить шаг</button>
         </div>
         <p class="map-hint" id="map-hint" hidden></p>
@@ -54,6 +59,7 @@ export async function mount(root) {
   root.querySelector("#check-form").addEventListener("submit", onCheckAddress);
   root.querySelectorAll("[data-tool]").forEach((button) => button.addEventListener("click", () => startTool(button.dataset.tool)));
   root.querySelector("#tool-undo").addEventListener("click", undo);
+  root.querySelector("#tool-simplify").addEventListener("click", simplify);
   if (!editable) root.querySelector(".zones-layout").classList.add("read-only");
   await load();
 }
@@ -373,8 +379,8 @@ async function addCircleZone() {
   cancelDraft();
   const km = Number(answer.km) || 3;
   const points = [];
-  for (let step = 0; step < 24; step += 1) {
-    const angle = (2 * Math.PI * step) / 24;
+  for (let step = 0; step < CIRCLE_POINTS; step += 1) {
+    const angle = (2 * Math.PI * step) / CIRCLE_POINTS;
     points.push([
       local.venue.latitude + (km / 111.32) * Math.cos(angle),
       local.venue.longitude + (km / (111.32 * Math.cos((local.venue.latitude * Math.PI) / 180))) * Math.sin(angle),
@@ -439,6 +445,30 @@ function undo() {
   setRing(layer, local.history[local.history.length - 1]);
   markDirty();
   renderTools();
+}
+
+/** Fewer handles: drops the points that barely bend the outline (Douglas–Peucker on screen pixels, so the result
+ * fits what is visible at this zoom). Each press goes further; «Отменить шаг» brings the points back. */
+function simplify() {
+  const layer = editingLayer();
+  if (!layer) return;
+  const ring = layer.getLatLngs()[0];
+  if (ring.length <= MIN_POINTS) {
+    toast("Точек и так минимум");
+    return;
+  }
+  const pixels = ring.map((point) => local.map.latLngToLayerPoint(point));
+  let tolerance = 6;
+  let kept = L.LineUtil.simplify([...pixels, pixels[0]], tolerance).slice(0, -1);
+  // A round zone has no "unimportant" points at a small tolerance: widen it until something goes.
+  while (kept.length >= ring.length && tolerance < 200) {
+    tolerance *= 2;
+    kept = L.LineUtil.simplify([...pixels, pixels[0]], tolerance).slice(0, -1);
+  }
+  if (kept.length < MIN_POINTS) kept = pixels.filter((_, index) => index % Math.ceil(pixels.length / MIN_POINTS) === 0);
+  setRing(layer, kept.map((point) => { const at = local.map.layerPointToLatLng(point); return [at.lng, at.lat]; }));
+  changed(layer);
+  toast(`Было ${ring.length} точек, стало ${kept.length}`);
 }
 
 function startTool(tool) {
