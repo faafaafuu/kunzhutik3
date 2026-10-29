@@ -84,8 +84,10 @@ def item_payload(item: MenuItem, override: VenueMenuItem | None, venue: Venue | 
 
 
 def menu_payload(db: Session, venue: Venue | None) -> dict:
-    items = load_items(db)
+    """The menu of one venue. A dish on this venue's stop-list is left out entirely: the customer simply does not
+    see it (it comes back by itself when the stop ends). A dish already in a cart is still caught by the quote."""
     overrides = venue_overrides(db, venue)
+    items = [item for item in load_items(db) if venue is None or is_available(overrides.get(item.id))]
     categories: list[MenuCategory] = []
     seen = set()
     for item in items:

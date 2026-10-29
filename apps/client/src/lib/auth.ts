@@ -34,21 +34,33 @@ export async function collectLogin(secret: string): Promise<boolean> {
   return true;
 }
 
-export async function startTelegramLogin(agreement: { consent: boolean; marketing_consent: boolean }): Promise<{ url: string; secret: string }> {
-  const started = await api<{ url: string; secret: string }>("/auth/telegram/start", { method: "POST", body: agreement, auth: false });
+export async function startTelegramLogin(agreement: { consent: boolean; marketing_consent: boolean }): Promise<{ url: string; app_url?: string; secret: string }> {
+  const started = await api<{ url: string; app_url?: string; secret: string }>("/auth/telegram/start", { method: "POST", body: agreement, auth: false });
   remember(PENDING, started.secret);
   return started;
 }
 
-export function openTelegram(url: string): void {
+/** Opens the bot: straight in the Telegram app (tg://), the t.me page only when the app is not there. */
+export function openTelegram(url: string, appUrl?: string): void {
   if (Platform.OS !== "web") {
-    Linking.openURL(url);
+    (appUrl ? Linking.openURL(appUrl) : Promise.reject()).catch(() => Linking.openURL(url));
     return;
   }
-  // A phone hands t.me links to the Telegram app and keeps this page polling; a desktop browser would
-  // navigate away, so there the link goes to a new tab.
-  if (window.matchMedia?.("(pointer: coarse)").matches) window.location.href = url;
-  else window.open(url, "_blank", "noopener");
+  // A desktop browser would leave this page for t.me: a new tab there, this one keeps polling.
+  if (!window.matchMedia?.("(pointer: coarse)").matches) {
+    window.open(url, "_blank", "noopener");
+    return;
+  }
+  if (!appUrl) {
+    window.location.href = url;
+    return;
+  }
+  // Phone: tg:// opens Telegram at once and this page stays. If nothing took it (no Telegram), the page is still
+  // visible a moment later — then t.me, which offers to install it.
+  window.location.href = appUrl;
+  setTimeout(() => {
+    if (document.visibilityState === "visible") window.location.href = url;
+  }, 1500);
 }
 
 /** The Telegram login this page started before it was reloaded or left, if any. */

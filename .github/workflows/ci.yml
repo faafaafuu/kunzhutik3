@@ -1,0 +1,79 @@
+name: Checks and deploy
+
+# Every push and pull request: API tests and the client's type check.
+# A push to dev then goes to https://dev.braitsgk.ru (staging), a push to main to https://braitsgk.ru (production).
+# Deploying needs the repository secret DEPLOY_SSH_KEY (the CI key of the server); without it only the checks run.
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: delivery
+          POSTGRES_USER: delivery
+          POSTGRES_PASSWORD: delivery
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U delivery" --health-interval 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: services/api/requirements*.txt
+      - run: pip install -r requirements.txt pytest
+      - run: python -m pytest -q
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://delivery:delivery@127.0.0.1:5432/delivery
+
+  client-types:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/client
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/client/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: [api-tests, client-types]
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      TARGET: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
+    steps:
+      - name: No deploy key yet
+        if: env.DEPLOY_SSH_KEY == ''
+        run: echo "::warning::DEPLOY_SSH_KEY is not set — checks passed, nothing deployed."
+      - name: Deploy to ${{ env.TARGET }}
+        if: env.DEPLOY_SSH_KEY != ''
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          # The server's own host key: a look-alike server cannot take the deploy.
+          echo "51.250.48.107 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOpzCRirn1YA2ZtJtel+iEqbOzfc0hFJON6m9ZIeRL0L" > ~/.ssh/known_hosts
+          # The key may only run the deploy script on the server: the target is all it chooses.
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o ServerAliveInterval=30 deploy@51.250.48.107 "$TARGET"

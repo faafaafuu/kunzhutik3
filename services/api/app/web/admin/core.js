@@ -170,3 +170,33 @@ function field_presets(fields) {
     .map((field) => `<div class="presets">${field.presets.map((preset) => `<button type="button" class="chip" data-field="${field.name}" data-preset="${escapeHtml(preset)}">${escapeHtml(preset)}</button>`).join("")}</div>`)
     .join("");
 }
+
+
+// ---- venues: the panel works with one venue at a time, chosen on «Зоны» or «Меню» and remembered ----
+
+const VENUE_KEY = "brait-admin-venue";
+
+export function pickVenue(venues) {
+  let id = null;
+  try {
+    id = localStorage.getItem(VENUE_KEY);
+  } catch {
+    // Private mode: the first venue.
+  }
+  return venues.find((venue) => venue.id === id) || venues[0] || null;
+}
+
+export function rememberVenue(id) {
+  try {
+    localStorage.setItem(VENUE_KEY, id);
+  } catch {
+    // Not remembered; the choice still holds while the page is open.
+  }
+}
+
+/** A select of the venues for the toolbar; nothing when there is only one. */
+export function venueSelect(venues, current) {
+  if (venues.length < 2) return "";
+  const options = venues.map((venue) => `<option value="${venue.id}" ${venue.id === current?.id ? "selected" : ""}>${escapeHtml(venue.title)}</option>`).join("");
+  return `<select class="field select-field venue-select" aria-label="Точка">${options}</select>`;
+}

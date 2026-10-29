@@ -18,7 +18,7 @@ import { isTelegram } from "@/lib/telegram";
 import { useSession } from "@/store/session";
 import { fonts, radius, useTheme } from "@/theme";
 
-const POLL_MS = 2000;
+const POLL_MS = 1500;
 
 type Step = "choose" | "code" | "telegram";
 
@@ -35,7 +35,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [limited, setLimited] = useState<string | null>(null);
   const [wait, setWait] = useState(0);
-  const [telegram, setTelegram] = useState<{ url: string | null; secret: string } | null>(null);
+  const [telegram, setTelegram] = useState<{ url: string | null; app_url?: string; secret: string } | null>(null);
   // The consent boxes of this screen. Ticked once for the current edition of the documents, they are not shown again.
   const [agreements, setAgreements] = useState(noAgreements);
   const config = useShared((state) => state.config);
@@ -110,7 +110,7 @@ export default function LoginScreen() {
       rememberConsent();
       setTelegram(started);
       setStep("telegram");
-      openTelegram(started.url);
+      openTelegram(started.url, started.app_url);
     } catch (caught) {
       setError((caught as ApiError).message);
     } finally {
@@ -220,7 +220,7 @@ export default function LoginScreen() {
                 <Muted size={13}>Ждём подтверждения</Muted>
               </View>
               <View style={{ alignSelf: "stretch", gap: 8 }}>
-                {telegram?.url ? <Button block tone="tonal" title="Открыть Telegram ещё раз" onPress={() => openTelegram(telegram.url!)} /> : null}
+                {telegram?.url ? <Button block tone="tonal" title="Открыть Telegram ещё раз" onPress={() => openTelegram(telegram.url!, telegram.app_url)} /> : null}
                 <Button
                   block
                   tone="tonal"

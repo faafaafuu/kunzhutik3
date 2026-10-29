@@ -176,6 +176,7 @@ textarea.field { resize: vertical; }
 .hours-row .field { padding: 8px 10px; }
 .read-only .leaflet-pm-toolbar { display: none; }
 .pay-ok { color: var(--success); }
+.venue-select { padding: 10px 14px; border-radius: var(--radius-pill); min-width: 200px; }
 .promo-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
 .accent-brand { background: var(--brand); }
 .accent-sesame { background: #f6c453; }

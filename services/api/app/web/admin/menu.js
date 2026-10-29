@@ -1,6 +1,6 @@
 // Menu of the venue: stop-list in one click, prices and badges for managers.
 
-import { api, ask, can, escapeHtml, money, showError, toast } from "./core.js";
+import { api, ask, can, escapeHtml, money, pickVenue, rememberVenue, showError, toast, venueSelect } from "./core.js";
 
 const local = { root: null, venue: null, items: [], query: "" };
 
@@ -9,9 +9,10 @@ export async function mount(root) {
   root.innerHTML = `
     <div class="toolbar">
       <h1>Меню и стоп-лист</h1>
+      <span id="venue-picker"></span>
       <input class="field search-field" id="menu-search" type="search" placeholder="Поиск блюда" />
     </div>
-    <p class="muted small">«Закончилось» — блюдо видно клиентам серым и не заказывается. «До конца дня» само вернётся утром.</p>
+    <p class="muted small">Стоп-лист — у каждой точки свой. «Закончилось» — блюдо пропадает из меню этой точки, пока не вернёте. «До конца дня» само вернётся утром.</p>
     <div class="card table-card"><table class="table" id="menu-table"></table></div>`;
   root.querySelector("#menu-search").addEventListener("input", (event) => {
     local.query = event.target.value.trim().toLowerCase();
@@ -19,7 +20,14 @@ export async function mount(root) {
   });
   root.querySelector("#menu-table").addEventListener("click", onClick);
   const { venues } = await api("/api/v1/admin/venues");
-  local.venue = venues[0];
+  local.venue = pickVenue(venues);
+  const picker = root.querySelector("#venue-picker");
+  picker.innerHTML = venueSelect(venues, local.venue);
+  picker.querySelector("select")?.addEventListener("change", (event) => {
+    local.venue = venues.find((venue) => venue.id === event.target.value);
+    rememberVenue(local.venue.id);
+    load().catch(showError);
+  });
   await load();
 }
 

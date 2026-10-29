@@ -114,6 +114,8 @@ def start_telegram(db: Session, ip: str) -> dict:
     token, secret = _new_request(db, "telegram", ip)
     return {
         "url": f"https://t.me/{username}?start=login_{token}",
+        # Straight into the Telegram app: t.me is a web page first, slow or patchy from Russia.
+        "app_url": f"tg://resolve?domain={username}&start=login_{token}",
         "secret": secret,
         "expires_in": int(LOGIN_TTL.total_seconds()),
     }

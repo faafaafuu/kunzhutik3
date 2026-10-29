@@ -63,7 +63,8 @@ def test_stop_list_blocks_the_item(operator_client, menu):
     eclair = menu["eclair"]
     assert client.patch(f"/api/v1/admin/venues/{venue_id}/menu/{eclair['id']}", json={"is_available": False}).status_code == 200
     menu_after = {item["slug"]: item for item in client.get("/api/v1/menu").json()["items"]}
-    assert menu_after["eclair"]["is_available"] is False
+    assert "eclair" not in menu_after  # off the menu of this venue altogether
+    # A cart that already holds it is still told so by the quote.
     result = quote(client, [poke_line(menu, quantity=2), {"menu_item_id": eclair["id"], "quantity": 1}])
     assert result["problems"][0]["code"] == "item_unavailable"
     # The unavailable line does not count towards the total.

@@ -56,3 +56,31 @@ def test_address_search_uses_the_geocoder(client):
     results = client.get("/api/v1/geo/suggest", params={"q": "Красная"}).json()["results"]
     assert results[0]["title"] == "улица Красная, 1"
     assert results[0]["latitude"] == INSIDE["latitude"]
+
+
+def test_a_dish_on_a_venues_stop_list_is_not_shown_there(operator_client, menu, db):
+    from app.models.venue import Venue
+
+    client = operator_client
+    venue = db.query(Venue).first()
+    latte = menu["latte"]
+    assert client.patch(f"/api/v1/admin/venues/{venue.id}/menu/{latte['id']}", json={"is_available": False}).status_code == 200
+    slugs = [item["slug"] for item in client.get(f"/api/v1/menu?venue_id={venue.id}").json()["items"]]
+    assert "latte" not in slugs and "raf" in slugs
+    client.patch(f"/api/v1/admin/venues/{venue.id}/menu/{latte['id']}", json={"is_available": True})
+    assert "latte" in [item["slug"] for item in client.get(f"/api/v1/menu?venue_id={venue.id}").json()["items"]]
+
+
+def test_a_second_venue_is_added_from_the_panel(operator_client, db):
+    from app.models.venue import Venue
+
+    created = operator_client.post("/api/v1/admin/venues", json={"title": "Брайт в Клину", "city": "Клин", "address": "ул. Ленина, 1", "phone": "+7 (926) 407-01-00", "latitude": 56.3333, "longitude": 36.7333})
+    assert created.status_code == 201, created.text
+    venue = db.get(Venue, created.json()["venue"]["id"])
+    first = db.query(Venue).order_by(Venue.created_at).first()
+    try:
+        assert venue.working_hours == first.working_hours and venue.code.startswith("V")
+        assert created.json()["venue"]["id"] in [v["id"] for v in operator_client.get("/api/v1/admin/venues").json()["venues"]]
+    finally:
+        db.delete(venue)
+        db.commit()

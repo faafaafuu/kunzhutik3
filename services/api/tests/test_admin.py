@@ -111,3 +111,16 @@ def test_client_app_fallback_when_not_built(client):
     assert response.status_code == 503
     assert "Сайт ещё не собран" in response.text
     assert client.get("/api/v1/nope").status_code == 404
+
+
+def test_panel_login_stops_guessing_after_five_wrong_passwords(client):
+    from app.services import auth
+
+    auth._login_fails.clear()
+    try:
+        for _ in range(5):
+            assert client.post("/api/v1/admin/auth/login", json={"username": "admin", "password": "wrong"}).status_code == 401
+        # Even the right password waits now: the guesser cannot tell when they hit it.
+        assert client.post("/api/v1/admin/auth/login", json={"username": "admin", "password": "test-pass"}).status_code == 429
+    finally:
+        auth._login_fails.clear()

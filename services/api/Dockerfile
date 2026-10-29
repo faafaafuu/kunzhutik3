@@ -26,4 +26,9 @@ ENV CLIENT_DIST_DIR=/app/client-dist
 
 WORKDIR /app/services/api
 
+
+# Not root: a hole in the app then cannot touch the rest of the container.
+RUN useradd --system --uid 10001 --no-create-home app
+USER app
+
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]

@@ -36,6 +36,40 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
+# Brute-force guard for the panel's login: after LOGIN_MAX_FAILS wrong passwords from one IP or for one username
+# within LOGIN_WINDOW, that IP / username waits out the window. Kept in memory: the API runs as one process.
+LOGIN_MAX_FAILS = 5
+LOGIN_WINDOW = 15 * 60
+_login_fails: dict[str, list[float]] = {}
+
+
+def _recent_fails(key: str, now: float) -> list[float]:
+    fails = [at for at in _login_fails.get(key, []) if now - at < LOGIN_WINDOW]
+    if fails:
+        _login_fails[key] = fails
+    else:
+        _login_fails.pop(key, None)
+    return fails
+
+
+def login_blocked_for(ip: str, username: str) -> int:
+    """Seconds left to wait before another attempt, 0 when one is allowed."""
+    now = time.time()
+    waits = [LOGIN_WINDOW - (now - fails[0]) for key in (f"ip:{ip}", f"user:{username.strip().lower()}") if len(fails := _recent_fails(key, now)) >= LOGIN_MAX_FAILS]
+    return int(max(waits)) + 1 if waits else 0
+
+
+def record_login_result(ip: str, username: str, ok: bool) -> None:
+    keys = (f"ip:{ip}", f"user:{username.strip().lower()}")
+    if ok:
+        for key in keys:
+            _login_fails.pop(key, None)
+        return
+    now = time.time()
+    for key in keys:
+        _login_fails.setdefault(key, []).append(now)
+
+
 def authenticate_operator(db: Session, username: str, password: str) -> OperatorUser | None:
     user = db.query(OperatorUser).filter(OperatorUser.username == username.strip()).first()
     if not user or not user.is_active:

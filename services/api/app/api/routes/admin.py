@@ -109,6 +109,47 @@ def admin_venues(db: Session = Depends(get_db), user: OperatorUser = Depends(req
     return {"venues": result}
 
 
+class VenueCreate(BaseModel):
+    title: str = Field(min_length=2, max_length=160)
+    city: str = Field(min_length=2, max_length=120)
+    address: str = Field(min_length=3, max_length=300)
+    phone: str = Field(min_length=5, max_length=40)
+    # Found by the address when not given.
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+
+
+@router.post("/venues", status_code=201)
+def admin_create_venue(payload: VenueCreate, db: Session = Depends(get_db), user: OperatorUser = Depends(require_manager)) -> dict:
+    """A new venue: hours and cooking time copied from the first one, no zones yet — draw them on the map."""
+    latitude, longitude = payload.latitude, payload.longitude
+    if latitude is None or longitude is None:
+        found = geo.suggest(f"{payload.city}, {payload.address}", None)
+        if not found:
+            raise ApiError("address_not_found", "Не нашли адрес — проверьте город и улицу", status=422)
+        latitude, longitude = found[0]["latitude"], found[0]["longitude"]
+    first = db.query(Venue).order_by(Venue.created_at).first()
+    taken = {code for (code,) in db.query(Venue.code).all()}
+    number = len(taken) + 1
+    while f"V{number}" in taken:
+        number += 1
+    venue = Venue(
+        code=f"V{number}",
+        title=payload.title.strip(),
+        city=payload.city.strip(),
+        address=payload.address.strip(),
+        phone=payload.phone.strip(),
+        latitude=latitude,
+        longitude=longitude,
+        working_hours=dict(first.working_hours) if first else {day: [["10:00", "22:00"]] for day in WEEKDAYS},
+        cook_minutes=first.cook_minutes if first else 15,
+        timezone=first.timezone if first else "Europe/Moscow",
+    )
+    db.add(venue)
+    db.commit()
+    return {"venue": venue_payload(venue)}
+
+
 @router.patch("/venues/{venue_id}")
 def admin_patch_venue(venue_id: UUID, payload: VenuePatch, db: Session = Depends(get_db), user: OperatorUser = Depends(require_manager)) -> dict:
     venue = db.get(Venue, venue_id)

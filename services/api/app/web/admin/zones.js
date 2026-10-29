@@ -1,7 +1,7 @@
 // Delivery zones on a map: draw, drag the vertices, add or cut a piece around a few houses, set prices.
 // An address outside every zone gets no delivery. Pieces are merged with Turf (union / difference).
 
-import { api, ask, can, escapeHtml, money, showError, toast } from "./core.js";
+import { api, ask, can, escapeHtml, money, pickVenue, rememberVenue, showError, toast, venueSelect } from "./core.js";
 
 const DAYS = [
   ["mon", "Пн"],
@@ -14,7 +14,7 @@ const DAYS = [
 ];
 const COLORS = ["#ff6900", "#245d9e", "#157a42", "#8f5a0b", "#c2343a", "#6b4fd8"];
 
-const local = { root: null, map: null, venue: null, layers: new Map(), selected: null, draft: null, checkMarker: null, venueMarker: null, tool: null, history: [] };
+const local = { venues: [], root: null, map: null, venue: null, layers: new Map(), selected: null, draft: null, checkMarker: null, venueMarker: null, tool: null, history: [] };
 
 const HINTS = {
   edit: "Тяните белые точки, чтобы сдвинуть границу. Полупрозрачная точка на стороне — новый изгиб. Правый клик по точке — убрать её.",
@@ -28,6 +28,7 @@ export async function mount(root) {
   root.innerHTML = `
     <div class="toolbar">
       <h1>Зоны доставки</h1>
+      <span id="venue-picker"></span>
       <form class="check-form" id="check-form">
         <input class="field" name="q" placeholder="Проверить адрес: Солнечногорск, ул. Красная, 1" />
         <button class="btn subtle">Проверить</button>
@@ -66,14 +67,57 @@ export function unmount() {
 
 async function load() {
   const { venues } = await api("/api/v1/admin/venues");
-  local.venue = venues[0];
+  local.venues = venues;
+  local.venue = pickVenue(venues);
   if (!local.venue) {
     local.root.querySelector("#zone-list").innerHTML = "<p>Нет ни одной точки.</p>";
     return;
   }
+  renderPicker();
   setupMap();
   renderZones();
   renderVenueForm();
+}
+
+function renderPicker() {
+  const picker = local.root.querySelector("#venue-picker");
+  picker.innerHTML = venueSelect(local.venues, local.venue);
+  picker.querySelector("select")?.addEventListener("change", (event) => switchVenue(event.target.value));
+}
+
+function switchVenue(venueId) {
+  cancelDraft();
+  stopEditing();
+  local.selected = null;
+  local.root.querySelector("#zone-form").hidden = true;
+  local.venue = local.venues.find((venue) => venue.id === venueId) || local.venues[0];
+  rememberVenue(local.venue.id);
+  setupMap();
+  renderZones();
+  renderVenueForm();
+}
+
+async function addVenue() {
+  const answer = await ask({
+    title: "Новая точка",
+    text: "Координаты найдём по адресу; потом нарисуйте зону доставки и поправьте график.",
+    fields: [
+      { name: "title", label: "Название", placeholder: "Брайт в Клину" },
+      { name: "city", label: "Город", placeholder: "Клин" },
+      { name: "address", label: "Адрес", placeholder: "ул. Ленина, 1" },
+      { name: "phone", label: "Телефон", value: local.venue?.phone || "" },
+    ],
+    submit: "Создать",
+  });
+  if (!answer) return;
+  try {
+    const { venue } = await api("/api/v1/admin/venues", { method: "POST", body: { title: answer.title.trim(), city: answer.city.trim(), address: answer.address.trim(), phone: answer.phone.trim() } });
+    rememberVenue(venue.id);
+    toast("Точка добавлена — нарисуйте её зону доставки");
+    await load();
+  } catch (error) {
+    showError(error);
+  }
 }
 
 function setupMap() {
@@ -114,6 +158,7 @@ function setupMap() {
   });
   const group = L.featureGroup([...local.layers.values()]);
   if (local.layers.size) local.map.fitBounds(group.getBounds().pad(0.15));
+  else local.map.setView([venue.latitude, venue.longitude], 14);
 }
 
 function addZoneLayer(zone) {
@@ -158,12 +203,14 @@ function renderZones() {
         ? `<div class="actions">
             <button class="btn primary sm" type="button" id="draw-zone">Нарисовать зону</button>
             <button class="btn subtle sm" type="button" id="circle-zone">Круг вокруг точки</button>
+            <button class="btn subtle sm" type="button" id="add-venue">+ Новая точка</button>
           </div>`
         : ""
     }`;
   local.root.querySelectorAll("[data-zone]").forEach((button) => button.addEventListener("click", () => selectZone(button.dataset.zone)));
   local.root.querySelector("#draw-zone")?.addEventListener("click", startDrawing);
   local.root.querySelector("#circle-zone")?.addEventListener("click", addCircleZone);
+  local.root.querySelector("#add-venue")?.addEventListener("click", addVenue);
 }
 
 function selectZone(zoneId) {
@@ -281,6 +328,7 @@ async function deleteZone(zone) {
 
 async function reload() {
   const { venues } = await api("/api/v1/admin/venues");
+  local.venues = venues;
   local.venue = venues.find((venue) => venue.id === local.venue.id) || venues[0];
   setupMap();
   renderZones();

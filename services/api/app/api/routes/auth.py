@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, require_operator
+from app.api.deps import client_ip, get_db, require_operator
 from app.models.operator_user import OperatorUser
 from app.schemas.auth import LoginRequest, LoginResponse, OperatorMe
-from app.services.auth import authenticate_operator, clear_session_cookie, get_current_operator, set_session_cookie
+from app.services.auth import authenticate_operator, clear_session_cookie, get_current_operator, login_blocked_for, record_login_result, set_session_cookie
 
 router = APIRouter(tags=["operator-auth"])
 
@@ -38,7 +38,12 @@ def admin_panel(request: Request, section: str = "orders", db: Session = Depends
 
 @router.post("/api/v1/admin/auth/login", response_model=LoginResponse)
 def login(payload: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
+    ip = client_ip(request)
+    wait = login_blocked_for(ip, payload.username)
+    if wait:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=f"Слишком много попыток. Попробуйте через {max(1, wait // 60)} мин")
     user = authenticate_operator(db, payload.username, payload.password)
+    record_login_result(ip, payload.username, ok=user is not None)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
     set_session_cookie(response, user, request)
