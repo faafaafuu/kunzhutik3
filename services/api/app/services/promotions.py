@@ -54,5 +54,5 @@ def seed_promotions(db: Session) -> None:
                 sort=20,
             )
         )
-    cards.append(Promotion(title="−10% на заказ от 500 ₽", text="Промокод BRIGHT10: нажмите, и он применится в корзине", accent="brand", action="promo", promo_code="BRIGHT10", sort=30))
+    cards.append(Promotion(title="−10% на заказ от 2490 ₽", text="Промокод BRIGHT10: нажмите, и он применится в корзине", accent="brand", action="promo", promo_code="BRIGHT10", sort=30))
     db.add_all(cards)

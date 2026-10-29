@@ -135,5 +135,5 @@ ITEM_GROUPS = {
 
 # EXAMPLE promo code from the cart mockup.
 PROMO_CODES = [
-    {"code": "BRIGHT10", "kind": "percent", "value": 10, "min_order_amount": 500, "note": "Пример: −10% от 500 ₽"},
+    {"code": "BRIGHT10", "kind": "percent", "value": 10, "min_order_amount": 2490, "note": "−10% от 2490 ₽"},
 ]

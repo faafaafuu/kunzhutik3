@@ -72,10 +72,13 @@ def test_stop_list_blocks_the_item(operator_client, menu):
 
 
 def test_promo_code(client, menu):
-    result = quote(client, [poke_line(menu, quantity=2)], promo_code="bright10")
+    result = quote(client, [poke_line(menu, quantity=4)], promo_code="bright10")
     assert result["promo"]["applied"] is True
-    assert result["discount_total"] == "130.00"
-    assert result["total_amount"] == "1320.00"  # 1300 − 130 + 150 delivery (1170 < 1500)
+    assert result["discount_total"] == "260.00"
+    assert result["total_amount"] == "2340.00"  # 2600 − 260, delivery free from 1500
+    # Below the code's 2490 ₽ minimum it is not applied.
+    small = quote(client, [poke_line(menu, quantity=2)], promo_code="bright10")
+    assert small["promo"]["applied"] is False and small["discount_total"] == "0.00"
     bad = quote(client, [poke_line(menu, quantity=2)], promo_code="LETO2025")
     assert bad["problems"][0]["code"] == "promo_invalid"
 
