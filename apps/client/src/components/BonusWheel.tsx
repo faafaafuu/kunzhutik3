@@ -3,7 +3,9 @@
 // on every dish passing the top (a haptic tick in the app, a short click sound on the site) and settles on the
 // nearest one. The dish at the top is the one the button takes.
 
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import { Image } from "expo-image";
+import { useNavigation } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, PanResponder, Platform, Pressable, View } from "react-native";
 
@@ -86,6 +88,7 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
   }, [position, items.length]);
 
   const settle = (index: number) => {
+    unlockSound();
     const target = Math.min(items.length - 1, Math.max(0, index));
     Animated.spring(position, { toValue: target, useNativeDriver: native, friction: 9, tension: 70 }).start();
   };
@@ -93,8 +96,11 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
   const pan = useMemo(
     () =>
       PanResponder.create({
-        // Horizontal drags only: the page keeps scrolling up and down through the wheel.
-        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy),
+        // Horizontal drags only: the page keeps scrolling up and down through the wheel. Asked in the capture phase so
+        // a dish or a button under the finger cannot keep the drag, and the wheel never gives it away halfway.
+        onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy),
+        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy),
+        onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           position.stopAnimation();
           start.current = current.current;
@@ -116,6 +122,12 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [perDish, items.length],
   );
+
+  const navigation = useNavigation();
+  useEffect(() => {
+    navigation.setOptions({ gestureEnabled: false });
+    return () => navigation.setOptions({ gestureEnabled: true });
+  }, [navigation]);
 
   // The site: the responder system follows fingers, not a mouse — drag with the mouse and turn with the wheel here.
   const surface = useRef<React.ComponentRef<typeof View>>(null);
@@ -188,8 +200,9 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
     haptics.success();
   };
 
+  // The whole block — from the title down to the button — turns the wheel.
   return (
-    <View style={{ gap: 12 }} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+    <View ref={surface} {...pan.panHandlers} style={[{ gap: 12 }, NO_SELECT]} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
       <View>
         <T weight="semibold" size={16}>
           Бесплатно за бонусы
@@ -198,12 +211,7 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
       </View>
 
       {width ? (
-        <View ref={surface} {...pan.panHandlers} style={[{ height: baseline + 8, overflow: "hidden" }, NO_SELECT]}>
-          {/* The rim: a thin half-circle the dishes ride on. */}
-          <View
-            pointerEvents="none"
-            style={{ position: "absolute", left: centerX - radius, top: SIZE / 2 + 6, width: radius * 2, height: radius * 2, borderRadius: radius, borderWidth: 1.5, borderColor: c.line, borderStyle: "dashed" }}
-          />
+        <View style={{ height: baseline + 8, overflow: "hidden" }}>
           {/* The pointer at the top. */}
           <View pointerEvents="none" style={{ position: "absolute", left: centerX - 6, top: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: c.brand }} />
 
@@ -302,10 +310,23 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
 // ---- the click ----
 
 let audio: AudioContext | null = null;
+let player: AudioPlayer | null = null;
 
-/** Browsers only play sound after a gesture: the first drag of the wheel opens the audio. */
+/** The app: a short "tok" sample, mixed with whatever music is playing and quiet when the phone is on silent.
+ * Browsers only play sound after a gesture: on the site the first drag of the wheel opens the audio. */
 function unlockSound(): void {
-  if (native || audio) return;
+  if (native) {
+    if (player) return;
+    try {
+      setAudioModeAsync({ playsInSilentMode: false, interruptionMode: "mixWithOthers" }).catch(() => {});
+      player = createAudioPlayer(require("../../assets/sounds/tick.wav"));
+      player.volume = 0.6;
+    } catch {
+      player = null;
+    }
+    return;
+  }
+  if (audio) return;
   try {
     const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     audio = Context ? new Context() : null;
@@ -314,10 +335,16 @@ function unlockSound(): void {
   }
 }
 
-/** One detent: a selection tick in the app; on the site a 10 ms click (and a buzz on Android phones that allow it). */
+/** One detent: a haptic tick and a short click — a sample in the app, a synthesised one on the site. */
 function tick(): void {
   haptics.select();
-  if (native || !audio) return;
+  if (native) {
+    if (!player) return;
+    player.seekTo(0).catch(() => {});
+    player.play();
+    return;
+  }
+  if (!audio) return;
   const now = audio.currentTime;
   const tone = audio.createOscillator();
   const gain = audio.createGain();
