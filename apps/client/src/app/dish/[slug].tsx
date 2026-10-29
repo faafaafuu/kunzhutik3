@@ -9,7 +9,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, assetUrl } from "@/api/client";
 import type { MenuItem, ModifierGroup, ModifierOption } from "@/api/types";
 import { Icon, ingredientIcon } from "@/components/Icon";
-import { toast } from "@/components/Toast";
 import { Button, Muted, QtyControl, StateView, T, Title } from "@/components/ui";
 import { useShared } from "@/hooks/data";
 import { bonusWord, money } from "@/lib/format";
@@ -100,7 +99,6 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
       return { id, title: option.title, kind: group.kind, price: Number(option.price_delta), quantity: qty };
     });
     add(item, modifiers, quantity);
-    toast("Добавили в корзину");
     onDone();
   };
 

@@ -14,7 +14,7 @@ def test_menu_comes_from_the_database_with_modifiers(client):
     payload = client.get("/api/v1/menu").json()
     assert payload["venue"]["title"] == "Брайт на Дзержинского"
     assert payload["prices_final"] is False
-    assert [category["title"] for category in payload["categories"]][:2] == ["Кофе", "Поке"]
+    assert [category["title"] for category in payload["categories"]][:2] == ["Поке", "Салаты"]  # drinks go last
     items = {item["slug"]: item for item in payload["items"]}
     assert len(items) == 15
     poke = items["poke-salmon"]

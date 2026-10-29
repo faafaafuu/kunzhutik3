@@ -4,6 +4,9 @@ import { type ReactNode, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Animated,
+  InputAccessoryView,
+  Keyboard,
+  type LayoutChangeEvent,
   Platform,
   Pressable,
   type PressableProps,
@@ -62,9 +65,32 @@ export function Screen({ children, scroll = true, bottomInset = 0 }: { children:
   );
 }
 
-export function Panel({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+export function Panel({ children, style, onLayout }: { children: ReactNode; style?: StyleProp<ViewStyle>; onLayout?: (event: LayoutChangeEvent) => void }) {
   const s = useStyles(panelStyles);
-  return <View style={[s.panel, style]}>{children}</View>;
+  return (
+    <View style={[s.panel, style]} onLayout={onLayout}>
+      {children}
+    </View>
+  );
+}
+
+/** iOS number and phone keyboards have no return key: a «Готово» bar above them hides the keyboard. */
+export const KEYBOARD_DONE = "keyboard-done";
+
+export function KeyboardDoneBar() {
+  const { c } = useTheme();
+  if (Platform.OS !== "ios") return null;
+  return (
+    <InputAccessoryView nativeID={KEYBOARD_DONE}>
+      <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 16, paddingVertical: 8, backgroundColor: c.surfaceSunken, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }}>
+        <Pressable accessibilityRole="button" onPress={() => Keyboard.dismiss()} hitSlop={10}>
+          <T weight="semibold" color={c.brandText}>
+            Готово
+          </T>
+        </Pressable>
+      </View>
+    </InputAccessoryView>
+  );
 }
 
 const panelStyles = (c: Palette) => ({
@@ -247,7 +273,7 @@ export function Field({ label, error, style, ...rest }: TextInputProps & { label
           {label}
         </T>
       ) : null}
-      <TextInput placeholderTextColor={c.inkSoft} {...rest} style={[s.field, error ? { borderColor: c.danger } : null, inputStyle]} />
+      <TextInput placeholderTextColor={c.inkSoft} inputAccessoryViewID={Platform.OS === "ios" ? KEYBOARD_DONE : undefined} returnKeyType="done" {...rest} style={[s.field, error ? { borderColor: c.danger } : null, inputStyle]} />
       {error ? (
         <T size={13} color={c.danger} style={{ marginLeft: 4 }}>
           {error}

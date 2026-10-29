@@ -33,14 +33,15 @@ ZONE = {
     "eta_minutes": 35,
 }
 
+# Food first, drinks at the end of the menu.
 CATEGORIES = [
-    ("coffee", "Кофе"),
     ("poke", "Поке"),
     ("salads", "Салаты"),
     ("sandwiches", "Окинавские сэндвичи"),
     ("rolls", "Ролл"),
     ("scramble", "Скрембл"),
     ("desserts", "Десерты"),
+    ("coffee", "Кофе"),
 ]
 
 # EXAMPLE cooking times per category, minutes.

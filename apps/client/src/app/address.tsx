@@ -80,14 +80,22 @@ export default function AddressScreen() {
         toast("Нет доступа к геолокации — введите адрес вручную", "bad");
         return;
       }
-      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      // Indoors a fresh fix may take long or never come: a recent known position is good enough for a street address.
+      const known = await Location.getLastKnownPositionAsync({ maxAge: 5 * 60_000 }).catch(() => null);
+      const position =
+        known ??
+        (await Promise.race([
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 12_000)),
+        ]));
       const { latitude, longitude } = position.coords;
       const payload = await api<{ result: GeoResult | null }>(`/geo/reverse?lat=${latitude}&lon=${longitude}`, { auth: false });
       const result = payload.result ? { ...payload.result, latitude, longitude } : { title: "Моё местоположение", subtitle: "", text: "Моё местоположение", latitude, longitude, precise: false };
       typed.current = false;
       await choose(result);
-    } catch {
-      toast("Не удалось определить место", "bad");
+    } catch (caught) {
+      const services = await Location.hasServicesEnabledAsync().catch(() => true);
+      toast(!services ? "Включите геолокацию в настройках телефона" : (caught as Error)?.message === "timeout" ? "Телефон долго ищет место — введите адрес вручную" : "Не удалось определить место — введите адрес вручную", "bad");
     } finally {
       setLocating(false);
     }

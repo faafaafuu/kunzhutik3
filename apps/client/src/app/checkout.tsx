@@ -1,8 +1,8 @@
 // Checkout: contacts, where, when, payment, bonuses — and the server total with the promised time.
 
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Keyboard, type LayoutChangeEvent, Platform, Pressable, ScrollView, View } from "react-native";
 
 import { api, ApiError } from "@/api/client";
 import type { Customer, Order, PaymentMethod, Quote, SavedAddress, Tokens } from "@/api/types";
@@ -88,7 +88,31 @@ export default function CheckoutScreen() {
   const otherProblems = problems.filter((problem) => !["out_of_delivery_zone", "address_required", "venue_closed"].includes(problem.code));
   const balance = Number(quote?.bonus_available ?? 0);
   const needsConsent = !config?.consent_version || consentVersion !== config.consent_version;
-  const blocked = !quote || quoting || !quote.can_order || Boolean(detailsMissing) || (needsConsent && !agreed(agreements, true));
+  // What still has to be filled in, in the order it appears on the screen. Tapping the button then scrolls there
+  // instead of doing nothing; the button is off only while the price is being counted or the venue cannot take it.
+  const missing: "contacts" | "address" | "consent" | null =
+    !signedIn && (!name.trim() || !phoneComplete(phone))
+      ? "contacts"
+      : delivery && (!place.address || outOfZone || detailsMissing)
+        ? "address"
+        : needsConsent && !agreed(agreements, true)
+          ? "consent"
+          : null;
+  const blocked = !quote || quoting || (!quote.can_order && !missing);
+
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const spots = useRef<Record<string, number>>({});
+  const mark = (key: string) => (event: LayoutChangeEvent) => {
+    spots.current[key] = event.nativeEvent.layout.y;
+  };
+  const showMissing = () => {
+    if (!missing) return;
+    setTouched(true);
+    Keyboard.dismiss();
+    if (missing === "consent") scroll.current?.scrollToEnd({ animated: true });
+    else scroll.current?.scrollTo({ y: Math.max(0, (spots.current[missing] ?? 0) - 12), animated: true });
+    toast(missing === "contacts" ? "Укажите имя и телефон" : missing === "address" ? (place.address ? "Проверьте адрес и квартиру" : "Укажите адрес доставки") : "Отметьте согласие с условиями", "bad");
+  };
 
   const submit = async (expected?: string) => {
     setTouched(true);
@@ -132,8 +156,8 @@ export default function CheckoutScreen() {
       router.replace({ pathname: "/order/[id]", params: { id: order.id } });
       // Online: the site shows ЮKassa's widget on the order screen; the app opens ЮKassa's page over itself.
       // If it did not start, the order screen offers to pay again.
-      if (toPay?.url) openPayment(toPay.url, order.id);
-      else if (!toPay && order.can_pay) toast("Не получилось открыть оплату — попробуйте ещё раз в заказе", "bad");
+      if (toPay) openPayment(order.id);
+      else if (order.can_pay) toast("Не получилось открыть оплату — попробуйте ещё раз в заказе", "bad");
     } catch (caught) {
       const apiError = caught as ApiError;
       if (apiError.code === "price_changed" && apiError.details.quote) {
@@ -176,7 +200,7 @@ export default function CheckoutScreen() {
   const main = (
     <>
       {!signedIn ? (
-        <Panel>
+        <Panel onLayout={mark("contacts")}>
           <Title size={22}>Контакты</Title>
           <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
             <Field label="Имя" value={name} onChangeText={setName} error={nameError} autoComplete="name" style={{ flex: 1, minWidth: 160 }} />
@@ -202,7 +226,7 @@ export default function CheckoutScreen() {
       />
 
       {delivery ? (
-        <Panel>
+        <Panel onLayout={mark("address")}>
           <Title size={22}>Куда</Title>
           {outOfZone ? (
             <Notice tone="bad" icon="map">
@@ -406,7 +430,7 @@ export default function CheckoutScreen() {
                   ? `Перейти к оплате · ${money(quote.total_amount)}`
                   : `Подтвердить${delivery ? " заказ" : ""} · ${money(quote.total_amount)}`
         }
-        onPress={() => submit()}
+        onPress={() => (missing ? showMissing() : submit())}
       />
       {needsConsent ? <ConsentChecks withOffer value={agreements} onChange={setAgreements} /> : <ConsentNote />}
     </Panel>
@@ -415,7 +439,13 @@ export default function CheckoutScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.surface }}>
       <ScreenHeader title="Оформление" />
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scroll}
+        contentContainerStyle={{ paddingBottom: 60 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        automaticallyAdjustKeyboardInsets
+      >
         <Shell>
           <Columns main={main} side={side} />
         </Shell>

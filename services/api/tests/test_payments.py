@@ -239,6 +239,12 @@ def test_empty_tax_system_in_env_means_unset(monkeypatch):
     assert Settings().yookassa_tax_system_code is None
 
 
-def test_app_orders_get_the_payment_page_not_the_widget(client, menu, yookassa):
-    created = place_online(client, menu, source="ios")
-    assert created["payment"]["url"].startswith("https://yoomoney.example/checkout/")
+def test_the_app_pays_on_our_page_with_the_widget(client, menu, yookassa):
+    order = place_online(client, menu, source="ios")["order"]
+    page = client.get(f"/pay/{order['id']}")
+    assert page.status_code == 200 and "YooMoneyCheckoutWidget" in page.text and "ct-pay-1" in page.text
+    assert f"bright://order/{order['id']}" in page.text
+    yookassa.pay("pay-1")
+    client.get(f"/api/v1/orders/{order['id']}/status")
+    # Paid: the page is not a payment form any more.
+    assert "YooMoneyCheckoutWidget" not in client.get(f"/pay/{order['id']}").text

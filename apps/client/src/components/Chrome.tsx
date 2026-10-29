@@ -1,7 +1,8 @@
 // App chrome: the bottom tab bar with the cart bar above it (phones), the top bar (desktop web).
 
 import { usePathname, useRouter } from "expo-router";
-import { Platform, Pressable, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useShared } from "@/hooks/data";
@@ -77,9 +78,21 @@ export function CartBar({ floating }: { floating?: boolean }) {
   const router = useRouter();
   const count = useCartCount();
   const total = useCart((state) => state.lines.reduce((sum, line) => sum + linePrice(line) * line.quantity, 0));
+  // Something was added: the bar itself bounces — the answer to "did it go in?", no message on top of it.
+  const bump = useRef(new Animated.Value(1)).current;
+  const previous = useRef(count);
+  useEffect(() => {
+    if (count > previous.current) {
+      Animated.sequence([
+        Animated.timing(bump, { toValue: 1.06, duration: 120, useNativeDriver: Platform.OS !== "web" }),
+        Animated.spring(bump, { toValue: 1, friction: 4, useNativeDriver: Platform.OS !== "web" }),
+      ]).start();
+    }
+    previous.current = count;
+  }, [count, bump]);
   if (!count) return null;
   return (
-    <View style={[{ alignItems: "center", paddingHorizontal: 16, paddingBottom: 10 }, floating && { position: "absolute", left: 0, right: 0, bottom: 16 }]} pointerEvents="box-none">
+    <Animated.View style={[{ alignItems: "center", paddingHorizontal: 16, paddingBottom: 10, transform: [{ scale: bump }] }, floating && { position: "absolute", left: 0, right: 0, bottom: 16 }]} pointerEvents="box-none">
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Корзина, ${count} ${plural(count, "позиция", "позиции", "позиций")}, ${money(total)}`}
@@ -112,7 +125,7 @@ export function CartBar({ floating }: { floating?: boolean }) {
           </T>
         </View>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
 

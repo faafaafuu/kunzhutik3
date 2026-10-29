@@ -13,7 +13,7 @@ import { Button, Chip, Columns, IconButton, Muted, Notice, Panel, Shell, Skeleto
 import { useShared } from "@/hooks/data";
 import { modifiersText, money, time } from "@/lib/format";
 import { PaymentWidget } from "@/components/PaymentWidget";
-import { openPayment } from "@/lib/payment";
+import { closePayment, openPayment } from "@/lib/payment";
 import { useCart } from "@/store/cart";
 import { useSession } from "@/store/session";
 import { radius, useTheme } from "@/theme";
@@ -67,15 +67,22 @@ export default function OrderScreen() {
   const pay = async () => {
     setPaying(true);
     try {
-      const { url } = await api<{ url: string }>(`/orders/${id}/pay`, { method: "POST" });
-      await openPayment(url, id);
-    } catch (caught) {
-      toast((caught as ApiError).message, "bad");
+      await openPayment(id);
     } finally {
       setPaying(false);
       load();
     }
   };
+
+  // Paid while the payment page was open: close it, the screen already shows the order going to the kitchen.
+  const wasWaiting = useRef(false);
+  useEffect(() => {
+    if (order?.status === "pending_payment") wasWaiting.current = true;
+    else if (order && wasWaiting.current) {
+      wasWaiting.current = false;
+      closePayment();
+    }
+  }, [order]);
 
   const cancel = async () => {
     setCancelling(true);
@@ -184,7 +191,7 @@ export default function OrderScreen() {
             {order.payment_status === "failed" ? <Notice tone="bad">Оплата не прошла. Можно попробовать ещё раз или выбрать другую карту.</Notice> : null}
             <Button block title={`Оплатить ${money(order.total_amount)}`} loading={paying} onPress={pay} />
             <Muted size={13} style={{ textAlign: "center" }}>
-              Карта или СБП на защищённой странице ЮKassa. Заказ отменится, если не оплатить в течение получаса.
+              Картой, по СБП или SberPay. Заказ отменится, если не оплатить в течение получаса.
             </Muted>
           </View>
         ) : null}

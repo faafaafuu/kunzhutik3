@@ -19,8 +19,8 @@ import { fonts, radius, SHELL_MAX, useTheme, useWide } from "@/theme";
 
 const GAP = 10;
 const SECTION_GAP = 28;
-const LIST_PADDING = 8;
-const STRIP_HEIGHT = 56;
+const LIST_PADDING = 12;
+const STRIP_HEIGHT = 64;
 
 export default function MenuScreen() {
   usePlaceResolution();
@@ -110,7 +110,7 @@ export default function MenuScreen() {
             <Promotions />
           </Shell>
         </View>
-        <View style={{ backgroundColor: c.surface, height: STRIP_HEIGHT, justifyContent: "center" }}>
+        <View style={{ backgroundColor: c.surface, height: STRIP_HEIGHT, justifyContent: "center", paddingTop: 6, borderBottomWidth: 1, borderBottomColor: c.line }}>
           <Shell>
             {searching ? (
               <SearchField value={query} onChange={setQuery} onClose={closeSearch} />

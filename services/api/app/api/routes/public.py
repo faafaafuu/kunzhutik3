@@ -149,8 +149,8 @@ def post_order(
         # The kitchen hears about the order only after it is paid. When ЮKassa is unreachable right now the
         # order simply waits: the order screen offers "Оплатить" again.
         try:
-            # The site shows ЮKassa's widget on the order screen; the app opens ЮKassa's page over itself.
-            payment = payments.start_payment(db, order, embedded=order.source in ("web", "telegram"))
+            # The widget everywhere: on the site's order screen, and in the app on our /pay/<id> page.
+            payment = payments.start_payment(db, order, embedded=True)
         except ApiError:
             logger.warning("Could not start the payment of order %s", order.id)
     else:

@@ -10,7 +10,7 @@ import { Linking, Platform, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ToastHost } from "@/components/Toast";
-import { Button, StateView } from "@/components/ui";
+import { Button, KeyboardDoneBar, StateView } from "@/components/ui";
 import { loadConfig, useShared } from "@/hooks/data";
 import { applyPendingReferral, captureReferralFromUrl } from "@/lib/referral";
 import { registerForPush, signInWithTelegram, updateRequired } from "@/lib/session";
@@ -67,6 +67,7 @@ function AppStack() {
         <Stack.Screen name="login" options={{ presentation: Platform.OS === "web" ? "card" : "modal" }} />
       </Stack>
       <ToastHost />
+      <KeyboardDoneBar />
     </View>
   );
 }
