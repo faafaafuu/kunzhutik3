@@ -43,7 +43,9 @@ export default function LoginScreen() {
   const consentVersion = useSession((state) => state.consentVersion);
   const needsConsent = !config?.consent_version || consentVersion !== config.consent_version;
   const ready = !needsConsent || agreed(agreements);
-  const agreement = { consent: needsConsent && agreed(agreements), marketing_consent: needsConsent && agreed(agreements) && agreements.ads };
+  // Ticked before on this device for the current documents: the same person's consent goes along with the new phone
+  // or sign-in way, so the server writes it down for them instead of refusing.
+  const agreement = { consent: needsConsent ? agreed(agreements) : true, marketing_consent: needsConsent && agreed(agreements) && agreements.ads };
   const rememberConsent = () => needsConsent && config?.consent_version && useSession.getState().setConsentVersion(config.consent_version);
   const input = useRef<React.ComponentRef<typeof TextInput>>(null);
 

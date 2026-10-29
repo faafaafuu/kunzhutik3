@@ -139,7 +139,8 @@ export default function CheckoutScreen() {
         address_label: "",
         source: orderSource(),
         referral_code: signedIn ? null : session.referralCode,
-        consent: needsConsent && agreed(agreements, true),
+        // Ticked before on this device for the current documents: it goes along, the server writes it for this phone.
+        consent: needsConsent ? agreed(agreements, true) : true,
         marketing_consent: needsConsent && agreed(agreements, true) && agreements.ads,
       };
       const { order, account, payment: toPay } = await api<{ order: Order; account: { customer: Customer; tokens: Tokens } | null; payment: { url?: string; token?: string } | null }>("/orders", { method: "POST", body });
