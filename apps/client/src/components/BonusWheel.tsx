@@ -73,7 +73,12 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
   const dish = items[selected];
   const price = dish?.bonus_price ?? 0;
 
-  // A click for every dish that passes the top, as the wheel turns or settles.
+  // A click for every dish that passes the top, as the wheel turns or settles. The wheel runs on the JS driver on
+  // purpose: a native-driven animation reports its value to JS only now and then, so dishes were skipped (one click
+  // per spin) and the next drag started from a stale position.
+  useEffect(() => {
+    if (native) unlockSound(); // the app can load its click before the first touch; a browser waits for a gesture
+  }, []);
   useEffect(() => {
     const id = position.addListener(({ value }) => {
       current.current = value;
@@ -90,7 +95,8 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
   const settle = (index: number) => {
     unlockSound();
     const target = Math.min(items.length - 1, Math.max(0, index));
-    Animated.spring(position, { toValue: target, useNativeDriver: native, friction: 9, tension: 70 }).start();
+    // Firm enough not to swing back over a dish (an extra click), soft enough to glide like the iOS time picker.
+    Animated.spring(position, { toValue: target, useNativeDriver: false, friction: 11, tension: 60, restDisplacementThreshold: 0.002 }).start();
   };
 
   const pan = useMemo(
@@ -310,19 +316,26 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
 // ---- the click ----
 
 let audio: AudioContext | null = null;
-let player: AudioPlayer | null = null;
+// A few players taking turns: a fast flick clicks every 30–40 ms, and one player restarted that often swallows clicks.
+const POOL_SIZE = 4;
+let players: AudioPlayer[] = [];
+let nextPlayer = 0;
+let lastClickAt = 0;
 
 /** The app: a short "tok" sample, mixed with whatever music is playing and quiet when the phone is on silent.
  * Browsers only play sound after a gesture: on the site the first drag of the wheel opens the audio. */
 function unlockSound(): void {
   if (native) {
-    if (player) return;
+    if (players.length) return;
     try {
       setAudioModeAsync({ playsInSilentMode: false, interruptionMode: "mixWithOthers" }).catch(() => {});
-      player = createAudioPlayer(require("../../assets/sounds/tick.wav"));
-      player.volume = 0.6;
+      players = Array.from({ length: POOL_SIZE }, () => {
+        const one = createAudioPlayer(require("../../assets/sounds/tick.wav"));
+        one.volume = 0.6;
+        return one;
+      });
     } catch {
-      player = null;
+      players = [];
     }
     return;
   }
@@ -337,24 +350,29 @@ function unlockSound(): void {
 
 /** One detent: a haptic tick and a short click — a sample in the app, a synthesised one on the site. */
 function tick(): void {
+  // Faster than ~25 ms apart the clicks merge into a buzz anyway (the iOS picker does the same).
+  const now = Date.now();
+  if (now - lastClickAt < 25) return;
+  lastClickAt = now;
   haptics.select();
   if (native) {
+    const player = players[nextPlayer];
+    nextPlayer = (nextPlayer + 1) % POOL_SIZE;
     if (!player) return;
-    player.seekTo(0).catch(() => {});
-    player.play();
+    player.seekTo(0).then(() => player.play(), () => player.play());
     return;
   }
   if (!audio) return;
-  const now = audio.currentTime;
+  const at = audio.currentTime;
   const tone = audio.createOscillator();
   const gain = audio.createGain();
   // A low, short "tok" — closer to the iOS picker than a beep.
   tone.type = "triangle";
-  tone.frequency.setValueAtTime(520, now);
-  tone.frequency.exponentialRampToValueAtTime(260, now + 0.018);
-  gain.gain.setValueAtTime(0.12, now);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
+  tone.frequency.setValueAtTime(520, at);
+  tone.frequency.exponentialRampToValueAtTime(260, at + 0.018);
+  gain.gain.setValueAtTime(0.12, at);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.022);
   tone.connect(gain).connect(audio.destination);
-  tone.start(now);
-  tone.stop(now + 0.025);
+  tone.start(at);
+  tone.stop(at + 0.025);
 }
