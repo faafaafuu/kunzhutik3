@@ -80,7 +80,9 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
   const percent = config?.bonus.levels[0]?.percent ?? 0;
   const bonus = Math.floor((total * percent) / 100);
   const soldOut = !item.is_available;
-  const phoneTop = Platform.OS === "web" ? 12 : insets.top + 8;
+  // The iOS modal already starts below the status bar, so adding `insets.top` here pushed the ✕ with it, into the
+  // middle of the photo. Android's modal runs edge to edge and still needs the inset.
+  const closeTop = Platform.OS === "android" ? insets.top + 8 : 12;
 
   const toggleChoice = (group: ModifierGroup, option: ModifierOption) => {
     setPicked((current) => {
@@ -125,7 +127,7 @@ function Dish({ item, onDone }: { item: MenuItem; onDone: () => void }) {
             accessibilityRole="button"
             accessibilityLabel="Закрыть"
             onPress={onDone}
-            style={{ position: "absolute", top: phoneTop, left: 12, width: 40, height: 40, borderRadius: 20, backgroundColor: c.surfaceCard, alignItems: "center", justifyContent: "center" }}
+            style={{ position: "absolute", top: closeTop, left: 12, width: 40, height: 40, borderRadius: 20, backgroundColor: c.surfaceCard, alignItems: "center", justifyContent: "center" }}
           >
             <Icon name="close" size={18} color={c.ink} strokeWidth={2.2} />
           </Pressable>
