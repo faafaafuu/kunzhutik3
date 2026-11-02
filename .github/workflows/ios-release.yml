@@ -158,11 +158,37 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      # Optional: hand the build to TestFlight straight away when the App Store Connect API key is in the secrets.
+      # Upload straight to App Store Connect (TestFlight) when the API key is in the secrets — the runner does it, so
+      # a Windows-only machine never needs Transporter or an altool. The same archive is exported again with
+      # `destination: upload`; Xcode signs it and sends it off with the App Store Connect API key.
       - name: Upload to TestFlight
         if: env.ASC_KEY_ID != '' && env.ASC_ISSUER_ID != '' && env.ASC_PRIVATE_KEY != ''
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          printf '%s' "$ASC_PRIVATE_KEY" | openssl base64 -d -A -out ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
-          xcrun altool --upload-app -f build/export/*.ipa -t ios \
-            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" --verbose
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8"
+          mkdir -p "$(dirname "$KEY_PATH")"
+          printf '%s' "$ASC_PRIVATE_KEY" | openssl base64 -d -A -out "$KEY_PATH"
+          cat > build-UploadOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>ru.bright.delivery</key><string>$PROFILE_NAME</string>
+            </dict>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath build/app.xcarchive \
+            -exportPath build/upload \
+            -exportOptionsPlist build-UploadOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
