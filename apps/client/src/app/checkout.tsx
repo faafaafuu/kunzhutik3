@@ -59,6 +59,9 @@ export default function CheckoutScreen() {
   const [saveAddress, setSaveAddress] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState(false);
+  // A finger on the bonus wheel turns it and nothing else: the page stops scrolling until the finger is lifted, so
+  // a sideways drag no longer drags the whole screen up and down with it.
+  const [wheelTurning, setWheelTurning] = useState(false);
   const [changed, setChanged] = useState<{ before: string; quote: Quote } | null>(null);
   const saved = useFetch<{ addresses: SavedAddress[] }>(signedIn ? "/me/addresses" : null);
 
@@ -392,7 +395,7 @@ export default function CheckoutScreen() {
       </T>
       <CartLines quote={quote} />
       {signedIn && quote?.bonus_available != null && giftChoices.length ? (
-        <BonusWheel items={giftChoices} balance={Number(quote.bonus_available)} taken={rewards} onChange={setRewards} />
+        <BonusWheel items={giftChoices} balance={Number(quote.bonus_available)} taken={rewards} onChange={setRewards} onTurningChange={setWheelTurning} />
       ) : null}
       {quote ? (
         <View style={{ opacity: quoting ? 0.45 : 1, gap: 12 }}>
@@ -451,6 +454,9 @@ export default function CheckoutScreen() {
       <ScreenHeader title="Оформление" />
       <ScrollView
         ref={scroll}
+        // While the wheel is being turned the page holds still; an up-or-down swipe never locks it, so the checkout
+        // scrolls as before.
+        scrollEnabled={!wheelTurning}
         contentContainerStyle={{ paddingBottom: 60 }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}

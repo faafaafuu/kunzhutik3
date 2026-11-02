@@ -20,9 +20,13 @@ import { Button, Muted, T } from "./ui";
 const SIZE = 64; // a dish on the rim
 const STEP = 30; // degrees between neighbours: ~6 on the visible half
 const MAX_TAKEN = 5; // as many as the server takes in one order
+// How far a finger has to go sideways before the wheel takes the gesture: small, so the page under the wheel does not
+// start scrolling first.
+const CLAIM = 3;
 const native = Platform.OS !== "web";
-// Dragging the wheel must not select its text or call up "Скопировать" on a long press.
-const NO_SELECT = (native ? {} : { userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }) as object;
+// Dragging the wheel must not select its text or call up "Скопировать" on a long press. On the site `pan-y` hands the
+// sideways drag to the wheel and keeps the up-and-down swipe for the page.
+const NO_SELECT = (native ? {} : { userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none", touchAction: "pan-y" }) as object;
 
 // Samples of the position relative to the top (in dishes): the curves below are interpolated between them.
 const SAMPLES = Array.from({ length: 33 }, (_, index) => -4 + index * 0.25);
@@ -32,9 +36,12 @@ type Props = {
   balance: number;
   taken: string[];
   onChange: (taken: string[]) => void;
+  /** The wheel took the gesture: the page around it must not scroll while a finger turns it, and must scroll again
+   *  the moment the finger is lifted. */
+  onTurningChange?: (turning: boolean) => void;
 };
 
-export function BonusWheel({ items, balance, taken, onChange }: Props) {
+export function BonusWheel({ items, balance, taken, onChange, onTurningChange }: Props) {
   const { c } = useTheme();
   // It opens on the middle dish, so there is something on both sides of the half-circle.
   const middle = Math.floor((items.length - 1) / 2);
@@ -44,6 +51,18 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
   const current = useRef(middle);
   const start = useRef(middle);
   const lastTick = useRef(middle);
+
+  // A sideways drag locks the page under the wheel; a drag up or down never does, so the page scrolls as usual.
+  const turning = useRef(false);
+  const turningListener = useRef(onTurningChange);
+  turningListener.current = onTurningChange;
+  const turn = (on: boolean) => {
+    if (turning.current === on) return;
+    turning.current = on;
+    turningListener.current?.(on);
+  };
+  // Lifted off the screen mid-drag (screen closed, wheel hidden by a new quote): give the page its scrolling back.
+  useEffect(() => () => turn(false), []);
 
   const radius = Math.max(90, Math.min(width / 2 - SIZE / 2 - 8, 150));
   const centerX = width / 2;
@@ -96,12 +115,16 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
   const pan = useMemo(
     () =>
       PanResponder.create({
-        // Horizontal drags only: the page keeps scrolling up and down through the wheel. Asked in the capture phase so
-        // a dish or a button under the finger cannot keep the drag, and the wheel never gives it away halfway.
-        onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy),
-        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy),
+        // Sideways only: a drag that leans up or down belongs to the page, and the wheel lets it through untouched.
+        // Asked in the capture phase so a dish or a button under the finger cannot keep the drag, and the wheel never
+        // gives it away halfway.
+        onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > CLAIM && Math.abs(g.dx) > Math.abs(g.dy),
+        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > CLAIM && Math.abs(g.dx) > Math.abs(g.dy),
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
+          // The page stops here at the first sideways pixels — otherwise it keeps scrolling up and down under the
+          // finger while the wheel turns, which reads as the whole screen sliding.
+          turn(true);
           position.stopAnimation();
           start.current = current.current;
           unlockSound();
@@ -114,10 +137,14 @@ export function BonusWheel({ items, balance, taken, onChange }: Props) {
           position.setValue(next);
         },
         onPanResponderRelease: (_, g) => {
+          turn(false);
           // A flick carries on: vx is px/ms, ~250 ms of glide.
           settle(Math.round(current.current - (g.vx * 250) / perDish));
         },
-        onPanResponderTerminate: () => settle(Math.round(current.current)),
+        onPanResponderTerminate: () => {
+          turn(false);
+          settle(Math.round(current.current));
+        },
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [perDish, items.length],
