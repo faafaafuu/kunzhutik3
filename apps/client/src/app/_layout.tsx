@@ -12,6 +12,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ToastHost } from "@/components/Toast";
 import { Button, KeyboardDoneBar, StateView } from "@/components/ui";
 import { loadConfig, useShared } from "@/hooks/data";
+import * as haptics from "@/lib/haptics";
 import { applyPendingReferral, captureReferralFromUrl } from "@/lib/referral";
 import { registerForPush, signInWithTelegram, updateRequired } from "@/lib/session";
 import { useSession } from "@/store/session";
@@ -42,6 +43,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded && booted) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded, booted]);
+
+  // The first «+» after launch used to go unnoticed: iOS needs the taptic engine awake. This tick wakes it.
+  useEffect(() => {
+    if (booted) haptics.warmUp();
+  }, [booted]);
 
   if (!fontsLoaded || !booted) return null;
 
