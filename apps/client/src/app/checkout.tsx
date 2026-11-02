@@ -397,6 +397,16 @@ export default function CheckoutScreen() {
       {signedIn && quote?.bonus_available != null && giftChoices.length ? (
         <BonusWheel items={giftChoices} balance={Number(quote.bonus_available)} taken={rewards} onChange={setRewards} onTurningChange={setWheelTurning} />
       ) : null}
+      {/* A guest has no balance to spend, so the wheel has nothing to show: say where it went instead of hiding it. */}
+      {!signedIn && giftChoices.length ? (
+        <View style={{ gap: 6 }}>
+          <T weight="semibold" size={16}>
+            Бесплатно за бонусы
+          </T>
+          <Muted size={13}>Колесо подарков открывается после входа — бонусы копятся на аккаунте.</Muted>
+          <LinkButton title="Войти" onPress={() => router.push("/login")} />
+        </View>
+      ) : null}
       {quote ? (
         <View style={{ opacity: quoting ? 0.45 : 1, gap: 12 }}>
           <Totals rows={quoteRows(quote, place.fulfillment)} grand={{ label: "Итого", value: money(quote.total_amount) }} />
