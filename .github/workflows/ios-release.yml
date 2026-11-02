@@ -1,0 +1,169 @@
+name: iOS Release (signed, App Store)
+
+# A signed build for App Store Connect: an .ipa that Transporter / Xcode uploads to the App Store as is.
+# Needs an Apple Developer Program account (paid) and the signing secrets listed in apps/client/README.md:
+# the distribution certificate, its password, the App Store provisioning profile and the team id.
+# Nothing runs until those secrets exist — the first step says exactly what is missing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "API address baked into the app (EXPO_PUBLIC_API_URL)"
+        default: "https://braitsgk.ru"
+      build_number:
+        description: "CFBundleVersion — must grow with every upload (empty: the workflow run number)"
+        default: ""
+      marketing_version:
+        description: "CFBundleShortVersionString, e.g. 1.0.0 (empty: the version from app.json)"
+        default: ""
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: ios-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: apps/client
+    env:
+      EXPO_PUBLIC_API_URL: ${{ inputs.api_url || 'https://braitsgk.ru' }}
+      TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      CERT_P12: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+      CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+      PROFILE_B64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+      PROFILE_NAME: ${{ secrets.IOS_PROVISION_PROFILE_NAME }}
+      KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+      BUILD_NUMBER: ${{ inputs.build_number || github.run_number }}
+      MARKETING_VERSION: ${{ inputs.marketing_version }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check the signing secrets are there
+        run: |
+          missing=""
+          for name in TEAM_ID CERT_P12 CERT_PASSWORD PROFILE_B64 PROFILE_NAME KEYCHAIN_PASSWORD; do
+            eval "value=\$$name"
+            [ -z "$value" ] && missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Нет секретов:$missing. Как их получить — apps/client/README.md, раздел «Подписанная сборка для App Store»."
+            exit 1
+          fi
+
+      - name: Select Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/client/package-lock.json
+
+      - run: npm ci
+
+      - name: Generate native iOS project
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Install pods
+        run: cd ios && pod install
+
+      # The certificate and the profile come from the secrets as base64: they go into a throwaway keychain and the
+      # standard profile directory, so xcodebuild signs with them and nothing is written into the repository.
+      - name: Install the signing certificate and profile
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/app-signing.keychain-db"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          printf '%s' "$CERT_P12" | openssl base64 -d -A -out "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          printf '%s' "$PROFILE_B64" | openssl base64 -d -A -out "$RUNNER_TEMP/profile.mobileprovision"
+          cp "$RUNNER_TEMP/profile.mobileprovision" ~/Library/MobileDevice/Provisioning\ Profiles/
+          security find-identity -v -p codesigning
+
+      - name: Write the export options
+        run: |
+          cat > build-ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>export</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>ru.bright.delivery</key><string>$PROFILE_NAME</string>
+            </dict>
+            <key>uploadSymbols</key><true/>
+            <key>stripSwiftSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          cat build-ExportOptions.plist
+
+      - name: Build the signed archive
+        run: |
+          WS=$(ls -d ios/*.xcworkspace | head -1)
+          SCHEME=$(basename "$WS" .xcworkspace)
+          VERSION_ARGS="CURRENT_PROJECT_VERSION=$BUILD_NUMBER"
+          if [ -n "$MARKETING_VERSION" ]; then VERSION_ARGS="$VERSION_ARGS MARKETING_VERSION=$MARKETING_VERSION"; fi
+          xcodebuild -workspace "$WS" -scheme "$SCHEME" \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -archivePath build/app.xcarchive archive \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            $VERSION_ARGS
+
+      - name: Export the .ipa for App Store Connect
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/app.xcarchive \
+            -exportPath build/export \
+            -exportOptionsPlist build-ExportOptions.plist
+          ls -lh build/export
+
+      # dSYMs are what makes a crash report readable in App Store Connect: keep them with the build.
+      - name: Collect dSYMs
+        if: always()
+        run: |
+          mkdir -p build/dsyms
+          cp -R build/app.xcarchive/dSYMs/. build/dsyms/ 2>/dev/null || true
+          cd build && zip -qry Bright-dsyms.zip dsyms || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bright-ios-appstore
+          path: |
+            apps/client/build/export/*.ipa
+            apps/client/build/Bright-dsyms.zip
+          retention-days: 30
+          if-no-files-found: error
+
+      # Optional: hand the build to TestFlight straight away when the App Store Connect API key is in the secrets.
+      - name: Upload to TestFlight
+        if: env.ASC_KEY_ID != '' && env.ASC_ISSUER_ID != '' && env.ASC_PRIVATE_KEY != ''
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s' "$ASC_PRIVATE_KEY" | openssl base64 -d -A -out ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+          xcrun altool --upload-app -f build/export/*.ipa -t ios \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" --verbose

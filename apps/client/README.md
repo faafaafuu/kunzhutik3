@@ -62,6 +62,36 @@ npx eas-cli@latest submit -p all
 
 Перед этим поменяйте в `app.json` `ios.bundleIdentifier` и `android.package` (сейчас `ru.bright.delivery`), а также иконки в `assets/`, и задайте `EXPO_PUBLIC_API_URL` боевым адресом в профиле сборки EAS.
 
+## Подписанная сборка для App Store в GitHub Actions
+
+`ios-ipa.yml` собирает **неподписанный** `.ipa` для Sideloadly/AltStore. Для магазина есть отдельный workflow
+`ios-release.yml`: он подписывает архив сертификатом распространения и отдаёт `.ipa`, который Transporter или Xcode
+загружают в App Store Connect как есть. Запуск — вручную (Actions → iOS Release → Run workflow) или тегом `v1.2.3`.
+
+Нужен платный аккаунт **Apple Developer Program** (99 $/год): без него сертификат и профиль не выдают. Один раз заведите
+в App Store Connect приложение с bundle id `ru.bright.delivery` (My Apps → + → New App).
+
+Где взять секреты репозитория (Settings → Secrets and variables → Actions → New repository secret):
+
+| Секрет | Откуда |
+| --- | --- |
+| `APPLE_TEAM_ID` | developer.apple.com → Membership → Team ID (10 символов) |
+| `IOS_DIST_CERT_P12_BASE64` | Сертификат «Apple Distribution» из Xcode (Settings → Accounts → Manage Certificates → +), экспорт из Keychain Access в `.p12`, затем `base64 -i cert.p12 \| pbcopy` |
+| `IOS_DIST_CERT_PASSWORD` | Пароль, который вы задали при экспорте `.p12` |
+| `IOS_PROVISION_PROFILE_BASE64` | developer.apple.com → Profiles → Distribution → App Store, профиль для App ID `ru.bright.delivery`, скачать `.mobileprovision`, затем `base64 -i profile.mobileprovision \| pbcopy` |
+| `IOS_PROVISION_PROFILE_NAME` | Имя профиля ровно как в списке на developer.apple.com, например `Bright AppStore` |
+| `IOS_KEYCHAIN_PASSWORD` | Любая случайная строка — пароль временной связки ключей на раннере |
+
+Профиль должен включать **Push Notifications** (приложение получает пуши), иначе сборка пройдёт, а пуши в релизе не
+заработают.
+
+Необязательно — автоотправка в TestFlight. Ключ App Store Connect API (Users and Access → Integrations → App Store
+Connect API → ключ с ролью App Manager), затем секреты `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY_BASE64`
+(содержимое `.p8` в base64). Без них workflow просто отдаёт `.ipa` в артефактах.
+
+Номер сборки (`CFBundleVersion`) по умолчанию равен номеру запуска workflow и должен расти с каждой загрузкой в App
+Store Connect; версию (`CFBundleShortVersionString`) можно задать полем `marketing_version`.
+
 ## Устройство
 
 ```text
