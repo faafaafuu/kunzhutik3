@@ -108,7 +108,6 @@ jobs:
             <key>destination</key><string>export</string>
             <key>teamID</key><string>$TEAM_ID</string>
             <key>signingStyle</key><string>manual</string>
-            <key>signingCertificate</key><string>Apple Distribution</string>
             <key>provisioningProfiles</key>
             <dict>
               <key>ru.bright.delivery</key><string>$PROFILE_NAME</string>
