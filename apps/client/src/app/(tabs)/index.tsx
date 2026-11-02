@@ -230,10 +230,11 @@ function PlaceBar() {
   const venue = menu?.venue ?? null;
 
   const pickup = fulfillment === "pickup";
-  const label = pickup ? `Самовывоз · ${venue?.address ?? ""}` : address ? shortAddress(address.text) : "Укажите адрес доставки";
+  // The cafe's own name is what a customer recognises; its address goes on the second line for pickup.
+  const label = pickup ? `Самовывоз · ${venue?.title ?? ""}` : address ? shortAddress(address.text) : "Укажите адрес доставки";
   const hours = venue ? (venue.is_open ? `открыто до ${time(venue.closes_at)}` : "сейчас закрыто") : "";
   const meta = pickup
-    ? [venue ? `готовим ~${venue.cook_minutes} мин` : "", hours].filter(Boolean).join(" · ")
+    ? [venue?.address ?? "", venue ? `готовим ~${venue.cook_minutes} мин` : "", hours].filter(Boolean).join(" · ")
     : zone
       ? `~${zone.eta_minutes} мин · доставка ${Number(zone.delivery_fee) ? money(zone.delivery_fee) : "бесплатно"}`
       : [hours, venue ? "или самовывоз" : ""].filter(Boolean).join(" · ");

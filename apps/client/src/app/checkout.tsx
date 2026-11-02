@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Keyboard, type LayoutChangeEvent, Platform, Pressable, ScrollView, View } from "react-native";
 
 import { api, ApiError } from "@/api/client";
-import type { Customer, Order, PaymentMethod, Quote, SavedAddress, Tokens } from "@/api/types";
+import type { Customer, Order, PaymentMethod, Quote, SavedAddress, Tokens, Venue } from "@/api/types";
 import { CartLines, quoteRows } from "@/components/CartLines";
 import { ScreenHeader } from "@/components/Chrome";
 import { Icon } from "@/components/Icon";
@@ -64,6 +64,9 @@ export default function CheckoutScreen() {
   const [wheelTurning, setWheelTurning] = useState(false);
   const [changed, setChanged] = useState<{ before: string; quote: Quote } | null>(null);
   const saved = useFetch<{ addresses: SavedAddress[] }>(signedIn ? "/me/addresses" : null);
+  // Every cafe that takes pickup orders: choosing one right here changes the venue the order is cooked at.
+  const venues = useFetch<{ venues: Venue[] }>("/venues");
+  const pickupVenues = (venues.data?.venues ?? []).filter((entry) => entry.pickup_enabled);
 
   // The config may arrive after the screen opened: switch to online unless the customer already chose.
   useEffect(() => {
@@ -312,7 +315,25 @@ export default function CheckoutScreen() {
       ) : (
         <Panel>
           <Title size={22}>Где забрать</Title>
-          {quote ? (
+          {pickupVenues.length ? (
+            <View style={{ gap: 8 }}>
+              {pickupVenues.map((entry) => (
+                <OptionRow
+                  key={entry.id}
+                  selected={(place.pickupVenueId ?? quote?.venue.id) === entry.id}
+                  onPress={() => {
+                    if (place.pickupVenueId === entry.id) return;
+                    // The price and the menu follow the cafe: load its menu, the quote then re-runs on the new venue.
+                    place.setPickupVenue(entry.id);
+                    loadMenu(entry.id).catch(() => {});
+                  }}
+                  icon="store"
+                  title={entry.title}
+                  subtitle={`${entry.address} · ${entry.is_open ? (entry.closes_at ? `открыто до ${time(entry.closes_at)}` : "открыто") : "сейчас закрыто"} · готовим ~${entry.cook_minutes} мин`}
+                />
+              ))}
+            </View>
+          ) : quote ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: radius.md, backgroundColor: c.surfaceSunken }}>
               <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.brandSoft, alignItems: "center", justifyContent: "center" }}>
                 <Icon name="store" size={22} color={c.brandText} />
