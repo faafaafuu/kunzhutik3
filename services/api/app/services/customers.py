@@ -125,8 +125,13 @@ def _send_sms(phone: str, text: str) -> bool:
     refused the number itself, so the per-number status is what counts."""
     if settings.sms_provider == "smsru" and settings.smsru_api_id:
         to = phone.lstrip("+")
+        form = {"api_id": settings.smsru_api_id, "to": to, "msg": text, "json": 1}
+        # Without "from" sms.ru sends under its default sender, which most operators refuse (error 221): the name
+        # approved in the sms.ru cabinet has to be named explicitly.
+        if settings.smsru_sender:
+            form["from"] = settings.smsru_sender
         try:
-            response = httpx.post("https://sms.ru/sms/send", data={"api_id": settings.smsru_api_id, "to": to, "msg": text, "json": 1}, timeout=10)
+            response = httpx.post("https://sms.ru/sms/send", data=form, timeout=10)
             payload = response.json()
         except (httpx.HTTPError, ValueError):
             logger.exception("sms.ru request failed")

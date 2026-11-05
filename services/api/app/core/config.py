@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     # SMS for login codes: "log" writes the code to the api log, "smsru" sends through sms.ru.
     sms_provider: str = Field(default="log", alias="SMS_PROVIDER")
     smsru_api_id: str | None = Field(default=None, alias="SMSRU_API_ID")
+    # The sender name approved in the sms.ru cabinet (Отправители), exactly as written there, e.g. BrightCafeR.
+    smsru_sender: str | None = Field(default=None, alias="SMSRU_SENDER")
     # Return the login code in the API response. Ignored when APP_ENV=production.
     otp_debug: bool = Field(default=False, alias="OTP_DEBUG")
 
