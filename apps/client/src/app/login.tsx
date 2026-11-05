@@ -229,9 +229,10 @@ export default function LoginScreen() {
               {isTelegram() ? null : <ProviderButton kind="telegram" loading={busy === "telegram"} onPress={withTelegram} disabled={!ready} />}
               <ProviderButton kind="google" loading={busy === "google"} onPress={withGoogle} disabled={!ready} />
               <Divider label="или по номеру телефона" />
-              {limited ? (
+              {/* The server's text has the seconds baked in; while the wait runs, the count is ours and live. */}
+              {limited && wait > 0 ? (
                 <Notice tone="bad" icon="clock">
-                  {limited}
+                  {`${limited.startsWith("Слишком много") ? "Слишком много попыток. " : ""}Новый код можно запросить через ${clock(wait)}`}
                 </Notice>
               ) : null}
               <Field value={phone} onChangeText={(value) => setPhone(maskPhone(value))} keyboardType="phone-pad" autoComplete="tel" accessibilityLabel="Телефон" placeholder="+7 900 000-00-00" onSubmitEditing={() => phoneComplete(phone) && requestCode()} style={{ textAlign: "center", fontSize: 17 }} />
@@ -320,7 +321,7 @@ export default function LoginScreen() {
                 </T>
               ) : null}
               <View style={{ alignItems: "center", gap: 14, paddingTop: 4 }}>
-                <LinkButton title={wait > 0 ? `Отправить ещё раз через ${Math.floor(wait / 60)}:${String(wait % 60).padStart(2, "0")}` : "Отправить новый код"} disabled={wait > 0 || busy !== null} onPress={requestCode} />
+                <LinkButton title={wait > 0 ? `Отправить ещё раз через ${clock(wait)}` : "Отправить новый код"} disabled={wait > 0 || busy !== null} onPress={requestCode} />
                 <LinkButton title="Изменить номер" color={c.inkSoft} onPress={() => setStep("choose")} />
               </View>
             </>
@@ -389,4 +390,9 @@ function GoogleMark({ size }: { size: number }) {
       <Path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
     </Svg>
   );
+}
+
+/** 75 → "1:15", for the waits before another SMS code. */
+function clock(seconds: number): string {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
