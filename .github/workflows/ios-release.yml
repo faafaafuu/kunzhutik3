@@ -181,6 +181,8 @@ jobs:
               <key>ru.bright.delivery</key><string>$PROFILE_NAME</string>
             </dict>
             <key>uploadSymbols</key><true/>
+            <!-- Keep our build number (the run number); otherwise Xcode renumbers the upload to Apple's next free one. -->
+            <key>manageAppVersionAndBuildNumber</key><false/>
           </dict>
           </plist>
           PLIST
