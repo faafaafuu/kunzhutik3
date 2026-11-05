@@ -84,7 +84,7 @@ def collect(db: Session, secret: str) -> Customer | None:
     request.used_at = utcnow()
     customer = db.get(Customer, request.customer_id)
     db.commit()
-    if not customer or customer.is_blocked:
+    if not customer or customer.is_blocked or customer.deleted_at:
         raise ApiError("login_expired", "Время на вход вышло, начните заново", status=410)
     return customer
 

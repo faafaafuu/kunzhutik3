@@ -37,6 +37,8 @@ export default function LoginScreen() {
   const [limited, setLimited] = useState<string | null>(null);
   const [wait, setWait] = useState(0);
   const [telegram, setTelegram] = useState<{ url: string | null; app_url?: string; secret: string } | null>(null);
+  // The last check of the Telegram login got no answer: still waiting, but say why it is taking long.
+  const [stalled, setStalled] = useState(false);
   // No boxes: signing in under the line «…вы соглашаетесь с документами и соглашениями» is the consent (the server
   // writes it down). Promotions are not part of it — they are switched on in the notifications.
   const config = useShared((state) => state.config);
@@ -71,19 +73,37 @@ export default function LoginScreen() {
     });
   }, [done]);
 
-  // Telegram: ask every two seconds, and right away when the person comes back from the Telegram app.
+  // Telegram: ask every 1.5 s, and right away when the person comes back from the Telegram app.
   useEffect(() => {
     if (step !== "telegram" || !telegram) return;
     let stopped = false;
+    let asking = false;
     const check = async () => {
+      // One question at a time: a request frozen while the app sat behind Telegram must not pile up with new ones.
+      if (asking || stopped) return;
+      asking = true;
       try {
-        if ((await collectLogin(telegram.secret)) && !stopped) done();
+        const confirmed = await collectLogin(telegram.secret);
+        if (stopped) return;
+        setStalled(false);
+        if (confirmed) done();
       } catch (caught) {
         if (stopped) return;
+        const failure = caught as ApiError;
+        // No answer is not a refusal. iOS cuts the app's requests while Telegram is in front, and on the way back the
+        // network is still waking up — that used to end the login with «Нет подключения к интернету». Keep asking:
+        // the login itself runs out on the server, which then says so (410).
+        if (failure.status === 0 || failure.status >= 500) {
+          setStalled(true);
+          return;
+        }
         forgetTelegramLogin();
         setTelegram(null);
         setStep("choose");
-        setError((caught as ApiError).status === 410 ? LOGIN_ERRORS.login_expired : (caught as ApiError).message);
+        setStalled(false);
+        setError(failure.status === 410 ? LOGIN_ERRORS.login_expired : failure.message);
+      } finally {
+        asking = false;
       }
     };
     const timer = setInterval(check, POLL_MS);
@@ -107,6 +127,7 @@ export default function LoginScreen() {
     try {
       const started = await startTelegramLogin(agreement);
       rememberConsent();
+      setStalled(false);
       setTelegram(started);
       setStep("telegram");
       openTelegram(started.url, started.app_url);
@@ -216,7 +237,7 @@ export default function LoginScreen() {
               <Muted style={{ textAlign: "center", maxWidth: 340 }}>Нажмите «Подтвердить вход» в чате с ботом и вернитесь сюда — мы сразу вас впустим.</Muted>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 }}>
                 <Spinner size="small" />
-                <Muted size={13}>Ждём подтверждения</Muted>
+                <Muted size={13}>{stalled ? "Ждём связь с сервером…" : "Ждём подтверждения"}</Muted>
               </View>
               <View style={{ alignSelf: "stretch", gap: 8 }}>
                 {telegram?.url ? <Button block tone="tonal" title="Открыть Telegram ещё раз" onPress={() => openTelegram(telegram.url!, telegram.app_url)} /> : null}
