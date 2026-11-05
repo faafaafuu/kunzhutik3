@@ -136,6 +136,13 @@ export default function LoginScreen() {
     };
   }, [waitUntil]);
 
+  // The keyboard for the code: iOS often ignores a focus asked for while the screen is still changing, so ask again.
+  useEffect(() => {
+    if (step !== "code") return;
+    const timers = [80, 300, 700, 1200].map((delay) => setTimeout(() => input.current?.focus(), delay));
+    return () => timers.forEach(clearTimeout);
+  }, [step]);
+
   const withTelegram = async () => {
     setBusy("telegram");
     setError(null);
@@ -278,7 +285,7 @@ export default function LoginScreen() {
                 <Muted style={{ textAlign: "center" }}>Отправили на {phone}</Muted>
               </View>
               <View>
-                <View style={{ flexDirection: "row", gap: 8, justifyContent: "center" }} pointerEvents="none">
+                <Pressable accessibilityLabel="Ввести код" onPress={() => input.current?.focus()} style={{ flexDirection: "row", gap: 8, justifyContent: "center" }}>
                   {Array.from({ length }).map((_, index) => (
                     <View
                       key={index}
@@ -298,7 +305,7 @@ export default function LoginScreen() {
                       </T>
                     </View>
                   ))}
-                </View>
+                </Pressable>
                 <TextInput
                   ref={input}
                   value={code}
@@ -312,7 +319,7 @@ export default function LoginScreen() {
                   caretHidden
                   selectionColor="transparent"
                   // The digits are drawn by the cells; the real field only takes the keyboard: no caret, no focus ring.
-                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.01, fontFamily: fonts.bold, fontSize: 1, color: "transparent", backgroundColor: "transparent", caretColor: "transparent", outlineStyle: "none", outlineWidth: 0, outlineColor: "transparent", borderWidth: 0, boxShadow: "none", WebkitTapHighlightColor: "transparent", WebkitAppearance: "none" } as object}
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.05, fontFamily: fonts.bold, fontSize: 16, color: "transparent", backgroundColor: "transparent", caretColor: "transparent", outlineStyle: "none", outlineWidth: 0, outlineColor: "transparent", borderWidth: 0, boxShadow: "none", WebkitTapHighlightColor: "transparent", WebkitAppearance: "none" } as object}
                 />
               </View>
               {error ? (
