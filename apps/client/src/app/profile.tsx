@@ -10,7 +10,7 @@ import type { Customer } from "@/api/types";
 import { ScreenHeader } from "@/components/Chrome";
 import { Icon, type IconName } from "@/components/Icon";
 import { toast } from "@/components/Toast";
-import { Button, Field, LinkButton, Muted, Panel, Shell, StateView, T, Title } from "@/components/ui";
+import { Button, Field, Muted, Panel, Shell, StateView, T, Title } from "@/components/ui";
 import { useShared } from "@/hooks/data";
 import { signOut as endSession } from "@/lib/auth";
 import { useSession } from "@/store/session";
@@ -125,13 +125,10 @@ export default function ProfileScreen() {
             <Item icon="gift" title="Бонусы" onPress={() => router.navigate("/bonus")} />
             {customer ? <Item icon="bell" title="Уведомления" onPress={() => router.push("/notifications")} /> : null}
             {config?.support_phone ? <Item icon="phone" title={`Поддержка · ${config.support_phone}`} onPress={() => Linking.openURL(`tel:${config.support_phone.replace(/[^+\d]/g, "")}`)} /> : null}
-            {customer ? <Item icon="logout" title="Выйти" onPress={signOut} last /> : null}
+            {customer ? <Item icon="logout" title="Выйти" onPress={signOut} /> : null}
+            {/* A row of the list, not a small link under it: Apple's review looks for it, and so do people. */}
+            {customer ? <Item icon="trash" title={deleting ? "Удаляем…" : "Удалить аккаунт"} onPress={deleting ? () => {} : askToDelete} danger last /> : null}
           </Panel>
-          {customer ? (
-            <View style={{ alignItems: "center", paddingTop: 4 }}>
-              <LinkButton title={deleting ? "Удаляем…" : "Удалить аккаунт"} onPress={askToDelete} disabled={deleting} color={c.danger} />
-            </View>
-          ) : null}
         </Shell>
       </ScrollView>
     </View>
@@ -153,18 +150,19 @@ function confirmDestructive(title: string, text: string, action: string, onConfi
   ]);
 }
 
-function Item({ icon, title, onPress, last }: { icon: IconName; title: string; onPress: () => void; last?: boolean }) {
+function Item({ icon, title, onPress, last, danger }: { icon: IconName; title: string; onPress: () => void; last?: boolean; danger?: boolean }) {
   const { c } = useTheme();
+  const tint = danger ? c.danger : c.brandText;
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, borderBottomWidth: last ? 0 : 1, borderBottomColor: c.line, opacity: pressed ? 0.6 : 1 })}
     >
-      <View style={{ width: 36, height: 36, borderRadius: radius.pill, backgroundColor: c.brandSoft, alignItems: "center", justifyContent: "center" }}>
-        <Icon name={icon} size={20} color={c.brandText} />
+      <View style={{ width: 36, height: 36, borderRadius: radius.pill, backgroundColor: danger ? c.dangerSoft : c.brandSoft, alignItems: "center", justifyContent: "center" }}>
+        <Icon name={icon} size={20} color={tint} />
       </View>
-      <T weight="semibold" style={{ flex: 1 }}>
+      <T weight="semibold" color={danger ? c.danger : undefined} style={{ flex: 1 }}>
         {title}
       </T>
       <Icon name="right" size={18} color={c.inkSoft} />
