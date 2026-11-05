@@ -35,7 +35,13 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState<"phone" | "telegram" | "google" | "code" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [limited, setLimited] = useState<string | null>(null);
-  const [wait, setWait] = useState(0);
+  const [waitUntil, setWaitUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const wait = Math.max(0, Math.ceil((waitUntil - now) / 1000));
+  const setWait = (seconds: number) => {
+    setNow(Date.now());
+    setWaitUntil(Date.now() + seconds * 1000);
+  };
   const [telegram, setTelegram] = useState<{ url: string | null; app_url?: string; secret: string } | null>(null);
   // The last check of the Telegram login got no answer: still waiting, but say why it is taking long.
   const [stalled, setStalled] = useState(false);
@@ -115,11 +121,20 @@ export default function LoginScreen() {
     };
   }, [step, telegram, done]);
 
+  // The wait is a moment in time, not a number counted down tick by tick: iOS freezes timers while the app is behind
+  // Messages (where the code arrives), and a tick-by-tick count would stand still there.
   useEffect(() => {
-    if (wait <= 0) return;
-    const timer = setTimeout(() => setWait((value) => value - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [wait]);
+    if (waitUntil <= Date.now()) return;
+    const timer = setInterval(() => {
+      setNow(Date.now());
+      if (Date.now() >= waitUntil) clearInterval(timer);
+    }, 250);
+    const subscription = AppState.addEventListener("change", () => setNow(Date.now()));
+    return () => {
+      clearInterval(timer);
+      subscription.remove();
+    };
+  }, [waitUntil]);
 
   const withTelegram = async () => {
     setBusy("telegram");
@@ -305,7 +320,7 @@ export default function LoginScreen() {
                 </T>
               ) : null}
               <View style={{ alignItems: "center", gap: 14, paddingTop: 4 }}>
-                <LinkButton title={wait > 0 ? `Отправить ещё раз через 0:${String(wait).padStart(2, "0")}` : "Отправить новый код"} disabled={wait > 0 || busy !== null} onPress={requestCode} />
+                <LinkButton title={wait > 0 ? `Отправить ещё раз через ${Math.floor(wait / 60)}:${String(wait % 60).padStart(2, "0")}` : "Отправить новый код"} disabled={wait > 0 || busy !== null} onPress={requestCode} />
                 <LinkButton title="Изменить номер" color={c.inkSoft} onPress={() => setStep("choose")} />
               </View>
             </>
