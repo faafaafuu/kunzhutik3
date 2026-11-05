@@ -13,6 +13,7 @@ from app.models.customer import Customer, CustomerAddress, Device
 from app.models.order import Order
 from app.models.venue import Venue
 from app.services import consents, loyalty
+from app.services.account_deletion import delete_account
 from app.services.customers import (
     customer_from_telegram,
     customer_payload,
@@ -114,6 +115,13 @@ class ProfilePatch(BaseModel):
 @router.get("/me")
 def me(customer: Customer = Depends(require_customer)) -> dict:
     return {"customer": customer_payload(customer)}
+
+
+@router.delete("/me")
+def delete_me(request: Request, customer: Customer = Depends(require_customer), db: Session = Depends(get_db)) -> dict:
+    """«Удалить аккаунт» in «Мои данные»: personal data goes, the orders stay without it (services/account_deletion)."""
+    delete_account(db, customer, ip=client_ip(request))
+    return {"status": "deleted"}
 
 
 @router.patch("/me")

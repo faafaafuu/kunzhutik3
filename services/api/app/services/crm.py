@@ -107,6 +107,8 @@ def _row_payload(row) -> dict:
         "telegram_username": customer.telegram_username,
         "is_registered": customer.is_registered,
         "is_blocked": customer.is_blocked,
+        # Deleted by the customer: the row has no name or phone any more, only its orders.
+        "is_deleted": customer.deleted_at is not None,
         "tags": customer.tags or [],
         "orders_count": int(orders_count or 0),
         "total_spent": money_str(total_spent or 0),

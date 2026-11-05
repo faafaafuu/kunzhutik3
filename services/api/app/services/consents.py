@@ -9,6 +9,7 @@ Raise DOCUMENT_VERSION whenever the consent or the policy changes in substance.
 
 from __future__ import annotations
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
@@ -19,11 +20,21 @@ DOCUMENT_VERSION = "2026-10-31"
 
 
 def has_personal_data_consent(db: Session, *, customer: Customer | None = None, phone: str | None = None) -> bool:
-    """Has this customer (or this phone) agreed to the current documents before?"""
-    query = db.query(Consent.id).filter(Consent.kind == "personal_data", Consent.version == DOCUMENT_VERSION)
-    if customer is not None and query.filter(Consent.customer_id == customer.id).first():
+    """Has this customer (or this phone) agreed to the current documents — and not withdrawn it since?
+
+    A deleted account leaves a withdrawal under its phone: the next sign-in with that number is a new person to us
+    and agrees anew, instead of inheriting the old consent.
+    """
+    query = db.query(func.max(Consent.created_at))
+    given = query.filter(Consent.kind == "personal_data", Consent.version == DOCUMENT_VERSION)
+    withdrawn = query.filter(Consent.kind == "withdrawn_personal_data")
+    if customer is not None and given.filter(Consent.customer_id == customer.id).scalar():
         return True
-    return bool(phone and query.filter(Consent.phone == phone).first())
+    if not phone:
+        return False
+    given_at = given.filter(Consent.phone == phone).scalar()
+    withdrawn_at = withdrawn.filter(Consent.phone == phone).scalar()
+    return bool(given_at and (withdrawn_at is None or given_at > withdrawn_at))
 
 
 def require_personal_data_consent(db: Session, *, given: bool, customer: Customer | None = None, phone: str | None = None) -> None:

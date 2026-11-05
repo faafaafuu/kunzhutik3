@@ -1,15 +1,16 @@
-// Profile («Мои данные»): name and e-mail, the ways to sign in, the account sections, sign out. Guests see the sign-in offer.
+// Profile («Мои данные»): name and e-mail, the ways to sign in, the account sections, sign out, delete the account
+// (required by the App Store for any app with sign-up). Guests see the sign-in offer.
 
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Linking, Pressable, ScrollView, View } from "react-native";
+import { Alert, Linking, Platform, Pressable, ScrollView, View } from "react-native";
 
 import { api, ApiError } from "@/api/client";
 import type { Customer } from "@/api/types";
 import { ScreenHeader } from "@/components/Chrome";
 import { Icon, type IconName } from "@/components/Icon";
 import { toast } from "@/components/Toast";
-import { Button, Field, Muted, Panel, Shell, StateView, T, Title } from "@/components/ui";
+import { Button, Field, LinkButton, Muted, Panel, Shell, StateView, T, Title } from "@/components/ui";
 import { useShared } from "@/hooks/data";
 import { signOut as endSession } from "@/lib/auth";
 import { useSession } from "@/store/session";
@@ -59,6 +60,27 @@ export default function ProfileScreen() {
     toast("Вы вышли");
   };
 
+  const [deleting, setDeleting] = useState(false);
+  const deleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await api("/me", { method: "DELETE" });
+      // The server has already ended every session; this device also forgets the name and phone it offers a guest.
+      session.signOut();
+      session.rememberGuest("", "");
+      toast("Аккаунт удалён");
+      router.replace("/");
+    } catch (error) {
+      toast((error as ApiError).message, "bad");
+    } finally {
+      setDeleting(false);
+    }
+  };
+  const askToDelete = () =>
+    confirmDestructive("Удалить аккаунт?", DELETE_TEXT, "Удалить", () => {
+      deleteAccount();
+    });
+
   return (
     <View style={{ flex: 1, backgroundColor: c.surface }}>
       <ScreenHeader title="Мои данные" />
@@ -105,10 +127,30 @@ export default function ProfileScreen() {
             {config?.support_phone ? <Item icon="phone" title={`Поддержка · ${config.support_phone}`} onPress={() => Linking.openURL(`tel:${config.support_phone.replace(/[^+\d]/g, "")}`)} /> : null}
             {customer ? <Item icon="logout" title="Выйти" onPress={signOut} last /> : null}
           </Panel>
+          {customer ? (
+            <View style={{ alignItems: "center", paddingTop: 4 }}>
+              <LinkButton title={deleting ? "Удаляем…" : "Удалить аккаунт"} onPress={askToDelete} disabled={deleting} color={c.danger} />
+            </View>
+          ) : null}
         </Shell>
       </ScrollView>
     </View>
   );
+}
+
+const DELETE_TEXT =
+  "Сотрём телефон, имя, e-mail, адреса и вход через Telegram и Google, а в истории заказов — ваши контакты. Бонусы сгорят. Отменить это нельзя, но войти заново можно в любой момент — это будет новый аккаунт.";
+
+/** The system dialog in the app; the browser's own confirm on the site, where Alert has no buttons. */
+function confirmDestructive(title: string, text: string, action: string, onConfirm: () => void) {
+  if (Platform.OS === "web") {
+    if (window.confirm(`${title}\n\n${text}`)) onConfirm();
+    return;
+  }
+  Alert.alert(title, text, [
+    { text: "Отмена", style: "cancel" },
+    { text: action, style: "destructive", onPress: onConfirm },
+  ]);
 }
 
 function Item({ icon, title, onPress, last }: { icon: IconName; title: string; onPress: () => void; last?: boolean }) {

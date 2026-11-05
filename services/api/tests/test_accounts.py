@@ -167,3 +167,52 @@ def test_sms_refused_by_smsru_is_an_error_not_silence(client, monkeypatch):
     monkeypatch.setattr(httpx, "post", lambda *args, **kwargs: httpx.Response(200, json=answer))
     refused = client.post("/api/v1/auth/otp/request", json={"phone": "+79007770011", "consent": True})
     assert refused.status_code == 502 and refused.json()["error"]["code"] == "sms_failed"
+
+
+def test_account_deletion_strips_personal_data_and_keeps_the_orders(operator_client, menu, db):
+    from app.models.customer import Consent, Customer, CustomerAddress, CustomerSession
+    from app.models.order import Order
+
+    client = operator_client
+    auth = sign_in(client, "+79004440011")
+    address = {"label": "Дом", "text": "Солнечногорск, улица Ленина, 5", "latitude": 56.1812, "longitude": 36.9739}
+    client.post("/api/v1/me/addresses", json=address, headers=headers(auth))
+    poke = menu["poke-salmon"]
+    line = {"menu_item_id": poke["id"], "quantity": 2, "modifiers": [{"id": option(poke, "Унаги")}]}
+    body = order_body([line], "1450.00", customer_phone="+7 900 444-00-11", comment="позвонить у подъезда")
+    order = client.post("/api/v1/orders", json=body, headers=headers(auth))
+    assert order.status_code in (200, 201), order.text
+    order = order.json()["order"]
+
+    # An order on its way still needs the phone and the address.
+    refused = client.delete("/api/v1/me", headers=headers(auth))
+    assert refused.status_code == 409
+    assert refused.json()["error"]["code"] == "active_order"
+
+    for status in ("confirmed", "preparing", "ready", "delivering", "completed"):
+        client.post(f"/api/v1/admin/orders/{order['id']}/transition", json={"to": status})
+    me = client.get("/api/v1/me", headers=headers(auth)).json()["customer"]
+    assert client.delete("/api/v1/me", headers=headers(auth)).json() == {"status": "deleted"}
+
+    # Neither token opens anything any more.
+    assert client.get("/api/v1/me", headers=headers(auth)).status_code == 401
+    assert client.post("/api/v1/auth/refresh", json={"refresh_token": auth["_refresh"]}).status_code == 401
+
+    db.expire_all()
+    customer = db.get(Customer, me["id"])
+    assert customer.deleted_at is not None
+    assert (customer.phone, customer.name, customer.email, customer.telegram_id, customer.is_registered) == (None, "", None, None, False)
+    assert db.query(CustomerAddress).filter(CustomerAddress.customer_id == customer.id).count() == 0
+    assert db.query(CustomerSession).filter(CustomerSession.customer_id == customer.id).count() == 0
+    kept = db.get(Order, order["id"])
+    assert (kept.customer_name, kept.customer_phone, kept.address_text, kept.comment, kept.address_details) == ("", "", "", "", {})
+    assert kept.status == "completed" and str(kept.total_amount) == "1450.00"
+    assert db.query(Consent).filter(Consent.kind == "withdrawn_personal_data", Consent.customer_id == customer.id).count() == 1
+
+    # The same phone later is a new person: it agrees anew and gets a new account.
+    silent = client.post("/api/v1/auth/otp/request", json={"phone": "+79004440011"})
+    assert silent.json()["error"]["code"] == "consent_required"
+    again = sign_in(client, "+79004440011")
+    fresh = client.get("/api/v1/me", headers=headers(again)).json()["customer"]
+    assert fresh["id"] != me["id"]
+    assert client.get("/api/v1/me/orders", headers=headers(again)).json()["orders"] == []

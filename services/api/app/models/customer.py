@@ -37,6 +37,9 @@ class Customer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     referral_code: Mapped[str | None] = mapped_column(String(12), unique=True, nullable=True)
     referred_by_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
     referral_rewarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # The customer deleted the account: the row is kept for the orders and bonuses that point at it, emptied of
+    # personal data (services/customers.delete_account). No token of it is accepted any more.
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class CustomerAddress(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -137,11 +140,11 @@ class Consent(UUIDPrimaryKeyMixin, Base):
 
     __tablename__ = "consents"
 
-    # personal_data | marketing | withdrawn_marketing
+    # personal_data | marketing | withdrawn_marketing | withdrawn_personal_data (the account was deleted)
     kind: Mapped[str] = mapped_column(String(24), nullable=False)
     # The date of the documents' text the person agreed to (services/consents.DOCUMENT_VERSION).
     version: Mapped[str] = mapped_column(String(16), nullable=False)
-    # checkout | login
+    # checkout | login | profile | account (deleted)
     context: Mapped[str] = mapped_column(String(16), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)

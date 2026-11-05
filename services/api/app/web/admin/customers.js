@@ -100,7 +100,7 @@ function render() {
          .map(
            (customer) => `
         <tr class="clickable" data-customer="${customer.id}">
-          <td><b>${escapeHtml(customer.name || "Без имени")}</b>${customer.is_registered ? ' <span class="chip info" title="Входил в приложение">аккаунт</span>' : ""}${customer.is_blocked ? ' <span class="chip bad">блок</span>' : ""}${segmentChip(customer.segment)}</td>
+          <td><b>${escapeHtml(customer.name || (customer.is_deleted ? "Аккаунт удалён" : "Без имени"))}</b>${customer.is_deleted ? ' <span class="chip" title="Клиент удалил аккаунт: личные данные стёрты, заказы остались">удалён</span>' : ""}${customer.is_registered ? ' <span class="chip info" title="Входил в приложение">аккаунт</span>' : ""}${customer.is_blocked ? ' <span class="chip bad">блок</span>' : ""}${segmentChip(customer.segment)}</td>
           <td>${escapeHtml(customer.phone_display || (customer.telegram_username ? "@" + customer.telegram_username : "—"))}</td>
           <td class="num">${customer.orders_count}</td>
           <td class="num">${money(customer.total_spent)}</td>

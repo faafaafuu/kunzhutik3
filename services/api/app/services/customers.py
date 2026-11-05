@@ -203,7 +203,7 @@ def refresh_tokens(db: Session, refresh: str) -> tuple[Customer, dict]:
         raise ApiError("session_expired", "Войдите заново", status=401)
     session.revoked_at = utcnow()
     customer = db.get(Customer, session.customer_id)
-    if not customer or customer.is_blocked:
+    if not customer or customer.is_blocked or customer.deleted_at:
         db.commit()
         raise ApiError("session_expired", "Войдите заново", status=401)
     return customer, issue_tokens(db, customer)
@@ -226,7 +226,8 @@ def customer_from_access_token(db: Session, token: str) -> Customer:
     if payload.get("typ") != "access":
         raise ApiError("token_invalid", "Нужно войти", status=401)
     customer = db.get(Customer, payload.get("sub"))
-    if not customer or customer.is_blocked:
+    # A deleted account's access token is still unexpired for a few minutes: it opens nothing.
+    if not customer or customer.is_blocked or customer.deleted_at:
         raise ApiError("token_invalid", "Нужно войти", status=401)
     return customer
 
