@@ -45,6 +45,28 @@ def test_otp_rate_limit(client):
     assert second.json()["error"]["code"] == "otp_rate_limited"
 
 
+def test_reviewer_number_signs_in_with_a_fixed_code_and_no_sms(client, monkeypatch):
+    from app.core.config import settings
+    from app.services import customers
+
+    monkeypatch.setattr(settings, "review_phone", "+79990001122")
+    monkeypatch.setattr(settings, "review_code", "4821")
+    sent = []
+    monkeypatch.setattr(customers, "_send_sms", lambda phone, text: sent.append(phone) or True)
+
+    assert client.post("/api/v1/auth/otp/request", json={"phone": "+79990001122", "consent": True}).status_code == 200
+    assert sent == []  # no SMS for the reviewer
+    wrong = client.post("/api/v1/auth/otp/verify", json={"phone": "+79990001122", "code": "0000"})
+    assert wrong.json()["error"]["code"] == "otp_invalid"
+    ok = client.post("/api/v1/auth/otp/verify", json={"phone": "+79990001122", "code": "4821"})
+    assert ok.status_code == 200 and ok.json()["customer"]["phone"] == "+79990001122"
+
+    # Every other number still gets a random code by SMS, and the fixed code does not open it.
+    assert client.post("/api/v1/auth/otp/request", json={"phone": "+79001234567", "consent": True}).status_code == 200
+    assert sent == ["+79001234567"]
+    assert client.post("/api/v1/auth/otp/verify", json={"phone": "+79001234567", "code": "4821"}).json()["error"]["code"] == "otp_invalid"
+
+
 def test_telegram_init_data(client):
     user = {"id": 4242, "first_name": "Фарид", "username": "farid"}
     fields = {"auth_date": str(int(time.time())), "user": json.dumps(user, ensure_ascii=False), "query_id": "AAE"}

@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     smsru_api_id: str | None = Field(default=None, alias="SMSRU_API_ID")
     # The sender name approved in the sms.ru cabinet (Отправители), exactly as written there, e.g. BrightCafeR.
     smsru_sender: str | None = Field(default=None, alias="SMSRU_SENDER")
+    # A number for the App Store reviewer that signs in with a fixed code and no SMS (REVIEW_CODE: 4 digits).
+    # Both empty — there is no such number.
+    review_phone: str | None = Field(default=None, alias="REVIEW_PHONE")
+    review_code: str | None = Field(default=None, alias="REVIEW_CODE")
     # Return the login code in the API response. Ignored when APP_ENV=production.
     otp_debug: bool = Field(default=False, alias="OTP_DEBUG")
 

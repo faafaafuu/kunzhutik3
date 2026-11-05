@@ -77,10 +77,13 @@ def request_otp(db: Session, raw_phone: str, ip: str) -> dict:
             details={"retry_after": wait},
         )
 
-    code = "".join(secrets.choice("0123456789") for _ in range(OTP_LENGTH))
+    # The App Store reviewer's number: a fixed code and no SMS, so the review does not wait for an SMS provider.
+    # Only this one number, and only while both REVIEW_PHONE and REVIEW_CODE are set in .env.
+    reviewer = bool(settings.review_phone and settings.review_code and phone == normalize_phone(settings.review_phone))
+    code = settings.review_code if reviewer else "".join(secrets.choice("0123456789") for _ in range(OTP_LENGTH))
     db.add(OtpCode(phone=phone, code_hash=_otp_hash(phone, code), ip=ip, expires_at=now + OTP_TTL))
     db.commit()
-    if not _send_sms(phone, f"Код для входа в Брайт: {code}"):
+    if not reviewer and not _send_sms(phone, f"Код для входа в Брайт: {code}"):
         raise ApiError("sms_failed", "Не получилось отправить СМС с кодом. Войдите через Telegram или попробуйте чуть позже", status=502)
 
     # Same answer whether or not the number is known.
