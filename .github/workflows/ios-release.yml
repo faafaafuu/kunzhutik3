@@ -10,7 +10,7 @@ on:
     inputs:
       api_url:
         description: "API address baked into the app (EXPO_PUBLIC_API_URL)"
-        default: "https://braitsgk.ru"
+        default: "https://brightcafe.ru"
       build_number:
         description: "CFBundleVersion — must grow with every upload (empty: the workflow run number)"
         default: ""
@@ -33,7 +33,7 @@ jobs:
       run:
         working-directory: apps/client
     env:
-      EXPO_PUBLIC_API_URL: ${{ inputs.api_url || 'https://braitsgk.ru' }}
+      EXPO_PUBLIC_API_URL: ${{ inputs.api_url || 'https://brightcafe.ru' }}
       TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       CERT_P12: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
       CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}

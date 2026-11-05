@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Deploys one environment on the server, run by CI over SSH (forced command) or by hand:
-#   prod    — ~/kunzhutik3,    branch main, https://braitsgk.ru
-#   staging — ~/brait-staging, branch dev,  https://dev.braitsgk.ru
+#   prod    — ~/kunzhutik3,    branch main, https://brightcafe.ru
+#   staging — ~/brait-staging, branch dev,  https://dev.brightcafe.ru
 # Builds the images there, starts them, checks /health; if the new version does not come up, the previous images
 # are started again. The server copy lives in ~/brait-local/deploy.sh (updated from here by a deploy of prod).
 set -euo pipefail

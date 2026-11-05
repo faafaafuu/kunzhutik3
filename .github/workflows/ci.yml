@@ -1,7 +1,7 @@
 name: Checks and deploy
 
 # Every push and pull request: API tests and the client's type check.
-# A push to dev then goes to https://dev.braitsgk.ru (staging), a push to main to https://braitsgk.ru (production).
+# A push to dev then goes to https://dev.brightcafe.ru (staging), a push to main to https://brightcafe.ru (production).
 # Deploying needs the repository secret DEPLOY_SSH_KEY (the CI key of the server); without it only the checks run.
 
 on:
