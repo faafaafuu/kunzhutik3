@@ -53,7 +53,9 @@ def require_customer(customer: Customer | None = Depends(optional_customer)) -> 
 
 
 def client_ip(request: Request) -> str:
+    # The last address is the one our own proxy (Caddy) saw; anything before it the client may have typed itself,
+    # and a made-up address would slip past the per-IP limits on SMS codes and panel passwords.
     forwarded = request.headers.get("x-forwarded-for", "")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        return forwarded.split(",")[-1].strip()
     return request.client.host if request.client else ""

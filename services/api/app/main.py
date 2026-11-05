@@ -60,7 +60,19 @@ async def lifespan(_: FastAPI):
         sweeper.cancel()
 
 
-app = FastAPI(title=f"{settings.app_name} API", lifespan=lifespan)
+# A public site never starts with the sample panel key: whoever knows it could sign panel cookies for themselves.
+if settings.app_base_url.startswith("https://") and settings.dashboard_secret_key in {"change-me-dashboard-secret", ""}:
+    raise RuntimeError("DASHBOARD_SECRET_KEY is the sample value: set a long random one in .env")
+
+# /docs and /openapi.json map every route, the panel's included: only where API_DOCS=true (local development).
+_docs = settings.api_docs
+app = FastAPI(
+    title=f"{settings.app_name} API",
+    lifespan=lifespan,
+    docs_url="/docs" if _docs else None,
+    redoc_url="/redoc" if _docs else None,
+    openapi_url="/openapi.json" if _docs else None,
+)
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
 

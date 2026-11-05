@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     app_port: int = Field(default=8000, alias="APP_PORT")
     app_base_url: str = Field(default="http://localhost:8000", alias="APP_BASE_URL")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    # Swagger at /docs: for local development only, off on the server.
+    api_docs: bool = Field(default=False, alias="API_DOCS")
 
     database_url: str = Field(alias="DATABASE_URL")
     # Fill an empty database with the venue, a delivery zone and the menu on first start.
