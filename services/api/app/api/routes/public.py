@@ -49,7 +49,7 @@ def get_config() -> dict:
         },
         "telegram_login": bool(settings.telegram_bot_token),
         # Sign-in options that are set up; the app still shows all three and explains what is not ready yet.
-        "auth": {"phone": True, "telegram": bool(settings.telegram_bot_token), "google": google_configured()},
+        "auth": {"phone": True, "telegram": bool(settings.telegram_bot_token), "google": google_configured(), "apple": True},
     }
 
 

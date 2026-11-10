@@ -1,4 +1,4 @@
-// Sign in: Telegram (the bot confirms), Google, or the phone with a 4-digit SMS code sent on the last digit.
+// Sign in: Apple (iOS), Telegram (the bot confirms), Google, or the phone with a 4-digit SMS code sent on the last digit.
 
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -11,7 +11,8 @@ import { ScreenHeader } from "@/components/Chrome";
 import { AgreementLine } from "@/components/Legal";
 import { toast } from "@/components/Toast";
 import { Button, Field, LinkButton, Muted, Notice, Shell, T, Title } from "@/components/ui";
-import { collectLogin, finishWebRedirect, forgetTelegramLogin, LOGIN_ERRORS, openTelegram, pendingTelegramSecret, startGoogleLogin, startTelegramLogin } from "@/lib/auth";
+import { appleLoginAvailable, collectLogin, finishWebRedirect, forgetTelegramLogin, LOGIN_ERRORS, openTelegram, pendingTelegramSecret, startAppleLogin, startGoogleLogin, startTelegramLogin } from "@/lib/auth";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { useShared } from "@/hooks/data";
 import { maskPhone, phoneComplete } from "@/lib/format";
 import { isTelegram } from "@/lib/telegram";
@@ -32,7 +33,11 @@ export default function LoginScreen() {
   const [phone, setPhone] = useState(guestPhone || "+7");
   const [code, setCode] = useState("");
   const [length, setLength] = useState(4);
-  const [busy, setBusy] = useState<"phone" | "telegram" | "google" | "code" | null>(null);
+  const [busy, setBusy] = useState<"phone" | "telegram" | "google" | "apple" | "code" | null>(null);
+  const [apple, setApple] = useState(false);
+  useEffect(() => {
+    appleLoginAvailable().then(setApple);
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [limited, setLimited] = useState<string | null>(null);
   const [waitUntil, setWaitUntil] = useState(0);
@@ -160,6 +165,17 @@ export default function LoginScreen() {
     }
   };
 
+  const withApple = async () => {
+    if (busy) return;
+    setBusy("apple");
+    setError(null);
+    rememberConsent();
+    const failure = await startAppleLogin(agreement);
+    setBusy(null);
+    if (failure) setError(failure);
+    else if (useSession.getState().tokens) done();
+  };
+
   const withGoogle = async () => {
     setBusy("google");
     setError(null);
@@ -233,6 +249,18 @@ export default function LoginScreen() {
               </View>
               {/* A sign-in way that is not set up yet is news, not a failure. */}
               {error ? <Notice tone={error.includes("скоро заработает") ? "info" : "bad"}>{error}</Notice> : null}
+              {/* Apple's own button: the App Store asks for it next to Google (guideline 4.8) and for Apple's look. */}
+              {apple ? (
+                <View style={{ opacity: ready ? 1 : 0.45 }} pointerEvents={ready && !busy ? "auto" : "none"}>
+                  <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                    cornerRadius={27}
+                    style={{ height: 54, width: "100%" }}
+                    onPress={withApple}
+                  />
+                </View>
+              ) : null}
               {isTelegram() ? null : <ProviderButton kind="telegram" loading={busy === "telegram"} onPress={withTelegram} disabled={!ready} />}
               <ProviderButton kind="google" loading={busy === "google"} onPress={withGoogle} disabled={!ready} />
               <Divider label="или по номеру телефона" />

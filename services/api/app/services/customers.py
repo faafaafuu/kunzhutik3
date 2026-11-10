@@ -285,6 +285,7 @@ def customer_payload(customer: Customer) -> dict:
         "email": customer.email,
         "telegram_linked": bool(customer.telegram_id),
         "google_linked": bool(customer.google_id),
+        "apple_linked": bool(customer.apple_id),
         "notify_status": customer.notify_status,
         "notify_bonus": customer.notify_bonus,
         "notify_promo": customer.notify_promo,

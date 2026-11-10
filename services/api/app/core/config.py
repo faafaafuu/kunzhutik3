@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     # <APP_BASE_URL>/auth/google/callback. Both empty — the button says the login is not set up yet.
     google_client_id: str | None = Field(default=None, alias="GOOGLE_CLIENT_ID")
     google_client_secret: str | None = Field(default=None, alias="GOOGLE_CLIENT_SECRET")
+    # Sign in with Apple: the identity token's audience is the iOS app's bundle id.
+    apple_bundle_id: str = Field(default="ru.bright.delivery", alias="APPLE_BUNDLE_ID")
     # Staff accounts that receive new-order notifications and may change order status.
     telegram_allowed_user_ids_raw: str = Field(default="", alias="TELEGRAM_ALLOWED_USER_IDS")
 

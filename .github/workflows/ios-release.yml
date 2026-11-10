@@ -80,6 +80,30 @@ jobs:
       - name: Install pods
         run: cd ios && pod install
 
+      # The App Store profile is fetched fresh from Apple by name when the API key is there: a profile goes stale
+      # whenever the App ID gains a capability (Sign in with Apple did), and then the copy in the secrets would not do.
+      - name: Fetch the current App Store profile from Apple
+        if: env.ASC_KEY_ID != '' && env.ASC_ISSUER_ID != '' && env.ASC_PRIVATE_KEY != ''
+        working-directory: .
+        env:
+          FETCH_PROFILE: Bright App Store SIWA
+        run: |
+          pip3 install -q --break-system-packages pyjwt cryptography 2>/dev/null || pip3 install -q pyjwt cryptography
+          CONTENT=$(python3 - <<'PY'
+          import base64, json, os, time, urllib.parse, urllib.request
+          import jwt
+          key = base64.b64decode(os.environ["ASC_PRIVATE_KEY"]).decode()
+          now = int(time.time())
+          token = jwt.encode({"iss": os.environ["ASC_ISSUER_ID"], "iat": now, "exp": now + 600, "aud": "appstoreconnect-v1"}, key, algorithm="ES256", headers={"kid": os.environ["ASC_KEY_ID"]})
+          url = "https://api.appstoreconnect.apple.com/v1/profiles?" + urllib.parse.urlencode({"filter[name]": os.environ["FETCH_PROFILE"], "filter[profileState]": "ACTIVE"})
+          data = json.load(urllib.request.urlopen(urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})))["data"]
+          print(data[0]["attributes"]["profileContent"] if data else "")
+          PY
+          )
+          if [ -z "$CONTENT" ]; then echo "::warning::Профиль «$FETCH_PROFILE» не найден у Apple — подпишу профилем из секретов"; exit 0; fi
+          echo "::add-mask::$CONTENT"
+          { echo "PROFILE_B64=$CONTENT"; echo "PROFILE_NAME=$FETCH_PROFILE"; } >> "$GITHUB_ENV"
+
       # The certificate and the profile come from the secrets as base64: they go into a throwaway keychain and the
       # standard profile directory, so xcodebuild signs with them and nothing is written into the repository.
       - name: Install the signing certificate and profile

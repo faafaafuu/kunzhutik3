@@ -1,7 +1,8 @@
-// Sign-in that finishes outside the app (API: services/social_auth.py).
+// Sign-in that finishes outside the app (API: services/social_auth.py), and Sign in with Apple on iOS.
 // Telegram: the bot confirms the login and we poll for it. Google: the browser comes back with a one-time
 // code in the URL fragment. Either way the session comes from /auth/collect.
 
+import * as AppleAuthentication from "expo-apple-authentication";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
@@ -23,6 +24,7 @@ export const LOGIN_ERRORS: Record<string, string> = {
   google_unavailable: "Вход через Google скоро заработает. Пока войдите по номеру телефона",
   consent_required: "Подтвердите согласие на обработку персональных данных",
   google_failed: "Google не подтвердил вход, попробуйте ещё раз",
+  apple_failed: "Apple не подтвердил вход, попробуйте ещё раз",
   login_rate_limited: "Слишком много попыток входа. Попробуйте через час",
 };
 
@@ -78,6 +80,35 @@ export function pendingTelegramSecret(): string | null {
 
 export function forgetTelegramLogin(): void {
   remember(PENDING, null);
+}
+
+/** Sign in with Apple is offered on iPhone and iPad only (App Store guideline 4.8 asks for it next to Google). */
+export async function appleLoginAvailable(): Promise<boolean> {
+  if (Platform.OS !== "ios") return false;
+  return AppleAuthentication.isAvailableAsync().catch(() => false);
+}
+
+/** Native Apple sheet, then our server checks the identity token. Resolves with an error text, or null when signed in. */
+export async function startAppleLogin(agreement: { consent: boolean; marketing_consent: boolean }): Promise<string | null> {
+  let credential: AppleAuthentication.AppleAuthenticationCredential;
+  try {
+    credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
+    });
+  } catch (caught) {
+    return (caught as { code?: string }).code === "ERR_REQUEST_CANCELED" ? null : LOGIN_ERRORS.apple_failed;
+  }
+  if (!credential.identityToken) return LOGIN_ERRORS.apple_failed;
+  // Apple tells the name only the first time this Apple ID signs in to the app.
+  const name = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(" ");
+  try {
+    const result = await api<Collected>("/auth/apple", { method: "POST", body: { identity_token: credential.identityToken, name, ...agreement }, auth: false });
+    if (result.status !== "ok") return LOGIN_ERRORS.apple_failed;
+    useSession.getState().signIn(result.customer, result.tokens);
+    return null;
+  } catch (caught) {
+    return (caught as Error).message || LOGIN_ERRORS.apple_failed;
+  }
 }
 
 /** Web: leaves for Google and returns to /login. Native: an in-app browser sheet; resolves with an error text or null. */

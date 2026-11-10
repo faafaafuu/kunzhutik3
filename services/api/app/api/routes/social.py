@@ -1,4 +1,4 @@
-"""Sign-in with Telegram (through the bot) and Google; the logic is in services/social_auth.py."""
+"""Sign-in with Telegram (through the bot), Google and Apple; the logic is in services/social_auth.py."""
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
@@ -16,6 +16,7 @@ from app.services.social_auth import (
     collect,
     finish_google,
     safe_return_to,
+    sign_in_apple,
     start_google,
     start_telegram,
     with_fragment,
@@ -48,6 +49,21 @@ def collect_login(payload: CollectRequest, db: Session = Depends(get_db)) -> dic
     customer = collect(db, payload.secret)
     if not customer:
         return {"status": "pending"}
+    loyalty.grant_welcome(db, customer)
+    return {"status": "ok", "customer": customer_payload(customer), "tokens": issue_tokens(db, customer)}
+
+
+class AppleLogin(StartLogin):
+    identity_token: str = Field(min_length=20, max_length=4000)
+    name: str = Field(default="", max_length=160)
+
+
+@router.post("/api/v1/auth/apple")
+def apple_login(request: Request, payload: AppleLogin, db: Session = Depends(get_db)) -> dict:
+    """Sign in with Apple from the iOS app: the identity token Apple gave the device."""
+    consents.require_personal_data_consent(db, given=payload.consent)
+    customer = sign_in_apple(db, payload.identity_token, payload.name)
+    consents.record(db, context="login", ip=client_ip(request), personal_data=payload.consent, marketing=payload.marketing_consent, customer=customer)
     loyalty.grant_welcome(db, customer)
     return {"status": "ok", "customer": customer_payload(customer), "tokens": issue_tokens(db, customer)}
 

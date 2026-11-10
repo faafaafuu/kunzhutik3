@@ -54,6 +54,7 @@ def delete_account(db: Session, customer: Customer, *, ip: str = "") -> None:
     customer.telegram_id = None
     customer.telegram_username = None
     customer.google_id = None
+    customer.apple_id = None
     customer.is_registered = False
     customer.note = ""
     customer.tags = []

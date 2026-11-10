@@ -23,7 +23,9 @@ class Customer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # Google account ("sub" of the ID token) and its verified email, for those who sign in with Google.
     google_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
     email: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    # Has signed in at least once (by SMS, Telegram or Google), as opposed to a guest record.
+    # Apple account ("sub" of the Sign in with Apple identity token), stable for this app.
+    apple_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    # Has signed in at least once (by SMS, Telegram, Google or Apple), as opposed to a guest record.
     is_registered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # CRM fields, edited by managers.
     note: Mapped[str] = mapped_column(Text, nullable=False, default="")

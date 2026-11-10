@@ -120,3 +120,48 @@ def test_telegram_api_can_go_through_a_tunnel(monkeypatch):
     monkeypatch.setattr(settings, "telegram_api_base", "https://api.telegram.org:8443/")
     bot = telegram.make_bot()
     assert bot.session.api.api_url(token="T", method="getMe") == "https://api.telegram.org:8443/botT/getMe"
+
+
+# ---------- Apple ----------
+
+
+@pytest.fixture
+def apple_key(monkeypatch):
+    """Signs identity tokens with a throwaway RSA key that stands in for Apple's published one."""
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+    class Keys:
+        def get_signing_key_from_jwt(self, token):
+            return type("Key", (), {"key": private.public_key()})()
+
+    monkeypatch.setattr(social_auth, "_apple_keys", Keys())
+
+    def sign(**claims):
+        base = {"iss": social_auth.APPLE_ISSUER, "aud": settings.apple_bundle_id, "sub": "001234.apple", "exp": 9999999999, "iat": 1}
+        return jwt.encode({**base, **claims}, private, algorithm="RS256", headers={"kid": "test"})
+
+    return sign
+
+
+def test_apple_login_creates_the_account_once_and_keeps_the_first_name(client, apple_key):
+    first = client.post("/api/v1/auth/apple", json={"identity_token": apple_key(email="x@privaterelay.appleid.com"), "name": "Анна", "consent": True})
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert body["tokens"]["access_token"] and body["customer"]["apple_linked"] and body["customer"]["name"] == "Анна"
+
+    again = client.post("/api/v1/auth/apple", json={"identity_token": apple_key(), "consent": True}).json()
+    assert again["customer"]["id"] == body["customer"]["id"] and again["customer"]["name"] == "Анна"
+
+
+def test_apple_login_refuses_a_token_for_another_app_or_unsigned(client, apple_key):
+    wrong_app = client.post("/api/v1/auth/apple", json={"identity_token": apple_key(aud="com.other.app"), "consent": True})
+    assert wrong_app.status_code == 401 and wrong_app.json()["error"]["code"] == "apple_failed"
+    forged = jwt.encode({"iss": social_auth.APPLE_ISSUER, "aud": settings.apple_bundle_id, "sub": "x", "exp": 9999999999}, "secret-but-long-enough-for-hs256", algorithm="HS256")
+    assert client.post("/api/v1/auth/apple", json={"identity_token": forged, "consent": True}).status_code == 401
+
+
+def test_apple_login_needs_the_consent(client, apple_key):
+    response = client.post("/api/v1/auth/apple", json={"identity_token": apple_key()})
+    assert response.status_code == 422 and response.json()["error"]["code"] == "consent_required"

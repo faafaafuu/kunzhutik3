@@ -274,3 +274,49 @@ def _customer_for_google(db: Session, claims: dict) -> Customer:
     customer.is_registered = True
     db.flush()
     return customer
+
+
+# ---------- Apple ----------
+# The iOS app signs in natively (expo-apple-authentication) and sends the identity token here. It came from the
+# device, not from Apple over our own TLS, so unlike Google's its signature is checked against Apple's public keys.
+
+APPLE_ISSUER = "https://appleid.apple.com"
+APPLE_KEYS_URL = "https://appleid.apple.com/auth/keys"
+_apple_keys: jwt.PyJWKClient | None = None
+
+
+def _apple_claims(identity_token: str) -> dict:
+    global _apple_keys
+    if _apple_keys is None:
+        _apple_keys = jwt.PyJWKClient(APPLE_KEYS_URL, cache_keys=True, lifespan=24 * 3600, timeout=10)
+    try:
+        key = _apple_keys.get_signing_key_from_jwt(identity_token)
+        claims = jwt.decode(identity_token, key.key, algorithms=["RS256"], audience=settings.apple_bundle_id, issuer=APPLE_ISSUER)
+    except jwt.PyJWKClientError as exc:
+        logger.warning("Apple keys unavailable: %s", exc)
+        raise ApiError("apple_failed", "Apple не ответил, попробуйте ещё раз", status=502) from exc
+    except jwt.InvalidTokenError as exc:
+        raise ApiError("apple_failed", "Apple не подтвердил вход, попробуйте ещё раз", status=401) from exc
+    if not claims.get("sub"):
+        raise ApiError("apple_failed", "Apple не подтвердил вход, попробуйте ещё раз", status=401)
+    return claims
+
+
+def sign_in_apple(db: Session, identity_token: str, name: str = "") -> Customer:
+    """The customer of a Sign in with Apple identity token. Apple gives the name only on the very first sign-in,
+    and only to the app, so the app passes it along; the email may be a private relay address."""
+    claims = _apple_claims(identity_token)
+    apple_id = str(claims["sub"])
+    customer = db.query(Customer).filter(Customer.apple_id == apple_id).first()
+    if customer and (customer.is_blocked or customer.deleted_at):
+        raise ApiError("login_blocked", "Вход для этого аккаунта недоступен", status=403)
+    if not customer:
+        customer = Customer(apple_id=apple_id, source="ios")
+        db.add(customer)
+    if claims.get("email"):
+        customer.email = str(claims["email"])[:200]
+    if not customer.name and name:
+        customer.name = name.strip()[:160]
+    customer.is_registered = True
+    db.commit()
+    return customer
