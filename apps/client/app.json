@@ -54,7 +54,13 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Геолокация нужна, чтобы найти ближайшую точку и подставить адрес доставки."
+          "locationWhenInUsePermission": "Геолокация нужна, чтобы найти ближайшую точку и подставить адрес доставки.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false,
+          "locationFullAccuracyPermission": false,
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
         }
       ],
       [
@@ -68,7 +74,9 @@
         "expo-audio",
         {
           "microphonePermission": false,
-          "recordAudioAndroid": false
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
         }
       ],
       "expo-apple-authentication"
